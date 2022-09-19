@@ -133,7 +133,10 @@ class LineAngleStrategy:
 
 def default_angle_strategy(geom: BaseGeometry):
     rect = geom.minimum_rotated_rectangle
-    if not isinstance(rect, Polygon):
-        return 0
+    if isinstance(rect, Polygon):
+        return PolygonAngleStrategy(0).by_bounding_box_width()(rect)
+    elif isinstance(rect, LineString):
+        return LineAngleStrategy().end_to_end()(rect)
+    return 0
 
-    return PolygonAngleStrategy(0).by_bounding_box_width()(rect)
+

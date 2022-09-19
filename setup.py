@@ -161,12 +161,13 @@ long_description = readme + '\n\n' + credits + '\n\n' + changes
 extra_reqs = {
     'test': ['pytest', 'pytest-cov'],
     'vectorized': ['numpy'],
-    'extension': ['PyFunctional']}
+    }
 extra_reqs['all'] = list(it.chain.from_iterable(extra_reqs.values()))
 
 # Make a dict of setup arguments. Some items will be updated as
 # the script progresses.
 setup_args = dict(
+    install_requires    = ['pyfunctional==1.4.3', 'toolz==0.12.0'],
     name                = 'Shapely',
     version             = str(shapely_version),
     description         = 'Geometric objects, predicates, and operations',
@@ -185,6 +186,7 @@ setup_args = dict(
         'shapely.examples',
         'shapely.speedups',
         'shapely.vectorized',
+        'shapely.extension'
     ],
     classifiers         = [
         'Development Status :: 5 - Production/Stable',

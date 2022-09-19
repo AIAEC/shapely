@@ -4,7 +4,6 @@ from typing import Union, Tuple, Optional, Iterable
 
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
-from shapely.extension.geometry.line import Line
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.interval import Interval
@@ -110,7 +109,7 @@ class LineStringExtension(BaseGeomExtension):
         def native_project(line, point: Union[Point, CoordType]) -> Point:
             return line.interpolate(line.project(Point(point)))
 
-        if isinstance(self._geom, (StraightSegment, Line)):
+        if isinstance(self._geom, StraightSegment):
             return project_on_straight_line(self._geom, point_or_coord)
 
         native_projected_pt = native_project(self._geom, point_or_coord)
