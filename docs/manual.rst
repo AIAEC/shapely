@@ -1520,6 +1520,22 @@ depending on whether they intersect or not.
 
   >>> a = Point(1, 1).buffer(1.5)
   >>> b = Point(2, 1).buffer(1.5)
+  >>> a.union_of(b)
+  <shapely.geometry.polygon.Polygon object at 0x...>
+
+The semantics of these operations vary with type of geometric object.  For
+example, compare the boundary of the union of polygons to the union of their
+boundaries.
+  >>> a = Point(1, 1).buffer(1.5)
+  >>> b = Point(2, 1).buffer(1.5)
+  >>> a.union_of(b)
+  <shapely.geometry.polygon.Polygon object at 0x...>
+
+The semantics of these operations vary with type of geometric object.  For
+example, compare the boundary of the union of polygons to the union of their
+boundaries.
+  >>> a = Point(1, 1).buffer(1.5)
+  >>> b = Point(2, 1).buffer(1.5)
   >>> a.union(b)
   <shapely.geometry.polygon.Polygon object at 0x...>
 
@@ -1529,6 +1545,22 @@ boundaries.
 
 .. code-block:: pycon
 
+  >>> a.union_of(b).boundary
+  <shapely.geometry.polygon.LinearRing object at 0x...>
+  >>> a.boundary.union(b.boundary)
+  <shapely.geometry.multilinestring.MultiLineString object at 0x...>
+  >>> a.union_of(b).boundary
+  <shapely.geometry.polygon.LinearRing object at 0x...>
+  >>> a.boundary.union(b.boundary)
+  <shapely.geometry.multilinestring.MultiLineString object at 0x...>
+  >>> a.union(b).boundary
+  <shapely.geometry.polygon.LinearRing object at 0x...>
+  >>> a.boundary.union_of(b.boundary)
+  <shapely.geometry.multilinestring.MultiLineString object at 0x...>
+  >>> a.union(b).boundary
+  <shapely.geometry.polygon.LinearRing object at 0x...>
+  >>> a.boundary.union_of(b.boundary)
+  <shapely.geometry.multilinestring.MultiLineString object at 0x...>
   >>> a.union(b).boundary
   <shapely.geometry.polygon.LinearRing object at 0x...>
   >>> a.boundary.union(b.boundary)

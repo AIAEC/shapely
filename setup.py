@@ -160,7 +160,8 @@ long_description = readme + '\n\n' + credits + '\n\n' + changes
 
 extra_reqs = {
     'test': ['pytest', 'pytest-cov'],
-    'vectorized': ['numpy']}
+    'vectorized': ['numpy'],
+    'extension': ['PyFunctional']}
 extra_reqs['all'] = list(it.chain.from_iterable(extra_reqs.values()))
 
 # Make a dict of setup arguments. Some items will be updated as

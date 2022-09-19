@@ -1,0 +1,81 @@
+from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from operator import attrgetter
+from typing import List, Optional, Union
+
+from functional.streams import seq
+
+from shapely.extension.typing import Num
+from shapely.extension.util.flatten import flatten
+from shapely.extension.util.func_util import lconcat
+from shapely.geometry import Polygon, JOIN_STYLE, CAP_STYLE
+from shapely.geometry.base import BaseGeometry
+
+
+class BaseSimplifyStrategy(ABC):
+    @abstractmethod
+    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List:
+        raise NotImplementedError
+
+
+class DefaultSimplifyStrategy(BaseSimplifyStrategy):
+    def __init__(self, simplify_dist: Num = 0):
+        self._simplify_dist = simplify_dist
+
+    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List:
+        return [geom.simplify(self._simplify_dist) for geom in flatten(geom_or_geoms).to_list()]
+
+
+class BufferSimplifyStrategy(BaseSimplifyStrategy):
+    @dataclass
+    class BufferParam:
+        buffer_dist: float = field(default=5)
+        buffer_dist_decay: float = field(default=1.0)
+        join_style: int = field(default=JOIN_STYLE.mitre)
+        cap_style: int = field(default=CAP_STYLE.flat)
+        mitre_limit: float = field(default=5)  # the default mitre limit of shapely
+
+    def __init__(self, n_iter: int = 5, buffer_param: Optional[BufferParam] = None):
+        self._n_iter = max(1, abs(n_iter))
+        self._buffer_param = buffer_param or self.BufferParam()
+
+    @classmethod
+    def mitre(cls, buffer_dist: float = 5,
+              buffer_dist_decay: float = 1.0,
+              mitre_limit: float = 5,
+              n_iter: int = 1) -> 'BufferSimplifyStrategy':
+        buffer_param = cls.BufferParam(buffer_dist=buffer_dist,
+                                       buffer_dist_decay=buffer_dist_decay,
+                                       mitre_limit=mitre_limit,
+                                       join_style=JOIN_STYLE.mitre)
+        return cls(n_iter=n_iter, buffer_param=buffer_param)
+
+    @classmethod
+    def round(cls, buffer_dist: float = 5, buffer_dist_decay: float = 1.0, n_iter: int = 1) -> 'BufferSimplifyStrategy':
+        buffer_param = cls.BufferParam(buffer_dist=buffer_dist,
+                                       buffer_dist_decay=buffer_dist_decay,
+                                       join_style=JOIN_STYLE.round)
+        return cls(n_iter=n_iter, buffer_param=buffer_param)
+
+    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
+        geoms = [geom_or_geoms] if isinstance(geom_or_geoms, BaseGeometry) else geom_or_geoms
+
+        result: List[BaseGeometry] = lconcat(map(flatten, geoms))
+        for _ in range(self._n_iter):
+            for i, g in enumerate(result):
+                if isinstance(g, Polygon):
+                    for factor in [-1, 1]:
+                        g = g.buffer(distance=self._buffer_param.buffer_dist * factor,
+                                     join_style=self._buffer_param.join_style,
+                                     cap_style=self._buffer_param.cap_style,
+                                     mitre_limit=self._buffer_param.mitre_limit)
+
+                    result[i] = g
+
+                    self._buffer_param.buffer_dist *= self._buffer_param.buffer_dist_decay
+
+        return (seq(result)
+                .flat_map(flatten)
+                .filter(attrgetter('is_valid'))
+                .to_list())

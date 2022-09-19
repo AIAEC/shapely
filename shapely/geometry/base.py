@@ -5,7 +5,7 @@ geometry objects, but has no effect on geometric analysis. All
 operations are performed in the x-y plane. Thus, geometries with
 different z values may intersect or be equal.
 """
-
+import hashlib
 from binascii import a2b_hex
 from ctypes import pointer, c_size_t, c_char_p, c_void_p
 from itertools import islice
@@ -18,8 +18,9 @@ import warnings
 
 from shapely.affinity import affine_transform
 from shapely.coords import CoordinateSequence
-from shapely.errors import GeometryTypeError, WKBReadingError, WKTReadingError
+from shapely.errors import GeometryTypeError, WKBReadingError, WKTReadingError, InvalidGeometryError
 from shapely.errors import ShapelyDeprecationWarning
+from shapely.extension.geom_extension_entry import GeomExtensionEntry
 from shapely.geos import WKBWriter, WKTWriter
 from shapely.geos import lgeos
 from shapely.impl import DefaultImplementation, delegated
@@ -180,6 +181,13 @@ class BaseGeometry:
 
     # a reference to the so/dll proxy to preserve access during clean up
     _lgeos = lgeos
+
+    ## EXTENSION_START
+    ext = GeomExtensionEntry()
+
+    def __hash__(self):
+        return hashlib.md5(self.wkb).hexdigest()
+    ## EXTENSION_END
 
     def empty(self, val=EMPTY):
         warn(
