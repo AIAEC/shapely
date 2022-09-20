@@ -12,6 +12,8 @@ from shapely.geometry import LineString, MultiLineString, Point, Polygon, MultiP
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 from shapely.ops import split, unary_union, substring
 
+__all__ = ['divide']
+
 
 def _line_divided_by_points(line: Union[LineString, MultiLineString],
                             points: Union[Point, Sequence[Point], MultiPoint],
@@ -64,7 +66,7 @@ def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
 
     if isinstance(divider, LineString):
         if polygons:
-            polygons = flatten(split(MultiPolygon(polygons).to_list(), divider), Polygon)
+            polygons = flatten(split(MultiPolygon(polygons), divider), Polygon).to_list()
     else:  # MultiLineString
         # the shapely split method can only handle linestring as splitter, and they do so for reason as that,
         # when splitting by a multi-linestring, the order of splitting by each linestring affects the result
@@ -85,6 +87,6 @@ def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
         polygons = divided_polys
 
     if len(lines) > 0:
-        lines = flatten(split(MultiLineString(lines).to_list(), divider), LineString)
+        lines = flatten(split(MultiLineString(lines), divider), LineString).to_list()
 
     return polygons + lines + points

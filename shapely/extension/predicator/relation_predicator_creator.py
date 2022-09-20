@@ -18,6 +18,7 @@ class RelationPredicatorCreator:
             self_geom_buffered = self.rect_buffer(self._geom, self_buffer)
             other_geom_buffered = self.rect_buffer(geom, other_buffer)
             return getattr(self_geom_buffered, method_name)(other_geom_buffered)
+
         return _func
 
     def intersects(self, self_buffer: Num = 0., other_buffer: Num = 0.):

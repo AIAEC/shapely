@@ -62,7 +62,8 @@ class LineBypassing:
         :return:
         """
         ring_pieces: List[LineString] = flatten(ring.difference(crossing_line), LineString).to_list()
-        crossing_lines_inside: List[LineString] = flatten(Polygon(ring).intersection(crossing_line), LineString).to_list()
+        crossing_lines_inside: List[LineString] = flatten(Polygon(ring).intersection(crossing_line),
+                                                          LineString).to_list()
 
         def have_same_endpoints_with_any_crossing_seg(line):
             return any(

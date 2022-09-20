@@ -1,8 +1,6 @@
 from operator import attrgetter
 from typing import List, Optional
 
-from functional import seq
-
 from shapely.extension.constant import LARGE_ENOUGH_DISTANCE
 from shapely.extension.util.line_extent import LineExtent
 from shapely.geometry import LineString, LinearRing, Polygon

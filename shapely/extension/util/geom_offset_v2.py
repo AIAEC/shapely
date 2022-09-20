@@ -11,6 +11,8 @@ from shapely.extension.util.func_util import lmap
 from shapely.geometry import LineString, JOIN_STYLE, Point, LinearRing, Polygon, MultiLineString
 from shapely.ops import unary_union
 
+__all__ = ['offset']
+
 
 def reverse_line(line: Union[LineString, MultiLineString]) -> Union[LineString, MultiLineString]:
     if isinstance(line, LineString):

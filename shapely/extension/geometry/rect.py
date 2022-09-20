@@ -18,4 +18,3 @@ class Rect(Polygon):
     @property
     def angle(self) -> Angle:
         return self.ext.angle(PolygonAngleStrategy(0).by_bounding_box_width())
-   

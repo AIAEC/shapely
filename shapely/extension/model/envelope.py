@@ -88,7 +88,8 @@ class Envelope:
         x_min, y_min, x_max, y_max = rotate(geom, angle=angle.degree).bounds
         return Point(x_min, y_min), Point(x_max, y_min), Point(x_max, y_max), Point(x_min, y_max)
 
-    def _setup_angle(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]], angle: Union[Num, Angle]) -> Angle:
+    def _setup_angle(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
+                     angle: Union[Num, Angle]) -> Angle:
         # if given angle, then return this angle
         if angle is not None:
             return Angle(angle)

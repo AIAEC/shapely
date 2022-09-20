@@ -138,5 +138,3 @@ def default_angle_strategy(geom: BaseGeometry):
     elif isinstance(rect, LineString):
         return LineAngleStrategy().end_to_end()(rect)
     return 0
-
-

@@ -1,5 +1,4 @@
 from abc import abstractmethod, ABC
-from itertools import islice
 from operator import truth
 from typing import Union, Sequence, Callable, List
 

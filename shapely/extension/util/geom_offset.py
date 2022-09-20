@@ -11,6 +11,8 @@ from shapely.extension.util.line_extent import LineExtent
 from shapely.geometry import LineString, JOIN_STYLE, Polygon, LinearRing, CAP_STYLE
 from shapely.ops import linemerge
 
+__all__ = ['offset']
+
 
 def _group_by_line_extent(curves: List[LineString], extent_dist: float = LARGE_ENOUGH_DISTANCE) -> List[LineString]:
     """

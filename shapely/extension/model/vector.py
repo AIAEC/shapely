@@ -7,10 +7,10 @@ from typing import Sequence, Tuple, Union, Optional, List, Iterable as IterableT
 
 from shapely.affinity import translate
 from shapely.extension.constant import MATH_EPS
-from shapely.geometry import Point, LineString
-from shapely.geometry.base import BaseGeometry
 from shapely.extension.model.angle import Angle
 from shapely.extension.typing import Num, CoordType, GeomObj, GeomObjIter
+from shapely.geometry import Point, LineString
+from shapely.geometry.base import BaseGeometry
 
 
 class Vector:

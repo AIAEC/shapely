@@ -6,6 +6,8 @@ from shapely.extension.util.func_util import lconcat
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.validation import make_valid
 
+__all__ = ['flatten']
+
 
 def _flatten_helper(geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]]) -> List[BaseGeometry]:
     """

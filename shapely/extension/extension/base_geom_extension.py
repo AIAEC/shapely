@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Iterable
 from operator import attrgetter
-from typing import List, Union, Optional, Tuple, Callable
+from typing import Union, Optional, Tuple, Callable
 
 from shapely.affinity import rotate, scale
 from shapely.extension.constant import MATH_EPS
@@ -38,12 +38,38 @@ class BaseGeomExtension:
         return Stretch(self._geom)
 
     def decompose(self, target_class: type, strategy: Optional[BaseDecomposeStrategy] = None) -> Aggregation:
+        """
+        decompose current geometry into lower dimensional geometries
+        Parameters
+        ----------
+        target_class: target class of decomposing process. If the target class has dimension higher than current
+            geometry, it will return the aggregation of current geometry immediately
+        strategy: decompose strategy instance that specify the rule of decomposing
+
+        Returns
+        -------
+        aggregation object of decomposed geometry instances
+        """
         return Aggregation(decompose(self._geom, target_class=target_class, strategy=strategy))
 
     def flatten(self, target_class_or_callable: Union[type, Tuple[type], Callable[[BaseGeometry], bool]],
                 validate: bool = True,
                 filter_valid: bool = True,
                 filter_out_empty: bool = True) -> Aggregation:
+        """
+        flatten current geometry into singular geometry list and filter it using various filter
+
+        Parameters
+        ----------
+        target_class_or_callable: filter geometry that matches the given target class or satisfy the filter callable
+        validate: make geometry valid if it's invalid, before any filtering
+        filter_valid: filter geometry that are valid
+        filter_out_empty: filter geometry that are empty
+
+        Returns
+        -------
+        aggregation object of singular geometry instances
+        """
 
         return flatten(self._geom,
                        target_class_or_callable=target_class_or_callable,
@@ -51,12 +77,30 @@ class BaseGeomExtension:
                        filter_valid=filter_valid,
                        filter_out_empty=filter_out_empty)
 
-    def envelope(self, attr_getter: Optional[Callable[[object], BaseGeometry]] = None) -> EnvelopeCreator:
-        return EnvelopeCreator(self._geom, attr_getter=attr_getter)
+    def envelope(self) -> EnvelopeCreator:
+        """
+        enter envelope creation process
+        Returns
+        -------
+        object that has several methods to create envelope
+        """
+        return EnvelopeCreator(self._geom)
 
     def divided_by(self, line_or_lines: Union[LineString, Iterable[LineString], MultiLineString],
-                   dist_tol: Num = MATH_EPS) -> List[BaseGeometry]:
-        return divide(self._geom, divider=line_or_lines, dist_tol=dist_tol)
+                   dist_tol: Num = MATH_EPS) -> Aggregation:
+        """
+        divide current geometry by linestring(s) or multi-linestring. If you want to do divide by other types of geometry
+        use difference instead
+        Parameters
+        ----------
+        line_or_lines: linestring(s) or multi-linestring
+        dist_tol: maximum snapping distance for divider's ends attaching to current geometry's boundary
+
+        Returns
+        -------
+        aggregation of divided geometries
+        """
+        return Aggregation(divide(self._geom, divider=line_or_lines, dist_tol=dist_tol))
 
     def move_by(self, vector: Vector):
         return vector.apply(self._geom)
@@ -114,7 +158,7 @@ class BaseGeomExtension:
         return strategy.simplify(self._geom)
 
     def move_towards(self, geom: BaseGeometry, direction: Optional[Vector] = None, util: Optional = None):
-        warnings.warn('move_towards\'s util parameter is not implemented')
+        warnings.warn("move_towards's util parameter is not implemented")
 
         move_vector = Vector.from_endpoints_of(self.connect_path(geom, direction=direction))
         return move_vector.apply(self._geom)

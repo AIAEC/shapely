@@ -1,4 +1,5 @@
-from itertools import count, takewhile, islice
+import warnings
+from itertools import count, takewhile
 from math import isclose, cos, sin, radians
 from typing import Union, Optional, List, Iterable
 
@@ -12,6 +13,8 @@ from shapely.geometry import LineString, Point
 
 
 class ArcCreator:
+    warnings.warn('ArcCreator not tested!!')
+
     @classmethod
     def from_center_start_end(cls, center: Point,
                               start_point: Point,
