@@ -17,7 +17,7 @@ class LineBypassing:
 
     def bypass(self, poly_or_multi_poly: Union[Polygon, MultiPolygon, GeometryCollection],
                chosen_longer_path: bool = False) -> LineString:
-        '''
+        """
         ┌─────┐
         │poly │
     ────│─────│───── linestring
@@ -36,18 +36,24 @@ class LineBypassing:
         有两种路径选择，如果chosen_longer_path=True
         则选择最长的path
 
-        :param poly_or_multi_poly: Polygon或者多个Polygon
-        :param chosen_longer_path: 选择最长的path
-        :return: LineString (其中一种LineBypassing的方式）
 
-        '''
+        Parameters
+        ----------
+        poly_or_multi_poly: Polygon或者多个Polygon
+        chosen_longer_path: 选择最长的path
+
+        Returns
+        -------
+        LineString (其中一种LineBypassing的方式）
+        """
+
         for poly in flatten(poly_or_multi_poly, Polygon).to_list():
             self._line = self.bypass_single(poly, chosen_longer_path=chosen_longer_path)
 
         return self._line
 
     @classmethod
-    def cut_linearring_by_line(cls, ring: LinearRing, crossing_line: LineString) -> List[LineString]:
+    def _cut_linearring_by_line(cls, ring: LinearRing, crossing_line: LineString) -> List[LineString]:
         """
         cut the linearRing by crossing line, and return the pieces of the ring
 
@@ -57,9 +63,14 @@ class LineBypassing:
         Why is that? when doing difference linearRing will been regarded as linestring, so that its first point and latest
         point, though exactly equal, will not be treated as connected
 
-        :param ring:
-        :param crossing_line:
-        :return:
+        Parameters
+        ----------
+        ring
+        crossing_line
+
+        Returns
+        -------
+
         """
         ring_pieces: List[LineString] = flatten(ring.difference(crossing_line), LineString).to_list()
         crossing_lines_inside: List[LineString] = flatten(Polygon(ring).intersection(crossing_line),
@@ -67,13 +78,13 @@ class LineBypassing:
 
         def have_same_endpoints_with_any_crossing_seg(line):
             return any(
-                cls.two_lines_have_same_endpoints(crossing_line, line) for crossing_line in crossing_lines_inside)
+                cls._two_lines_have_same_endpoints(crossing_line, line) for crossing_line in crossing_lines_inside)
 
         valid_pieces, separated_pieces = separate(func=have_same_endpoints_with_any_crossing_seg, items=ring_pieces)
         return flatten(linemerge(separated_pieces), LineString).to_list() + valid_pieces
 
     @classmethod
-    def two_lines_have_same_endpoints(cls, line0: LineString, line1: LineString) -> bool:
+    def _two_lines_have_same_endpoints(cls, line0: LineString, line1: LineString) -> bool:
         coord00, coord01 = line0.coords[0], line0.coords[-1]
         coord10, coord11 = line1.coords[0], line1.coords[-1]
         return (Coord.dist(coord00, coord10) + Coord.dist(coord01, coord11) < MATH_EPS
@@ -83,7 +94,7 @@ class LineBypassing:
         if not self._line.crosses(poly):
             return self._line
 
-        exterior_pieces: List[LineString] = self.cut_linearring_by_line(poly.exterior, self._line)
+        exterior_pieces: List[LineString] = self._cut_linearring_by_line(poly.exterior, self._line)
         line_pieces: List[LineString] = flatten(self._line.difference(poly.exterior), LineString).to_list()
 
         line_pieces_inside, line_pieces_outside = separate(
@@ -94,7 +105,7 @@ class LineBypassing:
         for line_piece_inside in line_pieces_inside:
             chosen_func = max if chosen_longer_path else min
             if surrounding := chosen_func(
-                    lfilter(lambda ext: self.two_lines_have_same_endpoints(ext, line_piece_inside), exterior_pieces),
+                    lfilter(lambda ext: self._two_lines_have_same_endpoints(ext, line_piece_inside), exterior_pieces),
                     key=lambda line: line.length,
                     default=None):
                 valid_surroundings.append(surrounding)

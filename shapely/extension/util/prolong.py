@@ -10,11 +10,15 @@ def prolong(line: LineString,
             end_prolong_len: float = 0) -> LineString:
     """
     延长线的两端
+    Parameters
+    ----------
+    line
+    front_prolong_len
+    end_prolong_len
 
-    :param line:
-    :param front_prolong_len:
-    :param end_prolong_len:
-    :return:
+    Returns
+    -------
+    linestring
     """
     if not isinstance(line, LineString) or not line.is_valid or (front_prolong_len == end_prolong_len == 0):
         return line
@@ -49,6 +53,10 @@ def prolong(line: LineString,
 
 
 class Prolong:
+    """
+    Prolong mode for linestring
+    """
+
     def __init__(self, line: LineString, absolute: bool = True):
         self._line = line
         self._absolute = absolute

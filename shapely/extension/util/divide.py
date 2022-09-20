@@ -54,7 +54,19 @@ def _divide_polygon_by_multilinestring(polygon: Polygon,
 
 def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
            divider: Union[LineString, MultiLineString, BaseGeometry],
-           dist_tol: Num = MATH_EPS) -> List[BaseGeometry]:
+           dist_tol: Num = MATH_EPS) -> List:
+    """
+    divide the geom_or_geoms by divider(only linestring(s) or multi-linestring)
+    Parameters
+    ----------
+    geom_or_geoms: geometry(s)
+    divider: only linestring(s) or multi-linestring
+    dist_tol: max distance for divider's point snapping to geom_or_geoms' boundary
+
+    Returns
+    -------
+    list of geometry instances
+    """
     if not isinstance(divider, (LineString, MultiLineString)):
         return flatten(unary_union(geom_or_geoms).to_list().difference(divider))
 

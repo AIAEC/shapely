@@ -6,6 +6,10 @@ from shapely.geometry.base import BaseGeometry
 
 
 class Rect(Polygon):
+    """
+    child type of Polygon that represent a rectangle.
+    """
+
     def __init__(self, shell=None):
         super().__init__(shell, None)
         if not self.is_rect(self, MATH_EPS):

@@ -17,11 +17,17 @@ class ShortestStraightPath:
     def of(self, geom0: BaseGeometry, geom1: BaseGeometry, single_sided: bool = False) -> LineString:
         """
         this function will find the shortest path between two geometries in a certain angle. if the angle is not given,
-         the shortest path will be found.
-        :param geom0: BaseGeometry
-        :param geom1: BaseGeometry
-        :param single_sided: bool
-        :return: shapely.Linestring
+        the shortest path will be found.
+
+        Parameters
+        ----------
+        geom0: BaseGeometry
+        geom1: BaseGeometry
+        single_sided: bool
+
+        Returns
+        -------
+        shapely.Linestring
         """
         if not geom0.is_valid or not geom1.is_valid:
             return LineString()
@@ -64,10 +70,15 @@ class ShortestStraightPath:
         to implement this algorithm, we should notice that, one the end of the shortest path between two geometries must be
         a vertex of one geometries, so that we could draw a lines from all the vertexs from geom0 in a certain direction, and
         these lines will intersects geom1. The shortest path we want must be the shortest one among these lines.
-        :param geom0: BaseGeometry
-        :param geom1: BaseGeometry
-        :param direction: Vector
-        :return: shapely.Linestring
+        Parameters
+        ----------
+        geom0: BaseGeometry
+        geom1: BaseGeometry
+        direction: Vector
+
+        Returns
+        -------
+        shapely.Linestring
         """
         points_in_geom0 = geom0.ext.decompose(Point)
 

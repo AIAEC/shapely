@@ -272,6 +272,10 @@ class TestVector(TestCase):
         vector3 = Vector(-1, -1e-6)
         self.assertTrue(vector0.perpendicular_to(vector3, dist_tol=1e-3))
 
+        vector4 = Vector(0.5, 0.5)
+        self.assertTrue(vector4.perpendicular_to(vector0, angle_tol=46))
+        self.assertFalse(vector4.perpendicular_to(vector0, angle_tol=44))
+
     def test_parallel_to(self):
         vector0 = Vector(0, 1)
         vector1 = Vector(0, -10)
@@ -283,3 +287,7 @@ class TestVector(TestCase):
         vector3 = Vector(1, 1)
         vector4 = Vector(-0.001, -0.001001)
         self.assertTrue(vector3.parallel_to(vector4, dist_tol=1e-3))
+
+        vector5 = Vector(1, -1)
+        self.assertTrue(vector5.parallel_to(vector0, angle_tol=46))
+        self.assertFalse(vector5.parallel_to(vector0, angle_tol=44))

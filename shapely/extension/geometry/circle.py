@@ -6,6 +6,10 @@ from shapely.geometry import Point
 
 
 class Circle(Arc):
+    """
+    child type of Arc representing the full exterior of circle exterior
+    """
+
     def __init__(self, center: Union[Point, CoordType],
                  radius: Num = 1,
                  resolution: Num = 16):

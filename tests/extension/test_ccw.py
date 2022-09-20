@@ -59,4 +59,3 @@ class CcwTest(TestCase):
                 self.assertTrue(geom.equals(expect))
             else:
                 self.assertTrue(geom.equals(LineString([(0, 0), (1, 0), (0, 1), (0, 0)])))
-

@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from shapely.extension.model.alignment import AlignPoint, AlignLineString, AlignPolygon
 from shapely.extension.model.vector import Vector
-from shapely.geometry import Point, LineString, box
+from shapely.geometry import Point, LineString, box, Polygon
 
 
 class AlignObjectTest(TestCase):
@@ -111,7 +111,7 @@ class AlignObjectTest(TestCase):
         result = poly1.distances_to(poly3)
         self.assertEqual(0, len(result))
 
-        poly4 = AlignPolygon(box(0, 0, 1, 1), direction=Vector(0, 1), direction_dist_tol=1e-6)
+        poly4 = AlignPolygon(box(0, 0, 1, 1), direction=Vector(0, 1), angle_tol=1e-6)
         poly5 = AlignPolygon(box(3, 3, 4, 4), direction=Vector(0, 1))
         result = poly4.distances_to(poly5)
         self.assertEqual(4, len(result))
@@ -189,3 +189,26 @@ class AlignObjectTest(TestCase):
         point1 = AlignPoint(Point(0, 0), direction=Vector(0, 1))
         with self.assertRaises(ValueError):
             point0.assert_align_item_matched(point1)
+
+    def test_align_point_alignable(self):
+        point0 = AlignPoint(Point(0, 0), direction=Vector(1, 0), angle_tol=10)
+        point1 = AlignPoint(Point(0, 1), direction=Vector(1, 0.1))
+        self.assertTrue(point0.alignable_to(point1))
+        self.assertFalse(point1.alignable_to(point0))
+
+        point2 = AlignPoint(Point(0, 2), direction=Vector(1, 0.1), direction_dist_tol=0.1)
+        self.assertTrue(point2.alignable_to(point0))
+
+        point3 = AlignPoint(Point(0, 3), direction=Vector(1, 0.1), direction_dist_tol=0, angle_tol=0)
+        self.assertFalse(point3.alignable_to(point0))
+
+    def test_align_line_alignable(self):
+        line = AlignLineString(LineString([(0, 0), (1, 0)]), angle_tol=1)
+        point = AlignPoint(Point(0, 0), direction=Vector(1, 0.01), angle_tol=0, direction_dist_tol=0)
+        self.assertTrue(line.alignable_to(point))
+        self.assertFalse(point.alignable_to(line))
+
+    def test_align_poly_alignable(self):
+        poly = AlignPolygon(Polygon([(0, 0), (1, 1), (0, 2), (-1, 1)]), angle_tol=1)
+        line = AlignLineString(LineString([(0, 0), (1, 1.01)]), direction_dist_tol=0, angle_tol=0)
+        self.assertTrue(poly.alignable_to(line))

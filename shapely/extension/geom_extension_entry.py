@@ -6,6 +6,7 @@ class GeomExtensionEntry:
         from shapely.extension.extension.polygon_extension import PolygonExtension
 
         ext_type = {'LineString': LineStringExtension,
+                    'LinearRing': LineStringExtension,
                     'Polygon': PolygonExtension}.get(instance.type, BaseGeomExtension)
 
         return ext_type(instance)

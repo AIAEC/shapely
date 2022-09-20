@@ -5,7 +5,6 @@ from typing import Union, List, Optional
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
-from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
 from shapely.extension.typing import Num
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, min_max, lconcat
@@ -31,6 +30,7 @@ def shadow(geom: BaseGeometry,
     """
 
     def shadow_of_single_geom(single_geom: Union[Point, Polygon, LineString]) -> Union[LineString, Polygon]:
+        from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
         shadow_peak = direction.unit(shadow_len).apply(single_geom)
 
         if isinstance(single_geom, Point):

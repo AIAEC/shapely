@@ -1,6 +1,7 @@
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
 from typing import Union, Sequence, Tuple
 
+from shapely.extension.constant import MATH_EPS
 from shapely.extension.typing import Num
 
 
@@ -217,6 +218,14 @@ class Angle:
         ccw_including = self.rotating_angle(angle)
         return min(ccw_including, ccw_including.complementary())
 
+    def parallel_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
+        return (isclose(self.including_angle(angle).degree, 0, abs_tol=angle_tol)
+                or isclose(self.including_angle(angle).degree, 180, abs_tol=angle_tol))
+
+    def perpendicular_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
+        return (isclose(self.including_angle(angle), 90, abs_tol=angle_tol)
+                or isclose(self.including_angle(angle), 270, abs_tol=angle_tol))
+
     def __float__(self):
         return float(self._angle_degree)
 
@@ -294,9 +303,8 @@ class Angle:
     def __hash__(self):
         return hash(('angle', self._angle_degree, self._range))
 
-    def almost_equal(self, other: Union['Angle', Num], dist_tol: Num) -> bool:
-        other_angle = self._angle_degree_of_other(other)
-        return isclose(self.degree, other_angle, abs_tol=abs(dist_tol))
+    def almost_equal(self, other: Union['Angle', Num], angle_tol: Num) -> bool:
+        return self.including_angle(Angle(other)) <= angle_tol
 
     def __lt__(self, other: Union['Angle', Num]) -> bool:
         other_angle = self._angle_degree_of_other(other)

@@ -242,22 +242,38 @@ class Vector:
         """
         return self.ccw_perpendicular.invert()
 
-    def perpendicular_to(self, other: 'Vector', dist_tol: Num = MATH_EPS) -> bool:
+    def perpendicular_to(self, other: 'Vector', dist_tol: Num = MATH_EPS, angle_tol: Num = MATH_EPS) -> bool:
         """
-        return whether perpendicular to given vector
+        return whether perpendicular to given vector. return True if it satisfies any tolerance
 
         Parameters
         ----------
         other: vector
+        dist_tol
+        angle_tol
 
         Returns
         -------
         bool
         """
-        return abs(self @ other) < dist_tol
+        return abs(self @ other) < dist_tol or self.angle.perpendicular_to(other.angle, angle_tol=float(angle_tol))
 
-    def parallel_to(self, other: 'Vector', dist_tol: Num = MATH_EPS):
-        return abs(self.cross_prod(other)) < dist_tol
+    def parallel_to(self, other: 'Vector', dist_tol: Num = MATH_EPS, angle_tol: Num = MATH_EPS):
+        """
+        return whether parallel to given vector. 2 vectors are parallel even when they are in inverse direction.
+        return True if it satisfies any tolerance.
+
+        Parameters
+        ----------
+        other: vector
+        dist_tol
+        angle_tol
+
+        Returns
+        -------
+
+        """
+        return abs(self.cross_prod(other)) < dist_tol or self.angle.parallel_to(other.angle, angle_tol=float(angle_tol))
 
     def rotate(self, ccw_angle_degree: Num) -> 'Vector':
         """

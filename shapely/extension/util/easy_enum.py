@@ -4,7 +4,7 @@ from typing import List, Any, Optional
 
 class EasyEnum(Enum):
     """
-    封装一个方便调用的枚举类
+    enhanced Enum
     """
 
     @classmethod

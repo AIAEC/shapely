@@ -11,9 +11,14 @@ def closed_ring_rebuild(
         curves: List[LineString], extent_dist: float = LARGE_ENOUGH_DISTANCE) -> Optional[LinearRing]:
     """
     给定一些曲线(相邻曲线之间可相交亦可以不相交), 拉伸/剪裁 这些曲线, 将他们"联合"在一起组合成一个闭合的LinearRing
-    :param curves: 待组合成多边形的曲线, 这些曲线的坐标顺序必须一致(ccw或cw均可)
-    :param extent_dist: 最大拉伸距离, 默认为LARGE_ENOUGH_DISTANCE
-    :return: extend过后的curves组成的linear ring, 若失败, 返回None
+    Parameters
+    ----------
+    curves: 待组合成多边形的曲线, 这些曲线的坐标顺序必须一致(ccw或cw均可)
+    extent_dist: 最大拉伸距离, 默认为LARGE_ENOUGH_DISTANCE
+
+    Returns
+    -------
+    extend过后的curves组成的linear ring, 若失败, 返回None
     """
     if not curves:
         return None
@@ -37,10 +42,15 @@ def group_by_line_extent(curves: List[LineString],
                          parallel_as_separate_group: bool = False) -> List[LineString]:
     """
     给定一些曲线(相邻的曲线之间可相交亦可不相交), 拉伸/剪裁曲线, 将他们尽可能"联合"在一起, 组成若干曲线组
-    :param curves: 多条曲线或直线
-    :param extent_dist: 为了融合曲线而尝试延伸的距离
-    :param parallel_as_separate_group: 是否将延伸后重合的曲线或直线看做两个不同组的
-    :return:
+    Parameters
+    ----------
+    curves: 多条曲线或直线
+    extent_dist: 为了融合曲线而尝试延伸的距离
+    parallel_as_separate_group: 是否将延伸后重合的曲线或直线看做两个不同组的
+
+    Returns
+    -------
+
     """
     if not curves:
         return []

@@ -17,9 +17,14 @@ __all__ = ['offset']
 def _group_by_line_extent(curves: List[LineString], extent_dist: float = LARGE_ENOUGH_DISTANCE) -> List[LineString]:
     """
     给定一些曲线(相邻的曲线之间可相交亦可不相交), 拉伸/剪裁曲线, 将他们尽可能"联合"在一起, 组成若干曲线组
-    :param curves:
-    :param extent_dist:
-    :return:
+    Parameters
+    ----------
+    curves
+    extent_dist
+
+    Returns
+    -------
+    list of linestring
     """
     if not curves:
         return []
@@ -58,14 +63,19 @@ def offset(line: LineString,
            eps: float = MATH_EPS) -> Optional[LineString]:
     """
     平移一条linestring. 因为原生的line.parallel_offset方法有时会生成MultiLineString, 这是GEOS的bug
+    Parameters
+    ----------
+    line: linestring been offset
+    dist: offset distance
+    side: 'left' or 'right', with ccw order to be left
+    invert_coords: whether invert the order of coordinates of return linestring
+    use_pan_if_failed: whether return incorrect result(just pan the linestring without adjusting its shape) if all
+        strategy failed
+    eps: tolerance
 
-    :param line: 被offset的线
-    :param dist: offset的距离
-    :param side: offset的方向, 只有'left'和'right'
-    :param invert_coords: 是否反转结果的坐标顺序
-    :param use_pan_if_failed: 所有方法失败后是否使用暴力平移法作为保底
-    :param eps: line做simplify的eps
-    :return: linestring或None
+    Returns
+    -------
+    linestring or None
     """
 
     def modify_coords_order_if_use_parallel_offset(_line):

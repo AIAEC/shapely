@@ -6,7 +6,7 @@ from shapely.extension.model.coord import Coord
 from shapely.extension.typing import CoordType
 from shapely.extension.util.easy_enum import EasyEnum
 from shapely.extension.util.prolong import prolong
-from shapely.geometry import LineString, Point, LinearRing, Polygon
+from shapely.geometry import LineString, Point, LinearRing
 from shapely.ops import substring
 
 
@@ -19,9 +19,6 @@ class LineExtent:
         self.extended_curve_ab: LineString = extended_curve_ab
         self.extended_curve_cd: LineString = extended_curve_cd
         self.joint: Point = joint
-
-    def compose_polygon(self) -> List[Polygon]:
-        pass
 
     @property
     def both_extended_curve_valid(self) -> bool:
@@ -73,14 +70,18 @@ class LineExtent:
         """
         将曲线ab和曲线cd延展(拉伸/裁剪), 直到他们'联合'在一起, 相交于交点e. 曲线aed会是'联合'起来的新曲线
         若曲线ab和曲线cd拉伸后也不相交, 则会返回None
-
-        :param curve_ab: 曲线ab, 注意直线为曲线的特殊形式
-        :param curve_cd: 曲线cd, 注意直线为曲线的特殊形式
-        :param extent_dist: curve_ab和curve_cd的拉伸距离, 默认为LARGE_ENOUGH_DISTANCE
-        :param make_closed: 如果为False, 则沿着curve_ab延展到curve_cd上, 如果为True, 则除了将curve_ab延展到curve_cd上, curve_cd也会
+        Parameters
+        ----------
+        curve_ab: 曲线ab, 注意直线为曲线的特殊形式
+        curve_cd: 曲线cd, 注意直线为曲线的特殊形式
+        extent_dist: curve_ab和curve_cd的拉伸距离, 默认为LARGE_ENOUGH_DISTANCE
+        make_closed: 如果为False, 则沿着curve_ab延展到curve_cd上, 如果为True, 则除了将curve_ab延展到curve_cd上, curve_cd也会
             做延展到curve_ab上, 并尝试构建一个环, 如果失败则返回None
-        :param ignore_parallel: 如果curve_ab和curve_cd拉伸后重合, 该参数为True是, 返回None, 若为False, 返回融合后的直线
-        :return: LineExtend对象或者None
+        ignore_parallel: 如果curve_ab和curve_cd拉伸后重合, 该参数为True是, 返回None, 若为False, 返回融合后的直线
+
+        Returns
+        -------
+        LineExtend对象或者None
         """
         if not make_closed:
             return cls._of_sequence_curves_helper(curve_ab=curve_ab,
@@ -115,11 +116,16 @@ class LineExtent:
         """
         将curve ab和curve cd首尾两头进行延展, 直到组成一个环，如果不能组成则返回None
 
-        :param curve_ab: 原curve ab
-        :param curve_cd: 原curve cd
-        :param ab_to_cd_extent: 延射线ab方向和射线dc方向进行延展得到的line_extent
-        :param cd_to_ab_extent: 延射线cd和射线ba方向进行延展得到的line_extent
-        :return: LineExtend对象或者None
+        Parameters
+        ----------
+        curve_ab: 原curve ab
+        curve_cd: 原curve cd
+        ab_to_cd_extent: 延射线ab方向和射线dc方向进行延展得到的line_extent
+        cd_to_ab_extent: 延射线cd和射线ba方向进行延展得到的line_extent
+
+        Returns
+        -------
+        LineExtend对象或者None
         """
         stretched_curve_ab = prolong(line=curve_ab,
                                      front_prolong_len=LARGE_ENOUGH_DISTANCE,
@@ -168,11 +174,16 @@ class LineExtent:
         将曲线ab和曲线cd 拉伸/裁剪 直到他们'联合'在一起, 相交于交点e. 曲线aed会是'联合'起来的新曲线
         若曲线ab和曲线cd拉伸后也不相交, 则会返回None
 
-        :param curve_ab: 曲线ab, 注意直线为曲线的特殊形式
-        :param curve_cd: 曲线cd, 注意直线为曲线的特殊形式
-        :param extent_dist: curve_ab和curve_cd的拉伸距离, 默认为LARGE_ENOUGH_DISTANCE
-        :param ignore_parallel: 如果curve_ab和curve_cd拉伸后重合, 该参数为True是, 返回None, 若为False, 返回融合后的直线
-        :return: LineExtend对象或者None
+        Parameters
+        ----------
+        curve_ab: 曲线ab, 注意直线为曲线的特殊形式
+        curve_cd: 曲线cd, 注意直线为曲线的特殊形式
+        extent_dist: curve_ab和curve_cd的拉伸距离, 默认为LARGE_ENOUGH_DISTANCE
+        ignore_parallel: 如果curve_ab和curve_cd拉伸后重合, 该参数为True是, 返回None, 若为False, 返回融合后的直线
+
+        Returns
+        -------
+        LineExtend对象或者None
         """
         if not (curve_ab and curve_cd):
             return None

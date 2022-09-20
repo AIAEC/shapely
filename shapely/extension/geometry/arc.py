@@ -112,6 +112,10 @@ class ArcCreator:
 
 
 class Arc(LineString):
+    """
+    child type of Linestring that represent one segment of circle exterior
+    """
+
     def __init__(self, center: Union[Point, CoordType],
                  radius: Num = 1,
                  start_angle: Num = 0,

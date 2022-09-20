@@ -9,8 +9,13 @@ def ccw(geom: BaseGeometry) -> BaseGeometry:
     将几何图形的坐标顺序变成逆时针的. 注意: Point, MultiPoint, LineString没有逆时针的概念, 将返回其自身. Polygon的exterior会变成逆时针,
     但是其interiors会都变成顺时针. LinearRing会变成逆时针
 
-    :param geom: shapely geometry
-    :return: geometry object with same type
+    Parameters
+    ----------
+    geom: geometry
+
+    Returns
+    -------
+    geometry object with same type
     """
     if isinstance(geom, Polygon):
         return orient(geom, sign=1.0)

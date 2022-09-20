@@ -34,7 +34,7 @@ def decompose(geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
 
     Returns
     -------
-
+    list of geometry instance of target class
     """
     strategy = strategy or DefaultDecomposeStrategy()
 

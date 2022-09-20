@@ -5,7 +5,6 @@ from typing import Union, List, Optional
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
-from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
 from shapely.extension.typing import Num, GeomObj
 from shapely.extension.util.func_util import lmap, lconcat, lfilter
 from shapely.geometry import Point, LineString, Polygon
@@ -49,11 +48,13 @@ class AlignPoint(BaseAlignGeom):
     def __init__(self, point: Point,
                  direction: Optional[Vector] = None,
                  origin: Optional[GeomObj] = None,
-                 direction_dist_tol: Num = MATH_EPS):
+                 direction_dist_tol: Num = MATH_EPS,
+                 angle_tol: Num = MATH_EPS):
         self._point = point
         self._direction = direction or Vector(1, 0)
         self._origin = origin or point
         self._direction_dist_tol = direction_dist_tol
+        self._angle_tol = angle_tol
 
     @property
     def align_point(self):
@@ -76,10 +77,11 @@ class AlignPoint(BaseAlignGeom):
         self._direction = direct
 
     def alignable_to(self, other: 'BaseAlignGeom') -> bool:
+        if not isinstance(other, BaseAlignGeom):
+            raise TypeError("only support alignable to BaseAlignGeom")
         self_direction = self.direction.unit()
         other_direction = other.direction.unit()
-        return (self_direction.almost_equal(other_direction, dist_tol=self._direction_dist_tol)
-                or self_direction.invert().almost_equal(other_direction, dist_tol=self._direction_dist_tol))
+        return self_direction.parallel_to(other_direction, dist_tol=self._direction_dist_tol, angle_tol=self._angle_tol)
 
     def assert_align_item_matched(self, other: 'BaseAlignGeom') -> None:
         if not self.alignable_to(other):
@@ -110,11 +112,13 @@ class AlignPoint(BaseAlignGeom):
 class AlignLineString(BaseAlignGeom):
     def __init__(self, line: LineString,
                  origin: Optional[GeomObj] = None,
-                 direction_dist_tol: Num = MATH_EPS):
+                 direction_dist_tol: Num = MATH_EPS,
+                 angle_tol: Num = MATH_EPS):
         self._line = line
         self._direction = Vector.from_endpoints_of(self._line)
         self._origin = origin or line
         self._direction_dist_tol = direction_dist_tol
+        self._angle_tol = angle_tol
 
     @property
     def shape(self):
@@ -125,7 +129,8 @@ class AlignLineString(BaseAlignGeom):
         return AlignPoint(self._line.centroid,
                           direction=self._direction,
                           origin=self._origin,
-                          direction_dist_tol=self._direction_dist_tol)
+                          direction_dist_tol=self._direction_dist_tol,
+                          angle_tol=self._angle_tol)
 
     @property
     def direction(self):
@@ -190,11 +195,13 @@ class AlignPolygon(BaseAlignMultiPartGeom):
     def __init__(self, poly: Polygon,
                  direction: Optional[Vector] = None,
                  origin: Optional[GeomObj] = None,
-                 direction_dist_tol: Num = MATH_EPS):
+                 direction_dist_tol: Num = MATH_EPS,
+                 angle_tol: Num = MATH_EPS):
         self._poly = poly
         self._direction = direction
         self._origin = origin
         self._direction_dist_tol = direction_dist_tol
+        self._angle_tol = angle_tol
 
     @property
     def shape(self):
@@ -208,15 +215,23 @@ class AlignPolygon(BaseAlignMultiPartGeom):
         return lmap(lambda pt: AlignPoint(point=pt,
                                           direction=direction,
                                           origin=self,
-                                          direction_dist_tol=self._direction_dist_tol), self._poly.ext.decompose(Point))
+                                          direction_dist_tol=self._direction_dist_tol,
+                                          angle_tol=self._angle_tol),
+                    self._poly.ext.decompose(Point))
 
     @cached_property
     def align_linestrings(self) -> List[AlignLineString]:
-        align_lines = lmap(lambda line: AlignLineString(line, origin=self, direction_dist_tol=self._direction_dist_tol),
+        from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
+        align_lines = lmap(lambda line: AlignLineString(line=line,
+                                                        origin=self,
+                                                        direction_dist_tol=self._direction_dist_tol,
+                                                        angle_tol=self._angle_tol),
                            self._poly.ext.decompose(LineString, StraightSegmentDecomposeStrategy()))
 
         if self._direction:
-            return lfilter(lambda line: self._direction.parallel_to(line.direction, dist_tol=self._direction_dist_tol),
+            return lfilter(lambda line: self._direction.parallel_to(line.direction,
+                                                                    dist_tol=self._direction_dist_tol,
+                                                                    angle_tol=self._angle_tol),
                            align_lines)
 
         return align_lines

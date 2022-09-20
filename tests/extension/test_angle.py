@@ -141,7 +141,7 @@ class AngleTest(TestCase):
         self.assertEqual(90, angle + Angle(45, (0, 720)))
         self.assertEqual(0, angle - Angle(45, (0, 720)))
 
-        angle.almost_equal(45.1, dist_tol=0.2)
+        angle.almost_equal(45.1, angle_tol=0.2)
 
         self.assertTrue(0 < angle < Angle(46))
 
@@ -193,3 +193,15 @@ class AngleTest(TestCase):
 
         angle = Angle(0)
         self.assertEqual(360, angle.complementary())
+
+    def test_parallel_to(self):
+        angle = Angle(181)
+        self.assertTrue(angle.parallel_to(Angle(1)))
+        self.assertTrue(angle.parallel_to(Angle(361)))
+        self.assertTrue(angle.parallel_to(Angle(361.5), angle_tol=2))
+
+    def test_perpendicular_to(self):
+        angle = Angle(181)
+        self.assertTrue(angle.perpendicular_to(91))
+        self.assertTrue(angle.perpendicular_to(271))
+        self.assertTrue(angle.perpendicular_to(271.5, angle_tol=2))

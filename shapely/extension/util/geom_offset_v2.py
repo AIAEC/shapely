@@ -15,12 +15,32 @@ __all__ = ['offset']
 
 
 def reverse_line(line: Union[LineString, MultiLineString]) -> Union[LineString, MultiLineString]:
+    """
+    reverse the order of the coordinates of linestring or multi-linestring
+    Parameters
+    ----------
+    line: linestring or multi-linestring
+
+    Returns
+    -------
+    linestring or multi-linestring
+    """
     if isinstance(line, LineString):
         return LineString(list(line.coords)[::-1])
     return type(line)([reverse_line(l) for l in line.geoms])
 
 
 def self_intersection(line: LineString) -> List[Point]:
+    """
+    return the list of self-intersection point of given linestring
+    Parameters
+    ----------
+    line: linestring
+
+    Returns
+    -------
+    list of points
+    """
     if not isinstance(line, LineString):
         raise TypeError(f'expect line of type LineString, given {type(line)}')
 
@@ -40,7 +60,21 @@ def offset(line: LineString,
            dist: float,
            side: str = 'left',
            invert_coords: bool = False,
-           join_style: int = JOIN_STYLE.mitre):
+           join_style: int = JOIN_STYLE.mitre) -> LineString:
+    """
+    return the offset linestring if offset success, otherwise return empty linestring
+    Parameters
+    ----------
+    line: linestring been offset
+    dist: offset distance
+    side: 'left' or 'right', with ccw order to be left
+    invert_coords: whether invert the order of coordinates of return linestring
+    join_style: join style of offset, mitre as default
+
+    Returns
+    -------
+    linestring
+    """
     if dist == 0 or line.is_empty:
         if invert_coords:
             return reverse_line(line)
