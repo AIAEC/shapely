@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    k8tz.io/inject: false
+spec:
+  imagePullSecrets:
+    - name: harbor-regcred
+
+  containers:
+    - name: python
+      imagePullPolicy: IfNotPresent
+      image: harbor.aiacesz.com/debian/python:core
+      command:
+        - /bin/cat
+      tty: true
