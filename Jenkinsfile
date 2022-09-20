@@ -34,7 +34,7 @@ pipeline {
     stage('uploading pypi package') {
       steps {
         container('python') {
-          sh 'python setup.py bdist_wheel'
+          sh 'python setup.py bdist_wheel sdist'
           sh 'pip install twine'
           sh 'twine upload --repository-url https://$PYPI_SERVER_HOST -u $PYPI_USR -p $PYPI_PSW dist/*'
         }
