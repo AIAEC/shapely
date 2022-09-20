@@ -128,8 +128,8 @@ class AngleTest(TestCase):
 
         self.assertAlmostEqual(90, Angle.atan2(1, 0))
         self.assertAlmostEqual(45, Angle.atan(1))
-        self.assertAlmostEqual(30, Angle.asin(0.5))
-        self.assertAlmostEqual(60, Angle.acos(0.5))
+        self.assertAlmostEqual(30, Angle.asin(0.5).degree)
+        self.assertAlmostEqual(60, Angle.acos(0.5).degree)
 
     def test_math_operator(self):
         angle = Angle(45)
