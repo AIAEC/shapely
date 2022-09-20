@@ -24,6 +24,7 @@ pipeline {
     stage('testing') {
       steps {
         container('python') {
+          sh 'apt install -y libgeos-dev'
           sh 'pip install -r requirements-dev.txt'
           sh 'pytest'
         }
