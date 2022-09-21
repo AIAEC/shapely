@@ -1,3 +1,4 @@
+from itertools import combinations
 from math import radians, pi, sin, cos, tan, isclose
 from unittest import TestCase
 
@@ -178,6 +179,19 @@ class AngleTest(TestCase):
         self.assertTrue(isclose(angle0, angle1, abs_tol=0.1))
         self.assertTrue(isclose(angle0, angle2, abs_tol=0.1))
         self.assertTrue(isclose(angle1, angle2, abs_tol=0.1))
+        self.assertFalse(isclose(angle0, 180, abs_tol=0.1))
+        self.assertFalse(isclose(angle0, 179.99, abs_tol=0.1))
+
+    def test_almost_equal(self):
+        angle0 = Angle(0)
+        angle1 = Angle(0.001)
+        angle2 = Angle(-0.001)
+        for a0, a1 in combinations([angle0, angle1, angle2], 2):
+            self.assertTrue(a0.almost_equal(a1, angle_tol=0.1))
+
+        self.assertTrue(angle1.almost_equal(-0.001, angle_tol=0.1))
+        self.assertTrue((angle1 % 180).almost_equal(179.999, angle_tol=0.1))
+        self.assertTrue((angle1 % 360).almost_equal(359.999, angle_tol=0.1))
 
     def test_bool(self):
         self.assertTrue(Angle(1))

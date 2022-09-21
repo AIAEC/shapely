@@ -378,7 +378,7 @@ class Angle:
         -------
         bool
         """
-        return self.including_angle(Angle(other)) <= angle_tol
+        return self.including_angle(Angle(other, self._range)) <= angle_tol
 
     def __lt__(self, other: Union['Angle', Num]) -> bool:
         other_angle = self._angle_degree_of_other(other)
