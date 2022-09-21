@@ -1,6 +1,8 @@
 from typing import Optional
 
+from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
+from shapely.extension.typing import Num
 from shapely.geometry import Point, LineString
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import nearest_points, unary_union
@@ -11,8 +13,9 @@ class ShortestStraightPath:
     求两个shapely.geometry对象在指定方向上的最短LineString的类
     """
 
-    def __init__(self, direction: Optional[Vector] = None):
-        self.direction = direction
+    def __init__(self, direction: Optional[Vector] = None, dist_tol: Num = MATH_EPS):
+        self._direction = direction
+        self._dist_tol = dist_tol
 
     def of(self, geom0: BaseGeometry, geom1: BaseGeometry, single_sided: bool = False) -> LineString:
         """
@@ -44,15 +47,18 @@ class ShortestStraightPath:
             inner_polygon = geom0 if geom0.area < geom1.area else geom1
             return LineString((inner_polygon.exterior.coords[0], inner_polygon.exterior.coords[0]))
 
-        if self.direction is None:
+        if self._direction is None:
             return LineString(nearest_points(geom0, geom1))
 
-        path_geom0_to_geom1 = self._shortest_path_in_direction(geom0, geom1, self.direction)
-
+        path_geom0_to_geom1 = (self._shortest_path_in_direction(geom0, geom1, self._direction)
+                               or self._shortest_path_in_direction(geom1, geom0, self._direction.invert())
+                               or LineString())
         if single_sided:
             return path_geom0_to_geom1
 
-        path_geom1_to_geom0 = self._shortest_path_in_direction(geom0, geom1, self.direction.invert())
+        path_geom1_to_geom0 = (self._shortest_path_in_direction(geom0, geom1, self._direction.invert())
+                               or self._shortest_path_in_direction(geom1, geom0, self._direction)
+                               or LineString())
 
         if path_geom0_to_geom1.is_empty:
             return path_geom1_to_geom0
@@ -62,8 +68,9 @@ class ShortestStraightPath:
 
         return path_geom0_to_geom1 if path_geom0_to_geom1.length < path_geom1_to_geom0.length else path_geom1_to_geom0
 
-    @staticmethod
-    def _shortest_path_in_direction(geom0: BaseGeometry, geom1: BaseGeometry, direction: Vector) -> LineString:
+    def _shortest_path_in_direction(self, geom0: BaseGeometry,
+                                    geom1: BaseGeometry,
+                                    direction: Vector) -> Optional[LineString]:
         """
         this function will find the shortest path from a vertex in geom0 to the geom1 in a certain direction
 
@@ -78,11 +85,11 @@ class ShortestStraightPath:
 
         Returns
         -------
-        shapely.Linestring
+        shapely.Linestring or None when failed
         """
         points_in_geom0 = geom0.ext.decompose(Point)
 
-        shortest_path = LineString()
+        shortest_path: Optional[LineString] = None
         envelope = unary_union((geom0, geom1)).envelope
 
         largest_distance = Point(envelope.exterior.coords[0]).distance(Point(envelope.exterior.coords[2]))
@@ -96,15 +103,24 @@ class ShortestStraightPath:
             end_point = direction.unit(distance).apply_coord(start_point)
 
             line = LineString((start_point, end_point))
-            intersection = line.intersection(geom1)
+            intersection = self._intersection(line=line, geom=geom1)
 
             if intersection.is_valid and not intersection.is_empty:
                 candidate_shortest_line = LineString(nearest_points(point, intersection))
-            else:
-                candidate_shortest_line = LineString()
 
-            if candidate_shortest_line.length < shortest_path_length and not candidate_shortest_line.is_empty:
-                shortest_path = candidate_shortest_line
-                shortest_path_length = candidate_shortest_line.length
+                if not candidate_shortest_line.is_empty and candidate_shortest_line.length < shortest_path_length:
+                    shortest_path = candidate_shortest_line
+                    shortest_path_length = candidate_shortest_line.length
 
         return shortest_path
+
+    def _intersection(self, line: LineString, geom: BaseGeometry) -> BaseGeometry:
+        intersection = line.intersection(geom)
+        if intersection:
+            return intersection
+
+        if geom.distance(line) < self._dist_tol:
+            nearest_point_on_line = nearest_points(geom, line)[1]
+            return nearest_point_on_line
+
+        return Point()

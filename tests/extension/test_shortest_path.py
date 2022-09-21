@@ -92,3 +92,15 @@ class ShortestStraightPathTest(TestCase):
 
         path = ShortestStraightPath(Vector(1, 1)).of(line1, line0, single_sided=True)
         self.assertEqual(0, path.length)
+
+    def test_shortest_path_between_point_and_linestring(self):
+        point = Point(0, 0)
+        line = LineString([(0, 1), (1, 0)])
+        path = ShortestStraightPath(Vector.from_endpoints_of(line).cw_perpendicular).of(point, line)
+        self.assertTrue(path.almost_equals(LineString([(0, 0), (0.5, 0.5)])))
+
+        path = ShortestStraightPath(Vector.from_endpoints_of(line).ccw_perpendicular).of(line, point)
+        self.assertTrue(path.almost_equals(LineString([(0, 0), (0.5, 0.5)])))
+
+        path = ShortestStraightPath(Vector.from_endpoints_of(line)).of(line, point)
+        self.assertTrue(path.is_empty)

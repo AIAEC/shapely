@@ -2,7 +2,7 @@ from math import pi
 from unittest import TestCase
 
 from shapely.extension.geometry.arc import Arc
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString, Polygon
 
 
 class ArcTest(TestCase):
@@ -40,3 +40,29 @@ class ArcTest(TestCase):
     def test_interpolate_by_angle(self):
         arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=180)
         self.assertTrue(arc.interpolate_by_angle(90).almost_equals(Point(0, 1)))
+
+    def test_tangential(self):
+        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=180)
+        self.assertTrue(arc.tangential(Point(0, 1)))
+        self.assertFalse(arc.tangential(Point(0, 1.00001)))
+        self.assertFalse(arc.tangential(Point(0, 0.99999)))
+        self.assertFalse(arc.tangential(Point(0, -1)))
+
+        self.assertTrue(arc.tangential(LineString([(-1, 1), (1, 1)])))
+        self.assertFalse(arc.tangential(LineString([(-1, 0.9), (1, 1)])))
+        self.assertFalse(arc.tangential(LineString([(-1, -1), (1, -1)])))
+
+        self.assertTrue(arc.tangential(Polygon([(0, 1), (1, 1), (0, 2)])))
+        self.assertFalse(arc.tangential(Polygon([(0, 0.9), (1, 1), (0, 2)])))
+        self.assertFalse(arc.tangential(Polygon([(0, 1.1), (1, 1), (0, 2)])))
+        self.assertFalse(arc.tangential(Polygon([(0, -1), (1, -1), (0, -2)])))
+
+    def test_tangent_point(self):
+        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=180)
+        self.assertTrue(arc.tangent_point(Point(0, 1)).almost_equals(Point(0, 1)))
+        self.assertTrue(arc.tangent_point(LineString([(-1, 1), (1, 1)])).almost_equals(Point(0, 1)))
+        self.assertTrue(arc.tangent_point(Polygon([(0, 1), (1, 1), (0, 2)])).almost_equals(Point(0, 1)))
+
+        self.assertFalse(arc.tangent_point(Polygon([(0, -1), (1, -1), (0, -2)])))
+        self.assertFalse(arc.tangent_point(LineString([(-1, -1), (1, -1)])))
+        self.assertFalse(arc.tangent_point(Point(0, -1)))

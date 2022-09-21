@@ -1,0 +1,174 @@
+from bisect import bisect_left
+from itertools import product
+from math import isclose
+from operator import truth
+from typing import Union, List
+
+from shapely.extension.constant import LARGE_ENOUGH_DISTANCE, MATH_EPS
+from shapely.extension.geometry import Circle, Arc
+from shapely.extension.model import Vector
+from shapely.extension.typing import CoordType, Num
+from shapely.extension.util.decompose import decompose
+from shapely.extension.util.flatten import flatten
+from shapely.extension.util.func_util import lmap, lfilter
+from shapely.extension.util.geom_offset_v2 import offset
+from shapely.extension.util.prolong import prolong
+from shapely.geometry import Point, LineString, MultiLineString, MultiPoint, GeometryCollection
+from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+from shapely.ops import nearest_points, unary_union
+
+
+class FixedRadiusArcCreator:
+    def __init__(self, radius: Num):
+        self._radius = float(radius)
+        self._geoms: List[BaseGeometry] = []
+        self.constraint = None
+
+    def intersects_with(self, geom: BaseGeometry, dist_tol: Num = MATH_EPS) -> 'FixedRadiusArcCreator':
+        if isinstance(geom, BaseMultipartGeometry):
+            for sub_geom in geom.geoms:
+                self.intersects_with(sub_geom)
+            return self
+
+        self._geoms.append(geom)
+
+        if isinstance(geom, Point):
+            constraint = Circle(center=geom, radius=self._radius)
+
+        elif isinstance(geom, Circle):
+            # order matters, because Circle is child type of LineString, thus cannot modify order of if condition
+            concentric_circles = [geom.concentric(geom.radius + self._radius)]
+            if geom.radius > self._radius:
+                concentric_circles.append(geom.concentric(geom.radius - self._radius))
+            constraint = MultiLineString(concentric_circles)
+
+        elif isinstance(geom, LineString):
+            # order matters, because Circle is child type of LineString, thus cannot modify order of if condition
+            if not geom.ext.is_straight():
+                raise ValueError('only support straight linestring')
+            line = prolong(geom, front_prolong_len=LARGE_ENOUGH_DISTANCE, end_prolong_len=LARGE_ENOUGH_DISTANCE)
+            constraint = MultiLineString([offset(line, dist=self._radius, side='left'),
+                                          offset(line, dist=self._radius, side='right')])
+        else:
+            raise NotImplementedError(f'{type(geom)} is not supported as constraint')
+
+        if not self.constraint:
+            self.constraint = constraint
+        else:
+            intersections = []
+            for existed_single_constraint, other_single_constraint in product(flatten(self.constraint).to_list(),
+                                                                              flatten(constraint).to_list()):
+                intersection = existed_single_constraint.intersection(other_single_constraint)
+                if not intersection and existed_single_constraint.distance(other_single_constraint) < dist_tol:
+                    intersection = LineString(
+                        nearest_points(existed_single_constraint, other_single_constraint)).centroid
+                intersections.append(intersection)
+
+            self.constraint = unary_union(flatten(intersections).to_list())
+
+        if not self.constraint:
+            raise RuntimeError('center hints have turned to be empty geometry,'
+                               ' meaning too many constrains have been set')
+
+        return self
+
+    def create_circles(self) -> List[Circle]:
+        if not self.constraint:
+            raise RuntimeError('center hints have turned to be empty geometry,'
+                               ' meaning too many constrains have been set')
+        if (not isinstance(self.constraint, (Point, MultiPoint, GeometryCollection))
+                or not decompose(self.constraint, Point)):
+            raise RuntimeError('center hints cannot lead to center points, '
+                               'meaning not enough constrains set')
+
+        centers: List[Point] = decompose(self.constraint, Point)
+        return lmap(lambda pt: Circle(center=pt, radius=self._radius), centers)
+
+    def create_arcs(self) -> List[Arc]:
+        circles = self.create_circles()
+        arcs: List[Arc] = []
+        for circle in circles:
+            # magic number 1e-4 here, it's related to the resolution of arc and circle, and relatively stable
+            tangent_pts = lfilter(truth, [circle.tangent_point(geom, 1e-4) for geom in self._geoms])
+            arcs.extend(circle.arc(tangent_pts))
+
+        return arcs
+
+
+class FixedCenterArcCreator:
+    def __init__(self, center: Union[Point, CoordType]):
+        self._center = Point(center)
+        self._radius_candidates: List[float] = []
+        self._geoms: List[BaseGeometry] = []
+
+    def intersects_with(self, geom: BaseGeometry, radius_dist_tol: Num = MATH_EPS) -> 'FixedCenterCirleCreator':
+        if isinstance(geom, BaseMultipartGeometry):
+            for sub_geom in geom.geoms:
+                self.intersects_with(sub_geom)
+            return self
+
+        self._geoms.append(geom)
+
+        if isinstance(geom, Point):
+            radius = geom.distance(self._center)
+            radius_candidates = [radius]
+
+        elif isinstance(geom, Circle):
+            dist_between_centers = geom.centroid.distance(self._center)
+            radius_candidates = [dist_between_centers + geom.radius, abs(dist_between_centers - geom.radius)]
+
+        elif isinstance(geom, LineString):
+            if not geom.ext.is_straight():
+                raise ValueError('only support straight linestring')
+            line = prolong(geom, front_prolong_len=LARGE_ENOUGH_DISTANCE, end_prolong_len=LARGE_ENOUGH_DISTANCE)
+            radius = line.ext.distance(self._center, Vector.from_endpoints_of(line).cw_perpendicular)
+            radius_candidates = [radius]
+        else:
+            raise NotImplementedError(f'{type(geom)} is not supported to calculate radius candidates')
+
+        radius_candidates = lfilter(lambda radius: radius > 0, sorted(radius_candidates))
+
+        if not self._radius_candidates:
+            self._radius_candidates = radius_candidates
+
+        else:
+            def is_closed_to_existed_radius_candidate(existed_radius):
+                index = bisect_left(radius_candidates, existed_radius)
+
+                is_closed = True
+                is_closed &= (index < len(radius_candidates) and isclose(existed_radius,
+                                                                         radius_candidates[index],
+                                                                         abs_tol=radius_dist_tol))
+                is_closed &= isclose(existed_radius, radius_candidates[index - 1], abs_tol=radius_dist_tol)
+                return is_closed
+
+            self._radius_candidates: List[float] = lfilter(is_closed_to_existed_radius_candidate,
+                                                           self._radius_candidates)
+
+        if not self._radius_candidates:
+            raise RuntimeError('no radius candidates exists, probably because too many constraint specified')
+
+        return self
+
+    def create_circles(self) -> List[Circle]:
+        if not self._radius_candidates:
+            raise RuntimeError('no radius candidates exists, probably because given too many constraints or no'
+                               'constraint at all')
+        return lmap(lambda radius: Circle(center=self._center, radius=radius), self._radius_candidates)
+
+    def create_arcs(self) -> List[Arc]:
+        circles = self.create_circles()
+        arcs: List[Arc] = []
+        for circle in circles:
+            tangent_pts = filter(truth, [circle.tangent_point(geom) for geom in self._geoms])
+            arcs.extend(circle.arc(tangent_pts))
+
+        return arcs
+
+
+class CircleCreator:
+    def center(self, center: Union[Point, CoordType]) -> FixedCenterArcCreator:
+        return FixedCenterArcCreator(center)
+
+    def radius(self, radius: Num) -> FixedRadiusArcCreator:
+        return FixedRadiusArcCreator(radius)
