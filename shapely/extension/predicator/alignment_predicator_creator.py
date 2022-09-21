@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
@@ -22,7 +22,13 @@ class AlignmentPredicatorCreator:
         self._direction_dist_tol = direction_dist_tol
         self._angle_tol = angle_tol
 
-    def alignable(self):
+    def alignable(self) -> Callable[[BaseGeometry], bool]:
+        """
+        Returns
+        -------
+        filter function that given geometry instance to check if it's alignable to current geometry
+        """
+
         def _func(geom: BaseGeometry):
             self_geom_alignment = self._geom.ext.alignment(direction_dist_tol=self._direction_dist_tol,
                                                            angle_tol=self._angle_tol)
@@ -32,7 +38,13 @@ class AlignmentPredicatorCreator:
 
         return Predicator(_func)
 
-    def shortest_distance(self):
+    def shortest_distance(self) -> DistancePredicatorCreator:
+        """
+        Returns
+        -------
+        return DistancePredicatorCreator of the shortest distance of alignment direction for further predication
+        """
+
         def shortest_alignment_distance(geom0: BaseGeometry, geom1: BaseGeometry):
             geom0_alignment = geom0.ext.alignment(direction_dist_tol=self._direction_dist_tol,
                                                   angle_tol=self._angle_tol)

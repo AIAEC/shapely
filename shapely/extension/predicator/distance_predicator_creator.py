@@ -7,6 +7,10 @@ from shapely.geometry.base import BaseGeometry
 
 
 class DistancePredicatorCreator:
+    """
+    predicator creator for distance predication
+    """
+
     def __init__(self, geom: BaseGeometry,
                  distance_mapper: Optional[Callable[[BaseGeometry, BaseGeometry], Num]] = None):
         self._geom = geom

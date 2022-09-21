@@ -6,6 +6,6 @@ from shapely.geometry import box
 
 class RelationPredicatorCreatorTest(TestCase):
     def test_intersects(self):
-        predicator = RelationPredicatorCreator(box(0, 0, 1, 1)).intersects(other_buffer=1e-3)
+        predicator = RelationPredicatorCreator(box(0, 0, 1, 1)).intersects(component_buffer=1e-3)
         self.assertTrue(predicator(box(1, 0, 2, 1)))
         self.assertFalse(predicator(box(1.1, 0, 2, 1)))

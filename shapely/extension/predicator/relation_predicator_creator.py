@@ -4,6 +4,10 @@ from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 
 
 class RelationPredicatorCreator:
+    """
+    predicator creator for geometry bool predication
+    """
+
     def __init__(self, geom: BaseGeometry):
         self._geom = geom
 
@@ -21,5 +25,16 @@ class RelationPredicatorCreator:
 
         return _func
 
-    def intersects(self, self_buffer: Num = 0., other_buffer: Num = 0.):
-        return Predicator(self._predicator_func('intersects', self_buffer, other_buffer))
+    def intersects(self, self_buffer: Num = 0., component_buffer: Num = 0.) -> Predicator:
+        """
+        create predicator that predicate the geometry bool relationship of current geometry and further given geometry
+        Parameters
+        ----------
+        self_buffer: current geometry's buffer distance
+        component_buffer: further given geometry's buffer distance
+
+        Returns
+        -------
+        predicator instance
+        """
+        return Predicator(self._predicator_func('intersects', self_buffer, component_buffer))

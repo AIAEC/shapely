@@ -16,10 +16,26 @@ AngleStrategyType = Callable[[Polygon], Num]
 
 
 class PolygonAngleStrategy:
+    """
+    polygon angle strategy factory
+    """
+
     def __init__(self, default_angle: Num):
         self._default = default_angle
 
     def by_prevailing_edge(self, same_angle_tol: Num = 2) -> AngleStrategyType:
+        """
+        return angle strategy for polygon that using prevail edges' average angle as the angle of the polygon.
+        it will do statistics through all edges and pick the angle cluster that has the longest edge length sum.
+        Parameters
+        ----------
+        same_angle_tol: angle degree tolerance that one angle cluster holds
+
+        Returns
+        -------
+        angle strategy instance for polygon angle calculation
+        """
+
         def _angle_calculator(polygon: Polygon) -> Num:
             if not isinstance(polygon, Polygon):
                 polygon = polygon.convex_hull
@@ -66,6 +82,14 @@ class PolygonAngleStrategy:
         return _angle_calculator
 
     def by_bounding_box_width(self) -> AngleStrategyType:
+        """
+        return angle strategy for polygon that using minimum_rotated_rectangle's angle as its angle
+
+        Returns
+        -------
+        angle strategy instance for polygon angle calculation
+        """
+
         def _angle_calculator(polygon: Polygon):
             bounding_box = polygon.minimum_rotated_rectangle.simplify(0)
 
@@ -89,17 +113,26 @@ class PolygonAngleStrategy:
 
 
 class LineAngleStrategy:
+    """
+    angle strategy creator for linestring
+    """
+
     class LineCalMode(EasyEnum):
         AVERAGE = 'average'  # 按线条的每两个坐标的角度,平权求平均
         END_TO_END = 'end_to_end'  # 首尾两个坐标构成线段的角度
 
-    def _angle_calculator(self, line: LineString, cal_mode: LineCalMode):
+    def _angle_calculator(self, line: LineString, cal_mode: LineCalMode) -> float:
         """
-        计算线的角度
+        calculate the angle of the given linestring
 
-        :param cal_mode:
-            AVERAGE： 按线条的每一线段的角度,平权求平均
-            END_TO_END： 首尾两个坐标构成线段的角度
+        Parameters
+        ----------
+        line: linestring
+        cal_mode: LineCalMode instance
+
+        Returns
+        -------
+        angle degree in float
         """
         if not line.is_valid:
             raise ValueError("input line is not a valid lineString")
@@ -125,16 +158,38 @@ class LineAngleStrategy:
         return angle / total_length
 
     def end_to_end(self) -> AngleStrategyType:
+        """
+        create angle strategy for linestring that use its endpoints only to calculate the angle
+        Returns
+        -------
+        angle strategy instance for linestring
+        """
         return partial(self._angle_calculator, cal_mode=self.LineCalMode.END_TO_END)
 
     def average(self) -> AngleStrategyType:
+        """
+        create angle strategy for linestring that use average angle of each straight segments of it as the angle
+        Returns
+        -------
+        angle strategy instance for linestring
+        """
         return partial(self._angle_calculator, cal_mode=self.LineCalMode.AVERAGE)
 
 
-def default_angle_strategy(geom: BaseGeometry):
+def default_angle_strategy(geom: BaseGeometry) -> float:
+    """
+    default angle calculate strategy. use its minimum_rotated_rectangle's angle as its angle
+    Parameters
+    ----------
+    geom: any geometry instance
+
+    Returns
+    -------
+    angle strategy for any geometry
+    """
     rect = geom.minimum_rotated_rectangle
     if isinstance(rect, Polygon):
-        return PolygonAngleStrategy(0).by_bounding_box_width()(rect)
+        return float(PolygonAngleStrategy(0).by_bounding_box_width()(rect))
     elif isinstance(rect, LineString):
-        return LineAngleStrategy().end_to_end()(rect)
+        return float(LineAngleStrategy().end_to_end()(rect))
     return 0

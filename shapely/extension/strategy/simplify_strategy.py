@@ -19,7 +19,11 @@ class BaseSimplifyStrategy(ABC):
         raise NotImplementedError
 
 
-class DefaultSimplifyStrategy(BaseSimplifyStrategy):
+class NativeSimplifyStrategy(BaseSimplifyStrategy):
+    """
+    simplify strategy that use native simplify api of shapely
+    """
+
     def __init__(self, simplify_dist: Num = 0):
         self._simplify_dist = simplify_dist
 
@@ -28,6 +32,10 @@ class DefaultSimplifyStrategy(BaseSimplifyStrategy):
 
 
 class BufferSimplifyStrategy(BaseSimplifyStrategy):
+    """
+    simplify strategy that buffer the geometry back and forth to make its boundary smooth
+    """
+
     @dataclass
     class BufferParam:
         buffer_dist: float = field(default=5)
@@ -45,6 +53,19 @@ class BufferSimplifyStrategy(BaseSimplifyStrategy):
               buffer_dist_decay: float = 1.0,
               mitre_limit: float = 5,
               n_iter: int = 1) -> 'BufferSimplifyStrategy':
+        """
+        make a buffer strategy that use mitre as its join_style
+        Parameters
+        ----------
+        buffer_dist
+        buffer_dist_decay: buffer distance decay ratio for each iteration
+        mitre_limit:
+        n_iter: number of iteration
+
+        Returns
+        -------
+        BufferSimplifyStrategy instance
+        """
         buffer_param = cls.BufferParam(buffer_dist=buffer_dist,
                                        buffer_dist_decay=buffer_dist_decay,
                                        mitre_limit=mitre_limit,
@@ -53,6 +74,18 @@ class BufferSimplifyStrategy(BaseSimplifyStrategy):
 
     @classmethod
     def round(cls, buffer_dist: float = 5, buffer_dist_decay: float = 1.0, n_iter: int = 1) -> 'BufferSimplifyStrategy':
+        """
+        make a buffer strategy that use round as its join_style
+        Parameters
+        ----------
+        buffer_dist
+        buffer_dist_decay: buffer distance decay ratio for each iteration
+        n_iter: number of iteration
+
+        Returns
+        -------
+        BufferSimplifyStrategy instance
+        """
         buffer_param = cls.BufferParam(buffer_dist=buffer_dist,
                                        buffer_dist_decay=buffer_dist_decay,
                                        join_style=JOIN_STYLE.round)

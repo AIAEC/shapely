@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC, abstractmethod
 
 from shapely.extension.constant import MATH_EPS
@@ -18,11 +19,16 @@ class BaseOffsetStrategy(ABC):
 
 
 class LegacyOffsetStrategy(BaseOffsetStrategy):
+    """
+    offset strategy that use the legacy offset util
+    """
+
     def __init__(self, use_pan_if_failed: bool = True, eps: Num = MATH_EPS):
         self._use_pan_if_failed = use_pan_if_failed
         self._eps = eps
 
     def offset(self, line: LineString, dist: float, side: str = 'left', invert_coords: bool = False):
+        warnings.warn('legacy offset might be removed soon')
         return offset_v1(line=line,
                          dist=dist,
                          side=side,
@@ -32,6 +38,10 @@ class LegacyOffsetStrategy(BaseOffsetStrategy):
 
 
 class OffsetStrategy(BaseOffsetStrategy):
+    """
+    offset strategy that use the latest offset util
+    """
+
     def __init__(self, join_style: int = JOIN_STYLE.mitre):
         self._join_style = join_style
 

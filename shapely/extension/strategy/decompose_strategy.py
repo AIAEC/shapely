@@ -75,6 +75,10 @@ class BaseDecomposeStrategy(ABC):
 
 
 class DefaultDecomposeStrategy(BaseDecomposeStrategy):
+    """
+    default decompose strategy
+    """
+
     def multipolygon_to_polygons(
             self, multi_poly_or_polys: Union[MultiPolygon, Sequence[MultiPolygon]]) -> List[Polygon]:
         multi_polys = multi_poly_or_polys if isinstance(multi_poly_or_polys, Sequence) else [multi_poly_or_polys]
@@ -109,6 +113,10 @@ class DefaultDecomposeStrategy(BaseDecomposeStrategy):
 
 
 class StraightSegmentDecomposeStrategy(DefaultDecomposeStrategy):
+    """
+    decompose strategy that cut multi-linestring into straight segments
+    """
+
     def multilinestring_to_linestring(
             self, multi_line_or_lines: Union[MultiLineString, Sequence[MultiLineString]]) -> List[LineString]:
         multi_lines = multi_line_or_lines if isinstance(multi_line_or_lines, Sequence) else [multi_line_or_lines]
@@ -124,7 +132,16 @@ class StraightSegmentDecomposeStrategy(DefaultDecomposeStrategy):
 
 
 class CurveDecomposeStrategy(DefaultDecomposeStrategy):
+    """
+    decompose strategy that cut multi-linestring into linestrings according to its turning angle
+    """
+
     def __init__(self, min_cutting_angle: Num):
+        """
+        Parameters
+        ----------
+        min_cutting_angle: angle degree, if turning angle larger than this, it will be a cutting point
+        """
         self._min_cutting_angle = float(min_cutting_angle)
 
     def multilinestring_to_linestring(

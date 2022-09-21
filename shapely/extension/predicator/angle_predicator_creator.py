@@ -11,6 +11,10 @@ from shapely.geometry.base import BaseGeometry
 
 
 class IncludingAnglePredicatorCreator:
+    """
+    predicator creator for angle comparison predication
+    """
+
     def __init__(self, angle: Union[Num, Angle]):
         self._angle = Angle(angle)
 
@@ -67,6 +71,10 @@ class IncludingAnglePredicatorCreator:
 
 
 class AngleRangePredicator:
+    """
+    predicator creator for angle relationship(intersects, contains or more) predication
+    """
+
     def __init__(self, pivot_degree: Union[Num, Angle],
                  ccw_range: Num = 0,
                  cw_range: Num = 0,
@@ -181,16 +189,38 @@ class AngleRangePredicator:
 
 
 class AnglePredicatorCreator:
+    """
+    angle predicator creator for angle comparison and range predication
+    """
+
     def __init__(self, geom: BaseGeometry, strategy: Optional[Callable[[BaseGeometry], Num]] = None):
         self._geom = geom
         self._strategy = strategy
 
     def including_angle(self) -> IncludingAnglePredicatorCreator:
+        """
+        enter the including angle comparison predication mode
+        Returns
+        -------
+        instance of IncludingAnglePredicatorCreator
+        """
         return IncludingAnglePredicatorCreator(self._geom.ext.angle(self._strategy))
 
     def angle_range_relation(self, ccw_range: Union[Num, Angle] = 0,
                              cw_range: Union[Num, Angle] = 0,
                              origin: Union[Point, CoordType, str] = 'origin') -> AngleRangePredicator:
+        """
+        enter the angle range predication mode
+        Parameters
+        ----------
+        ccw_range: upper bound of the angle range
+        cw_range: lower bound of the angle range
+        origin: default origin for other geometry to calculate angle
+
+        Returns
+        -------
+        instance of AngleRangePredicator
+        """
         pivot_angle = self._geom.ext.angle(self._strategy)
         return AngleRangePredicator(pivot_degree=pivot_angle,
                                     ccw_range=ccw_range,

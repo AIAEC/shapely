@@ -156,18 +156,59 @@ class Angle:
 
     @classmethod
     def asin(cls, value: Num) -> 'Angle':
+        """
+        shortcut for Angle(asin(value))
+        Parameters
+        ----------
+        value
+
+        Returns
+        -------
+        angle instance
+        """
         return cls(degrees(asin(value)))
 
     @classmethod
     def acos(cls, value: Num) -> 'Angle':
+        """
+        shortcut for Angle(acos(value))
+        Parameters
+        ----------
+        value
+
+        Returns
+        -------
+        angle instance
+        """
         return cls(degrees(acos(value)))
 
     @classmethod
     def atan(cls, value: Num) -> 'Angle':
+        """
+        shortcut for Angle(atan(value))
+        Parameters
+        ----------
+        value
+
+        Returns
+        -------
+        angle instance
+        """
         return cls(degrees(atan(value)))
 
     @classmethod
     def atan2(cls, y: Num, x: Num) -> 'Angle':
+        """
+        shortcut for Angle(atan2(y, x))
+        Parameters
+        ----------
+        y: num
+        x: num
+
+        Returns
+        -------
+        angle instance
+        """
         if x == 0 and y == 0:
             return cls(float('nan'))
         return cls(degrees(atan2(y, x)))
@@ -177,7 +218,7 @@ class Angle:
 
     def complementary(self) -> 'Angle':
         """
-        the supplementary angle within given modulo space
+        the complementary angle within given modulo space
 
         Returns
         -------
@@ -219,10 +260,32 @@ class Angle:
         return min(ccw_including, ccw_including.complementary())
 
     def parallel_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
+        """
+        whether current angle is parallel to given angle within given angle tolerance
+        Parameters
+        ----------
+        angle: angle instance or float
+        angle_tol: float
+
+        Returns
+        -------
+        bool
+        """
         return (isclose(self.including_angle(angle).degree, 0, abs_tol=angle_tol)
                 or isclose(self.including_angle(angle).degree, 180, abs_tol=angle_tol))
 
     def perpendicular_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
+        """
+        whether current angle is perpendicular to given angle within given angle tolerance
+        Parameters
+        ----------
+        angle: angle instance or float
+        angle_tol: float
+
+        Returns
+        -------
+        bool
+        """
         return (isclose(self.including_angle(angle), 90, abs_tol=angle_tol)
                 or isclose(self.including_angle(angle), 270, abs_tol=angle_tol))
 
@@ -304,6 +367,17 @@ class Angle:
         return hash(('angle', self._angle_degree, self._range))
 
     def almost_equal(self, other: Union['Angle', Num], angle_tol: Num) -> bool:
+        """
+        whether current angle is almost equal to given angle within given angle tolerance
+        Parameters
+        ----------
+        other: angle instance or float
+        angle_tol: float
+
+        Returns
+        -------
+        bool
+        """
         return self.including_angle(Angle(other)) <= angle_tol
 
     def __lt__(self, other: Union['Angle', Num]) -> bool:

@@ -2,6 +2,10 @@ from shapely.geometry.base import BaseGeometry
 
 
 class Predicator:
+    """
+    concrete predicator that can predicate(directly call it) or combine to a complex predicator
+    """
+
     def __init__(self, func):
         self._func = func
 

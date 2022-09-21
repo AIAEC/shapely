@@ -20,7 +20,7 @@ from shapely.extension.predicator.relation_predicator_creator import RelationPre
 from shapely.extension.strategy.angle_strategy import PolygonAngleStrategy, LineAngleStrategy, default_angle_strategy, \
     AngleStrategyType
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
-from shapely.extension.strategy.simplify_strategy import BaseSimplifyStrategy, DefaultSimplifyStrategy
+from shapely.extension.strategy.simplify_strategy import BaseSimplifyStrategy, NativeSimplifyStrategy
 from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.ccw import ccw
 from shapely.extension.util.decompose import decompose
@@ -287,7 +287,7 @@ class BaseGeomExtension:
         -------
         simplified geometry
         """
-        strategy = strategy or DefaultSimplifyStrategy()
+        strategy = strategy or NativeSimplifyStrategy()
         return strategy.simplify(self._geom)
 
     def move_towards(self, geom: BaseGeometry, direction: Optional[Vector] = None, util: Optional = None):
