@@ -1,6 +1,6 @@
 """Polygons and their linear ring components
 """
-
+import hashlib
 import sys
 import warnings
 
@@ -308,6 +308,11 @@ class Polygon(BaseGeometry):
         return not self.__eq__(other)
 
     __hash__ = None
+
+    ### hash extension here ###
+    def __hash__(self):
+        return hash(hashlib.md5(self.wkb).digest())
+    ###########################
 
     @property
     def _ctypes(self):

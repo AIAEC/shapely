@@ -184,9 +184,6 @@ class BaseGeometry:
 
     ## EXTENSION_START
     ext = GeomExtensionEntry()
-
-    def __hash__(self):
-        return hashlib.md5(self.wkb).hexdigest()
     ## EXTENSION_END
 
     def empty(self, val=EMPTY):
@@ -293,6 +290,11 @@ class BaseGeometry:
         return not self.__eq__(other)
 
     __hash__ = None
+
+    ### hash extension here ###
+    def __hash__(self):
+        return hash(hashlib.md5(self.wkb).digest())
+    ###########################
 
     # Array and ctypes interfaces
     # ---------------------------
@@ -1031,6 +1033,11 @@ class BaseMultipartGeometry(BaseGeometry):
         return not self.__eq__(other)
 
     __hash__ = None
+
+    ### hash extension here ###
+    def __hash__(self):
+        return hash(hashlib.md5(self.wkb).digest())
+    ###########################
 
     def svg(self, scale_factor=1., color=None):
         """Returns a group of SVG elements for the multipart geometry.

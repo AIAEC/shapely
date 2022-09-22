@@ -19,12 +19,33 @@ from shapely.ops import nearest_points, unary_union
 
 
 class FixedRadiusArcCreator:
+    """
+    helper class for arc or circle creation given fixed radius beforehand
+    """
     def __init__(self, radius: Num):
+        """
+        Parameters
+        ----------
+        radius: the radius of result arcs or circles
+        """
         self._radius = float(radius)
         self._geoms: List[BaseGeometry] = []
         self.constraint = None
 
     def intersects_with(self, geom: BaseGeometry, dist_tol: Num = MATH_EPS) -> 'FixedRadiusArcCreator':
+        """
+        specify geometry that intersected with result arcs or circles. If you specify too many geometries to intersect
+        with, it might raise RuntimeError that no arc or circle will be created under these many intersection constraint
+
+        Parameters
+        ----------
+        geom: geometry instance, for linestring only supports straight line
+        dist_tol: the distance tolerance for intersection point calculation
+
+        Returns
+        -------
+        self
+        """
         if isinstance(geom, BaseMultipartGeometry):
             for sub_geom in geom.geoms:
                 self.intersects_with(sub_geom)
@@ -73,6 +94,12 @@ class FixedRadiusArcCreator:
         return self
 
     def create_circles(self) -> List[Circle]:
+        """
+        create circles according to given constraints
+        Returns
+        -------
+        list of circles
+        """
         if not self.constraint:
             raise RuntimeError('center hints have turned to be empty geometry,'
                                ' meaning too many constrains have been set')
@@ -85,6 +112,12 @@ class FixedRadiusArcCreator:
         return lmap(lambda pt: Circle(center=pt, radius=self._radius), centers)
 
     def create_arcs(self) -> List[Arc]:
+        """
+        create arcs according to given constraints, arcs come from circles, cut by intersection points
+        Returns
+        -------
+        list of arcs
+        """
         circles = self.create_circles()
         arcs: List[Arc] = []
         for circle in circles:
@@ -96,12 +129,33 @@ class FixedRadiusArcCreator:
 
 
 class FixedCenterArcCreator:
+    """
+    helper class for arc or circle creation given fixed center point beforehand
+    """
     def __init__(self, center: Union[Point, CoordType]):
+        """
+        Parameters
+        ----------
+        center: the center of the result arcs or circles
+        """
         self._center = Point(center)
         self._radius_candidates: List[float] = []
         self._geoms: List[BaseGeometry] = []
 
-    def intersects_with(self, geom: BaseGeometry, radius_dist_tol: Num = MATH_EPS) -> 'FixedCenterCirleCreator':
+    def intersects_with(self, geom: BaseGeometry, radius_dist_tol: Num = MATH_EPS) -> 'FixedCenterArcCreator':
+        """
+        specify geometry that intersected with result arcs or circles. If you specify too many geometries to intersect
+        with, it might raise RuntimeError that no arc or circle will be created under these many intersection constraint
+
+        Parameters
+        ----------
+        geom: geometry instance, for linestring only supports straight line
+        radius_dist_tol: the distance tolerance for intersection point calculation
+
+        Returns
+        -------
+        self
+        """
         if isinstance(geom, BaseMultipartGeometry):
             for sub_geom in geom.geoms:
                 self.intersects_with(sub_geom)
@@ -151,12 +205,24 @@ class FixedCenterArcCreator:
         return self
 
     def create_circles(self) -> List[Circle]:
+        """
+        create circles according to given constraints
+        Returns
+        -------
+        list of circles
+        """
         if not self._radius_candidates:
             raise RuntimeError('no radius candidates exists, probably because given too many constraints or no'
                                'constraint at all')
         return lmap(lambda radius: Circle(center=self._center, radius=radius), self._radius_candidates)
 
     def create_arcs(self) -> List[Arc]:
+        """
+        create arcs according to given constraints, arcs come from circles, cut by intersection points
+        Returns
+        -------
+        list of arcs
+        """
         circles = self.create_circles()
         arcs: List[Arc] = []
         for circle in circles:
@@ -166,9 +232,32 @@ class FixedCenterArcCreator:
         return arcs
 
 
-class CircleCreator:
+class ArcCreator:
+    """
+    entry class for creat arc and circle
+    """
     def center(self, center: Union[Point, CoordType]) -> FixedCenterArcCreator:
+        """
+        fix center beforehand and calculate the arc or circle with further intersected geometries given
+        Parameters
+        ----------
+        center: Point | Coord | tuple[num, num]
+
+        Returns
+        -------
+        instance of FixedCenterArcCreator, enter the fix center arc creation process
+        """
         return FixedCenterArcCreator(center)
 
     def radius(self, radius: Num) -> FixedRadiusArcCreator:
+        """
+        fix the radius beforehand and calculate the arc or circle with further intersected geometries given
+        Parameters
+        ----------
+        radius: number
+
+        Returns
+        -------
+        instance of FixedRadiusArcCreator, enter the fix radius arc creation process
+        """
         return FixedRadiusArcCreator(radius)

@@ -66,8 +66,8 @@ class Arc(LineString):
 
     @classmethod
     def creator(cls):
-        from shapely.extension.util.arc_creator import CircleCreator
-        return CircleCreator
+        from shapely.extension.util.arc_creator import ArcCreator
+        return ArcCreator
 
     @property
     def rotate_angle(self) -> float:
