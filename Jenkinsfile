@@ -35,8 +35,8 @@ pipeline {
       steps {
         container('python') {
           sh 'python setup.py bdist_wheel sdist'
-          sh 'pip install auditwheel'
-          sh 'auditwheel repair $(ls dist/*.whl) -w dist'
+          // sh 'pip install auditwheel'
+          // sh 'auditwheel repair $(ls dist/*.whl) -w dist'
         }
       }
     }
