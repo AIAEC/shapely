@@ -13,14 +13,15 @@ import logging
 import math
 import sys
 from warnings import warn
-from functools import wraps
+from functools import wraps, cached_property
 import warnings
 
 from shapely.affinity import affine_transform
 from shapely.coords import CoordinateSequence
 from shapely.errors import GeometryTypeError, WKBReadingError, WKTReadingError, InvalidGeometryError
 from shapely.errors import ShapelyDeprecationWarning
-from shapely.extension.geom_extension_entry import GeomExtensionEntry
+
+from shapely.extension.ext import extension
 from shapely.geos import WKBWriter, WKTWriter
 from shapely.geos import lgeos
 from shapely.impl import DefaultImplementation, delegated
@@ -183,7 +184,7 @@ class BaseGeometry:
     _lgeos = lgeos
 
     ## EXTENSION_START
-    ext = GeomExtensionEntry()
+    ext = cached_property(extension)
     ## EXTENSION_END
 
     def empty(self, val=EMPTY):

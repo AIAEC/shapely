@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Iterable
 from operator import attrgetter
-from typing import Union, Optional, Tuple, Callable
+from typing import Union, Optional, Tuple, Callable, Dict
 
 from shapely.affinity import rotate, scale
 from shapely.extension.constant import MATH_EPS
@@ -35,6 +35,11 @@ from shapely.ops import nearest_points, unary_union
 class BaseGeomExtension:
     def __init__(self, geom):
         self._geom = geom
+        self._cargo = {}
+
+    @property
+    def cargo(self) -> Dict:
+        return self._cargo
 
     def stretch(self) -> Stretch:
         return Stretch(self._geom)

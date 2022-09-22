@@ -32,3 +32,22 @@ class GeometryTest(TestCase):
         geom_col = GeometryCollection([poly, point, line, multi_poly, multi_line, multi_point])
         set_ = {geom_col, geom_col}
         self.assertEqual(1, len(set_))
+
+    def test_cargo(self):
+        poly = box(0, 0, 1, 1)
+        poly.ext.cargo['proj'] = 1
+        self.assertEqual(1, poly.ext.cargo['proj'])
+
+        poly = box(0, 0, 1, 1)
+        self.assertDictEqual({}, poly.ext.cargo)
+        poly.ext.cargo['proj'] = 2
+        self.assertEqual(2, poly.ext.cargo['proj'])
+
+        point = Point(0, 0)
+        point.ext.cargo[0] = 1
+        self.assertEqual(1, point.ext.cargo[0])
+
+        geom_col = GeometryCollection([Point(0, 0), poly])
+        self.assertDictEqual({}, geom_col.ext.cargo)
+        geom_col.ext.cargo[0] = 0
+        self.assertEqual(0, geom_col.ext.cargo[0])
