@@ -343,3 +343,6 @@ class LineStringExtension(BaseGeomExtension):
             start_point = point_on_line
 
         return vector.ray(start_point, length)
+
+    # TODO: interpolate()
+    # TODO: 等分(按长度, 按数量)
