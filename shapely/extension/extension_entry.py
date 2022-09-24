@@ -1,4 +1,4 @@
-def extension(instance):
+def ext_entry(instance):
     # This needs to be called here to avoid circular references
     from shapely.extension.extension.base_geom_extension import BaseGeomExtension
     from shapely.extension.extension.linestring_extension import LineStringExtension

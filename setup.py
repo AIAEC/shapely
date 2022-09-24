@@ -61,7 +61,7 @@ import re
 import shutil
 import subprocess
 import sys
-from setuptools import setup, find_packages
+from setuptools import setup
 from setuptools.extension import Extension
 from setuptools.command.build_ext import build_ext as distutils_build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, \
@@ -186,7 +186,7 @@ setup_args = dict(
         'shapely.examples',
         'shapely.speedups',
         'shapely.vectorized',
-        *find_packages('shapely/extension')
+        'shapely.extension',
     ],
     classifiers         = [
         'Development Status :: 5 - Production/Stable',
