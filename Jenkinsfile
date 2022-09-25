@@ -34,7 +34,7 @@ pipeline {
     stage('build package') {
       steps {
         container('builder') {
-          sh 'build-customized-wheel.sh'
+          sh './build-customized-wheel.sh'
         }
       }
     }
