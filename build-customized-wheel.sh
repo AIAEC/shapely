@@ -7,9 +7,7 @@ UNREPAIRED_WHEELS=/tmp/wheels
 
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
-    pushd ${PYBIN}
-    ./python setup.py bdist_wheel -d ${UNREPAIRED_WHEELS}
-    popd
+    ${PYBIN}/python setup.py bdist_wheel -d ${UNREPAIRED_WHEELS}
 done
 
 # Bundle GEOS into the wheels
