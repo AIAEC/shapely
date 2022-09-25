@@ -6,7 +6,8 @@ ORIGINAL_PATH=$PATH
 UNREPAIRED_WHEELS=/tmp/wheels
 
 # Compile wheels
-for PYBIN in /opt/python/cp*/bin; do
+for PYBIN in /opt/python/cp3*/bin; do
+    PATH=${PYBIN}:$ORIGINAL_PATH
     ${PYBIN}/python3 setup.py bdist_wheel -d ${UNREPAIRED_WHEELS}
 done
 
