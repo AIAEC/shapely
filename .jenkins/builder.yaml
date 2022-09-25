@@ -14,3 +14,10 @@ spec:
       command:
         - /bin/cat
       tty: true
+
+    - name: builder
+      imagePullPolicy: IfNotPresent
+      image: harbor.aiacesz.com/debian/builder:shapely
+      command:
+        - /bin/cat
+      tty: true
