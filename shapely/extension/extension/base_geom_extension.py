@@ -184,9 +184,6 @@ class BaseGeomExtension:
         -------
         shortest connecting linestring
         """
-        if not direction:
-            return LineString(nearest_points(self._geom, geom))
-
         return ShortestStraightPath(direction=direction).of(self._geom, geom)
 
     def difference(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]],
