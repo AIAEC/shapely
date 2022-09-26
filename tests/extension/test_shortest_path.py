@@ -70,14 +70,14 @@ class ShortestStraightPathTest(TestCase):
         path = ShortestStraightPath(Vector(1, 1)).of(line, multi_linestring)
         self.assertAlmostEqual(sqrt(2) * 3 / 4, path.length)
 
-        path = ShortestStraightPath(Vector(1, 1)).of(line, multi_linestring, single_sided=True)
+        path = ShortestStraightPath(Vector(1, 1)).of(line, multi_linestring, directed=True)
         self.assertAlmostEqual(10 / sqrt(2) - 2 * sqrt(2), path.length)
 
     def test_shortest_path_that_wont_be_valid(self):
         point = Point(0, 0)
         line = LineString([(0, -1), (-1, 0)])
 
-        path = ShortestStraightPath(Vector(1, 1)).of(point, line, single_sided=True)
+        path = ShortestStraightPath(Vector(1, 1)).of(point, line, directed=True)
         self.assertEqual(0, path.length)
 
     def test_shortest_path_when_2_lines_intersect(self):
@@ -87,10 +87,10 @@ class ShortestStraightPathTest(TestCase):
         path = ShortestStraightPath(Vector(1, 1)).of(line0, line1)
         self.assertEqual(0, path.length)
 
-        path = ShortestStraightPath(Vector(1, 1)).of(line0, line1, single_sided=True)
+        path = ShortestStraightPath(Vector(1, 1)).of(line0, line1, directed=True)
         self.assertEqual(0, path.length)
 
-        path = ShortestStraightPath(Vector(1, 1)).of(line1, line0, single_sided=True)
+        path = ShortestStraightPath(Vector(1, 1)).of(line1, line0, directed=True)
         self.assertEqual(0, path.length)
 
     def test_shortest_path_between_point_and_linestring(self):
@@ -104,3 +104,11 @@ class ShortestStraightPathTest(TestCase):
 
         path = ShortestStraightPath(Vector.from_endpoints_of(line)).of(line, point)
         self.assertTrue(path.is_empty)
+
+    def test_line_box_non_shortest_path(self):
+        poly = box(0, 0, 1, 1)
+        line = LineString([(10, 2), (10, 3)])
+        result = ShortestStraightPath(Vector(1, 0)).of(poly, line)
+        self.assertFalse(result)
+        self.assertTrue(result.is_empty)
+        self.assertEqual(0, result.length)
