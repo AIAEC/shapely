@@ -8,11 +8,8 @@ def ext_entry():
 
     Notice
     -------
-    Since there are recursive import inside the implement of extension module, we use a magic trick to create the
-    type hint (a.k.a. python stub file or *.pyi), which is:
-    1. stubgen <extension-module>
-    2. combine each pyi file of extension modules into extension_entry.pyi
-    3. rewrite the type hint(stub) of current function in extension_entry.pyi
+    Since there are recursive import inside the implement of extension module, we create a pyi file (stub file) of
+    current module and add the return typing of current function
 
     Returns
     -------
