@@ -13,7 +13,7 @@ import logging
 import math
 import sys
 from warnings import warn
-from functools import wraps, cached_property
+from functools import wraps
 import warnings
 
 from shapely.affinity import affine_transform
@@ -184,7 +184,7 @@ class BaseGeometry:
     _lgeos = lgeos
 
     ## EXTENSION_START
-    ext = cached_property(ext_entry)
+    ext = ext_entry()
     ## EXTENSION_END
 
     def empty(self, val=EMPTY):
