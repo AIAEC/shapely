@@ -336,7 +336,14 @@ class BaseGeomExtension:
         -------
         float
         """
-        return self.connect_path(geom, direction).length
+        if geom.intersection(self._geom):
+            return 0
+
+        path = self.connect_path(geom, direction)
+        if not path:
+            return float('inf')
+
+        return path.length
 
     def alignment(self, direction_dist_tol: Num = MATH_EPS,
                   angle_tol: Num = MATH_EPS) -> Union[BaseAlignMultiPartGeom, BaseAlignGeom]:

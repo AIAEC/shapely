@@ -121,3 +121,9 @@ class LineStringExtensionTest(TestCase):
         arc = Point(0, 0).buffer(10).exterior
         result = arc.ext.tangent_line(Point(0, 11), 2)
         self.assertTrue(LineString([(-1, 10), (1, 10)]).buffer(1e-6).contains(result))
+
+    def test_perpendicular_distance(self):
+        line = LineString([(0, 0), (0, 1)])
+        self.assertEqual(float('inf'), line.ext.perpendicular_distance(Point(0, 2)))
+        self.assertEqual(float('inf'), line.ext.perpendicular_distance(Point(10, 2)))
+        self.assertAlmostEqual(10, line.ext.perpendicular_distance(Point(10, 1)))

@@ -344,5 +344,9 @@ class LineStringExtension(BaseGeomExtension):
 
         return vector.ray(start_point, length)
 
+    def perpendicular_distance(self, geom: BaseGeometry) -> float:
+        perpendicular_direction = Vector.from_endpoints_of(self._geom).cw_perpendicular
+        return self.distance(geom, direction=perpendicular_direction)
+
     # TODO: interpolate()
     # TODO: 等分(按长度, 按数量)
