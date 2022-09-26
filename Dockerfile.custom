@@ -1,6 +1,6 @@
 FROM quay.io/pypa/manylinux2010_x86_64:latest
 
-ENV GEOS_VERSION 3.5.0
+ENV GEOS_VERSION 3.10.3
 
 # Install geos
 RUN mkdir -p /src \
