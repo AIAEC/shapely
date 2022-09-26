@@ -16,3 +16,5 @@ recursive-include shapely *.pxi *.pxd *.pyx
 recursive-exclude shapely *.c
 recursive-include shapely/DLLs *.dll *.rst *.txt
 include docs/*.rst
+
+recursive-include shapely *.pyi
