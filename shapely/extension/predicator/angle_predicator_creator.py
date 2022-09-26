@@ -2,9 +2,11 @@ from math import isclose
 from operator import truth
 from typing import Union, Tuple, Optional, Callable
 
+from toolz import identity
+
 from shapely.extension.model.angle import Angle
 from shapely.extension.predicator.predicator import Predicator
-from shapely.extension.typing import Num, CoordType
+from shapely.extension.typing import Num, CoordType, GeomObj
 from shapely.extension.util.func_util import min_max
 from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
@@ -19,8 +21,9 @@ class IncludingAnglePredicatorCreator:
         self._angle = Angle(angle)
 
     def less_than(self, angle: Union[float, Angle]):
-        def _func(geom: BaseGeometry, strategy: Optional = None):
-            return self._angle.including_angle(geom.ext.angle(strategy)) < angle
+        def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity,
+                  strategy: Optional = None):
+            return self._angle.including_angle(attr_getter(geom_obj).ext.angle(strategy)) < angle
 
         return Predicator(_func)
 
@@ -28,8 +31,9 @@ class IncludingAnglePredicatorCreator:
         return self.less_than(angle)
 
     def less_equal(self, angle: Union[float, Angle]):
-        def _func(geom: BaseGeometry, strategy: Optional = None):
-            return self._angle.including_angle(geom.ext.angle(strategy)) <= angle
+        def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity,
+                  strategy: Optional = None):
+            return self._angle.including_angle(attr_getter(geom_obj).ext.angle(strategy)) <= angle
 
         return Predicator(_func)
 
@@ -37,8 +41,9 @@ class IncludingAnglePredicatorCreator:
         return self.less_equal(angle)
 
     def greater_than(self, angle: Union[float, Angle]):
-        def _func(geom: BaseGeometry, strategy: Optional = None):
-            return self._angle.including_angle(geom.ext.angle(strategy)) > angle
+        def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity,
+                  strategy: Optional = None):
+            return self._angle.including_angle(attr_getter(geom_obj).ext.angle(strategy)) > angle
 
         return Predicator(_func)
 
@@ -46,8 +51,9 @@ class IncludingAnglePredicatorCreator:
         return self.greater_than(angle)
 
     def greater_equal(self, angle: Union[float, Angle]):
-        def _func(geom: BaseGeometry, strategy: Optional = None):
-            return self._angle.including_angle(geom.ext.angle(strategy)) >= angle
+        def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity,
+                  strategy: Optional = None):
+            return self._angle.including_angle(attr_getter(geom_obj).ext.angle(strategy)) >= angle
 
         return Predicator(_func)
 
@@ -55,8 +61,9 @@ class IncludingAnglePredicatorCreator:
         return self.greater_equal(angle)
 
     def equal(self, angle: Union[float, Angle]):
-        def _func(geom: BaseGeometry, strategy: Optional = None):
-            return self._angle.including_angle(geom.ext.angle(strategy)) == angle
+        def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity,
+                  strategy: Optional = None):
+            return self._angle.including_angle(attr_getter(geom_obj).ext.angle(strategy)) == angle
 
         return Predicator(_func)
 
@@ -64,8 +71,9 @@ class IncludingAnglePredicatorCreator:
         return self.equal(angle)
 
     def almost_equal(self, angle: Union[float, Angle]):
-        def _func(geom: BaseGeometry, strategy: Optional = None):
-            return self._angle.including_angle(geom.ext.angle(strategy)).almost_equal(angle)
+        def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity,
+                  strategy: Optional = None):
+            return self._angle.including_angle(attr_getter(geom_obj).ext.angle(strategy)).almost_equal(angle)
 
         return Predicator(_func)
 
@@ -140,8 +148,8 @@ class AngleRangePredicator:
         predicator function that given geometry instance, return whether it is intersected with given angle range
         """
 
-        def _intersects(geometry: BaseGeometry):
-            _geom_angle_min, _geom_angle_max = self.geom_angle_range(geometry)
+        def _intersects(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity):
+            _geom_angle_min, _geom_angle_max = self.geom_angle_range(attr_getter(geom_obj))
             given_angle_min, given_angle_max = self.conditional_angle_range
             return _geom_angle_min <= given_angle_max and _geom_angle_max >= given_angle_min
 
@@ -158,8 +166,8 @@ class AngleRangePredicator:
         predicator function that given geometry instance, return whether it is touched with given angle range
         """
 
-        def _touches(geometry: BaseGeometry):
-            _geom_angle_min, _geom_angle_max = self.geom_angle_range(geometry)
+        def _touches(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity):
+            _geom_angle_min, _geom_angle_max = self.geom_angle_range(attr_getter(geom_obj))
             given_angle_min, given_angle_max = self.conditional_angle_range
             return (isclose(_geom_angle_min, given_angle_max, abs_tol=abs_tol)
                     or isclose(_geom_angle_max, given_angle_min, abs_tol=abs_tol))
@@ -173,8 +181,8 @@ class AngleRangePredicator:
         predicator function that given geometry instance, return whether it is contained by given angle range
         """
 
-        def _contains(geometry: BaseGeometry):
-            _geom_angle_min, _geom_angle_max = self.geom_angle_range(geometry)
+        def _contains(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity):
+            _geom_angle_min, _geom_angle_max = self.geom_angle_range(attr_getter(geom_obj))
             given_angle_min, given_angle_max = self.conditional_angle_range
             return given_angle_min <= _geom_angle_min and _geom_angle_max <= given_angle_max
 

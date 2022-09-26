@@ -1,10 +1,12 @@
 from typing import Optional, Callable
 
+from toolz import identity
+
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.distance_predicator_creator import DistancePredicatorCreator
 from shapely.extension.predicator.predicator import Predicator
-from shapely.extension.typing import Num
+from shapely.extension.typing import Num, GeomObj
 from shapely.geometry import Point, LineString, Polygon
 from shapely.geometry.base import BaseGeometry
 
@@ -29,11 +31,12 @@ class AlignmentPredicatorCreator:
         filter function that given geometry instance to check if it's alignable to current geometry
         """
 
-        def _func(geom: BaseGeometry):
+        def _func(geom_obj: GeomObj, attr_getter: Optional[Callable[[object], BaseGeometry]] = None):
+            attr_getter = attr_getter or identity
             self_geom_alignment = self._geom.ext.alignment(direction_dist_tol=self._direction_dist_tol,
                                                            angle_tol=self._angle_tol)
-            given_geom_alignment = geom.ext.alignment(direction_dist_tol=self._direction_dist_tol,
-                                                      angle_tol=self._angle_tol)
+            given_geom_alignment = attr_getter(geom_obj).ext.alignment(direction_dist_tol=self._direction_dist_tol,
+                                                                       angle_tol=self._angle_tol)
             return self_geom_alignment.alignable_to(given_geom_alignment)
 
         return Predicator(_func)

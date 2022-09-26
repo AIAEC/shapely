@@ -1,5 +1,9 @@
+from typing import Callable
+
+from toolz import identity
+
 from shapely.extension.predicator.predicator import Predicator
-from shapely.extension.typing import Num
+from shapely.extension.typing import Num, GeomObj
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 
 
@@ -18,9 +22,9 @@ class RelationPredicatorCreator:
                            join_style=JOIN_STYLE.mitre)
 
     def _predicator_func(self, method_name: str, self_buffer: Num = 0., other_buffer: Num = 0.):
-        def _func(geom: BaseGeometry):
+        def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity):
             self_geom_buffered = self.rect_buffer(self._geom, self_buffer)
-            other_geom_buffered = self.rect_buffer(geom, other_buffer)
+            other_geom_buffered = self.rect_buffer(attr_getter(geom_obj), other_buffer)
             return getattr(self_geom_buffered, method_name)(other_geom_buffered)
 
         return _func
