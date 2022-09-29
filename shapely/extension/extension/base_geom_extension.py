@@ -432,4 +432,9 @@ class BaseGeomExtension:
         -------
         bool
         """
-        return unary_union(geom_or_geoms).distance(self._geom) <= dist_tol
+        if not self._geom:
+            return False
+        union_geoms = unary_union(geom_or_geoms)
+        if not union_geoms:
+            return False
+        return union_geoms.distance(self._geom) <= dist_tol
