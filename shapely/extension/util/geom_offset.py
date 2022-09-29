@@ -79,8 +79,14 @@ def offset(line: LineString,
     """
 
     def modify_coords_order_if_use_parallel_offset(_line):
-        if ((invert_coords and side == 'left') or
-                (not invert_coords and side == 'right')):
+        """
+        shapely的parallel_offset在向右平移线(或者向左平移,但dist为负数)的时候将反转线条方向,在这里处理这个问题,保证线条方向如期望
+        :param _line:
+        :return:
+        """
+        side_is_actually_right = bool(side == "left") ^ bool(dist >= 0)
+
+        if bool(invert_coords) ^ bool(side_is_actually_right):
             _line = type(_line)(list(_line.coords)[::-1])
 
         return _line
