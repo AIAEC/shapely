@@ -7,7 +7,7 @@ from shapely.extension.model.angle import Angle
 from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.easy_enum import EasyEnum
 from shapely.extension.util.func_util import lmap
-from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry import Point, Polygon, LineString, MultiPoint
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -85,8 +85,11 @@ class Envelope:
 
     def _setup_endpoints(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]], angle: Angle):
         geom = unary_union(geom_or_geoms) if isinstance(geom_or_geoms, Sequence) else geom_or_geoms
-        x_min, y_min, x_max, y_max = rotate(geom, angle=angle.degree).bounds
-        return Point(x_min, y_min), Point(x_max, y_min), Point(x_max, y_max), Point(x_min, y_max)
+        # rotate geom to x-y axis aligned direction to calculate the bounding points
+        x_min, y_min, x_max, y_max = rotate(geom, angle=-angle.degree).bounds
+        multi_point = MultiPoint([Point(x_min, y_min), Point(x_max, y_min), Point(x_max, y_max), Point(x_min, y_max)])
+        # rotate multi-point back to origin direction
+        return list(rotate(multi_point, angle=angle.degree, origin=geom.centroid).geoms)
 
     def _setup_angle(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
                      angle: Union[Num, Angle]) -> Angle:
@@ -199,8 +202,24 @@ class EnvelopeCreator:
                             'from given object or object sequence')
         self._geoms = geoms
 
-    def of_angle(self, ccw_angle: Num) -> Envelope:
-        return Envelope(self._geoms, angle=ccw_angle)
+    def of_angle(self, ccw_angle: Optional[Num] = None) -> Envelope:
+        """
+        create Envelope of given angle
+        Parameters
+        ----------
+        ccw_angle: None or Num, if None, it will use the default angle 0
+
+        Returns
+        -------
+        instance of Envelope
+        """
+        return Envelope(self._geoms, angle=ccw_angle or 0)
 
     def tightened(self) -> Envelope:
+        """
+        create the smallest Envelope, in most cases its shape is equal to the minimum rotated rectangle
+        Returns
+        -------
+        instance of Envelope
+        """
         return Envelope(self._geoms)
