@@ -3,7 +3,7 @@ from math import sqrt
 from unittest import TestCase
 
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.util.geom_offset_v2 import self_intersection, offset
+from shapely.extension.util.offset import self_intersection, offset
 from shapely.geometry import LineString, Point, LinearRing, box
 from shapely.ops import unary_union
 from shapely.wkt import loads
@@ -92,6 +92,8 @@ class GeomOffsetTest(TestCase):
     #   1.2 super large dist
     # 2. different side
     # 3. reverse coord order true or false
+    # * offset result's attributes
+    # 1. coordinates
     def test_offset_0_dist(self):
         line = LineString([(0, 0), (1, 0)])
         for side in product(('left', 'right')):
@@ -189,3 +191,22 @@ class GeomOffsetTest(TestCase):
         for dist, side, reversed in product((-10, 10), ('left', 'right'), (True, False)):
             result = offset(problematic_line, dist=dist, side=side, invert_coords=reversed)
             self.assertTrue(isinstance(result, LineString))
+
+    def test_offset_result_coordinates_order(self):
+        line1 = LineString([(0, 0), (1, 0), (2, 0)])
+        result0 = offset(line1, dist=1, side='left', invert_coords=False)
+        self.assertTrue(LineString([(0, 1), (1, 1), (2, 1)]).equals(result0))
+        result1 = offset(line1, dist=1, side='left', invert_coords=True)
+        self.assertTrue(LineString([(2, 1), (1, 1), (0, 1)]).equals(result1))
+        result2 = offset(line1, dist=-1, side='left', invert_coords=False)
+        self.assertTrue(LineString([(0, -1), (1, -1), (2, -1)]).equals(result2))
+        result3 = offset(line1, dist=-1, side='left', invert_coords=True)
+        self.assertTrue(LineString([(2, -1), (1, -1), (0, -1)]).equals(result3))
+        result4 = offset(line1, dist=1, side='right', invert_coords=False)
+        self.assertTrue(LineString([(0, -1), (1, -1), (2, -1)]).equals(result4))
+        result5 = offset(line1, dist=1, side='right', invert_coords=True)
+        self.assertTrue(LineString([(2, -1), (1, -1), (0, -1)]).equals(result5))
+        result6 = offset(line1, dist=-1, side='right', invert_coords=False)
+        self.assertTrue(LineString([(0, 1), (1, 1), (2, 1)]).equals(result6))
+        result7 = offset(line1, dist=-1, side='right', invert_coords=True)
+        self.assertTrue(LineString([(2, 1), (1, 1), (0, 1)]).equals(result7))
