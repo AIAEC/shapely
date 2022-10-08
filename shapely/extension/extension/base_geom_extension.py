@@ -29,7 +29,7 @@ from shapely.extension.util.flatten import flatten
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.geometry import Point, LineString, MultiLineString, Polygon
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
-from shapely.ops import nearest_points, unary_union
+from shapely.ops import unary_union
 
 
 class BaseGeomExtension:
@@ -244,6 +244,7 @@ class BaseGeomExtension:
         Parameters
         ----------
         conditions: for base geometry: 'empty', 'simple', 'valid'; for linestring there are addition: 'ccw', 'ring'
+        add not_ as prefix to set negative conditions: 'not_empty'
 
         Returns
         -------
@@ -251,7 +252,10 @@ class BaseGeomExtension:
         """
         flag = True
         for condition in conditions:
-            flag &= attrgetter(f'is_{condition}')(self._geom)
+            if str(condition).startswith("not_"):
+                flag &= not attrgetter(f'is_{str(condition[4:])}')(self._geom)
+            else:
+                flag &= attrgetter(f'is_{condition}')(self._geom)
         return flag
 
     def angle(self, strategy: Optional[AngleStrategyType] = None) -> Angle:
