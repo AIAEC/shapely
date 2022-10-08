@@ -4,8 +4,8 @@ from unittest import TestCase
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.strategy.decompose_strategy import CurveDecomposeStrategy
 from shapely.extension.util.ccw import ccw
-from shapely.extension.util.geom_offset_v2 import offset
 from shapely.extension.util.line_extent_util import closed_ring_rebuild, group_by_line_extent
+from shapely.extension.util.offset import offset
 from shapely.geometry import LineString, LinearRing, Polygon
 from shapely.wkt import loads
 

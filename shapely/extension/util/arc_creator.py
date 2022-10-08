@@ -11,7 +11,7 @@ from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lmap, lfilter
-from shapely.extension.util.geom_offset_v2 import offset
+from shapely.extension.util.offset import offset
 from shapely.extension.util.prolong import prolong
 from shapely.geometry import Point, LineString, MultiLineString, MultiPoint, GeometryCollection
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
