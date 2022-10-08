@@ -6,7 +6,6 @@ from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AR
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import Num
-from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, min_max, lconcat
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon, MultiLineString, GeometryCollection, LinearRing
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry, JOIN_STYLE, CAP_STYLE
@@ -45,7 +44,7 @@ def shadow(geom: BaseGeometry,
 
         return unary_union(shadow_pieces)
 
-    return unary_union([shadow_of_single_geom(single_geom) for single_geom in flatten(geom).to_list()])
+    return unary_union([shadow_of_single_geom(single_geom) for single_geom in geom.ext.flatten().to_list()])
 
 
 @dataclass
@@ -214,9 +213,10 @@ class ProjectionTowards:
 
         raw_shadow = shadow_of_projector.intersection(reverse_shadow_of_target)
 
-        shadows = flatten(raw_shadow
-                          .difference(rect_buffer(self.projector, MATH_EPS))
-                          .difference(rect_buffer(self.target, MATH_EPS)), (LineString, Polygon))
+        shadows = (raw_shadow
+                   .difference(rect_buffer(self.projector, MATH_EPS))
+                   .difference(rect_buffer(self.target, MATH_EPS)).ext.flatten(
+            target_class_or_callable=(LineString, Polygon)).to_list())
         valid_shadows = lfilter(lambda shadow: (shadow.distance(self.projector) < MATH_EPS * 2
                                                 and shadow.distance(self.target) < MATH_EPS * 2), shadows)
 
