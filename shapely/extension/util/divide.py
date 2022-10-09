@@ -68,7 +68,7 @@ def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
     list of geometry instances
     """
     if not isinstance(divider, (LineString, MultiLineString)):
-        return flatten(unary_union(geom_or_geoms).to_list().difference(divider))
+        return flatten(unary_union(geom_or_geoms).difference(divider)).to_list()
 
     geom_dict: Dict[type, List[BaseGeometry]] = seq(flatten(geom_or_geoms).to_list()).group_by(type).to_dict()
 

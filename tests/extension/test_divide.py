@@ -2,8 +2,8 @@ from math import sqrt
 from operator import attrgetter
 from unittest import TestCase
 
-from shapely.extension.util.divide import _line_divided_by_points, _divide_polygon_by_multilinestring
-from shapely.geometry import LineString, Point, box
+from shapely.extension.util.divide import _line_divided_by_points, _divide_polygon_by_multilinestring, divide
+from shapely.geometry import LineString, Point, box, Polygon
 from shapely.ops import unary_union
 
 
@@ -24,3 +24,27 @@ class DivideTest(TestCase):
         line1 = LineString([(-1, 5), (6, 5)])
         result = _divide_polygon_by_multilinestring(poly, unary_union([line0, line1]))
         self.assertTrue(result)
+
+    def test_divide_by_non_linestring(self):
+        poly = box(0, 0, 10, 10)
+        slice_ = box(5, -1, 6, 11)
+        result = divide(poly, slice_)
+        self.assertEqual(2, len(result))
+        self.assertTrue(all(isinstance(item, Polygon) for item in result))
+
+    def test_divide_by_linestring(self):
+        poly = box(0, 0, 10, 10)
+        line = LineString([(0, 0), (0, 10)])
+        result = divide(poly, line)
+        self.assertTrue(1, len(result))
+        self.assertTrue(poly.equals(result[0]))
+
+        line = LineString([(5, 0), (5, 10)])
+        result = divide(poly, line)
+        self.assertTrue(2, len(result))
+        self.assertTrue(all(isinstance(item, Polygon) for item in result))
+
+        line = LineString([(5, -1), (5, 5)])
+        result = divide(poly, line)
+        self.assertTrue(1, len(result))
+        self.assertTrue(isinstance(result[0], Polygon))
