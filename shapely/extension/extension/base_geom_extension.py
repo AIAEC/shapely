@@ -27,6 +27,7 @@ from shapely.extension.util.decompose import decompose
 from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.shortest_path import ShortestStraightPath
+from shapely.extension.util.similar import similar
 from shapely.geometry import Point, LineString, MultiLineString, Polygon
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 from shapely.ops import unary_union
@@ -444,3 +445,17 @@ class BaseGeomExtension:
         if not union_geoms:
             return False
         return union_geoms.distance(self._geom) <= dist_tol
+
+    def similar(self, geom: BaseGeometry, area_diff_tol: Num) -> bool:
+        """
+        whether is similar to given geometry in area difference tolerance
+        Parameters
+        ----------
+        geom: geometry instance
+        area_diff_tol: tolerance of area difference
+
+        Returns
+        -------
+        bool
+        """
+        return similar(self._geom, geom, area_diff_tol=area_diff_tol)

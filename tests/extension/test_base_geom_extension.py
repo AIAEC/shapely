@@ -119,3 +119,7 @@ class BaseGeomExtensionTest(TestCase):
         # almost_intersects
         self.assertTrue(polygon.ext.almost_intersects(Point(0, 2.000001), dist_tol=0.001))
         self.assertFalse(polygon.ext.almost_intersects(Point(0, 2.000001), dist_tol=0.00000001))
+
+        # similar
+        self.assertTrue(polygon.ext.similar(polygon.buffer(1e-13), area_diff_tol=1e-10))
+        self.assertFalse(polygon.ext.similar(polygon.buffer(1e-10), area_diff_tol=1e-10))
