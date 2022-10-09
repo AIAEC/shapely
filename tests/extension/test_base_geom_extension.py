@@ -30,6 +30,11 @@ class BaseGeomExtensionTest(TestCase):
         self.assertEqual(4, len(result.to_list()))
         self.assertTrue(result.map(lambda geom: isclose(geom.area, 0.5)).all())
 
+        result = polygon.ext.divided_by([LineString([(0, -1), (0, 3)]),
+                                         LineString([(-2, 1), (2, 1)])])
+        self.assertEqual(4, len(result.to_list()))
+        self.assertTrue(result.map(lambda geom: isclose(geom.area, 0.5)).all())
+
         # move_by
         self.assertTrue(polygon.ext.move_by(Vector(1, 0)).equals(Polygon([(1, 0), (2, 1), (1, 2), (0, 1)])))
 

@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Iterable
 from operator import attrgetter
-from typing import Union, Optional, Tuple, Callable, Dict
+from typing import Union, Optional, Tuple, Callable, Dict, Sequence
 
 from shapely.affinity import rotate, scale
 from shapely.extension.constant import MATH_EPS
@@ -104,6 +104,8 @@ class BaseGeomExtension:
         -------
         aggregation of divided geometries
         """
+        if isinstance(line_or_lines, Sequence):
+            line_or_lines = unary_union(line_or_lines)
         return Aggregation(divide(self._geom, divider=line_or_lines, dist_tol=dist_tol))
 
     def move_by(self, vector: Vector):
