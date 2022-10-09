@@ -256,3 +256,10 @@ class ProjectionTest(TestCase):
         target = LineString([(0, 0), (0, -10)])
 
         self.assertListEqual([Interval(0, 0)], Projection(projector).onto(target).positive_intervals())
+
+    def test_parallels_to_check_tol(self):
+        line0 = loads('LINESTRING (68.02162562938169 79.58384943260192, 104.96153865512305 79.58384943260192)')
+        line1 = loads('LINESTRING (98.81181016021011 116.2232460161785, 55.27486062741048 116.24017796201451)')
+
+        segs = Projection(line0).onto(line1).segments
+        self.assertTrue(len(segs) > 0)

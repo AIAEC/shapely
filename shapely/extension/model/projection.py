@@ -145,7 +145,7 @@ class ProjectionOnLine:
         if projected_seg.length == 0:
             projected_seg = Point(projected_seg.coords[0])
         else:
-            projected_seg = rect_buffer(projected_seg, MATH_EPS)
+            projected_seg = rect_buffer(projected_seg, MATH_EPS * 10)
 
         projected_seg = projected_seg.intersection(self.target_line)
 
