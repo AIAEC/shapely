@@ -33,6 +33,14 @@ class GeometryTest(TestCase):
         set_ = {geom_col, geom_col}
         self.assertEqual(1, len(set_))
 
+        result = list(
+            {Point(0, 1), Point(0, 1 + 1e-6), LineString([(0, 0), (1, 1)]), box(0, 0, 1, 1), box(0, 0, 1, 1 + 1e-6)})
+        self.assertEqual(5, len(result))
+
+        result = list(
+            {box(0.001, 0.11, 1.11, 2.22), box(0.001, 0.11, 1.11, 2.22), box(0, 0, 1, 1)})
+        self.assertEqual(2, len(result))
+
     def test_cargo(self):
         poly = box(0, 0, 1, 1)
         poly.ext.cargo['proj'] = 1
