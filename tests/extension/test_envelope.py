@@ -4,6 +4,7 @@ from unittest import TestCase
 from shapely.extension.model.envelope import Envelope, PointPosition, EdgePosition, HalfEdgePosition, DiagonalPosition, \
     HalfDiagonalPosition, EnvelopeCreator
 from shapely.geometry import Point, Polygon, LineString
+from shapely.wkt import loads
 
 
 class EnvelopeTest(TestCase):
@@ -107,3 +108,14 @@ class EnvelopeCreatorTest(TestCase):
         case = Test(Polygon([(0, 2), (2, 0), (3, 1), (1, 3)]))
         envelope = EnvelopeCreator(case, attr_getter=attrgetter('geom')).tightened()
         self.assertEqual(315, envelope.angle)
+
+    def test_min_envelope(self):
+        case = loads('MULTIPOLYGON (((1235293.565547209 412609.2938603121, 1236093.565547209 412609.2938603121, 1236093.565547209 411809.2938603122, 1235293.565547209 411809.2938603122, 1235293.565547209 412609.2938603121)), ((1235293.565547248 433809.2938603008, 1235293.565547248 439409.2938353083, 1236093.565547295 439409.2938353083, 1236093.565547295 433809.2938603008, 1235293.565547248 433809.2938603008)))')
+        envelope = EnvelopeCreator(case).of_angle(90)
+        target_obj = loads('POLYGON ((1236093.565547295 411809.2938603124, 1236093.565547295 439409.2938353083, 1235293.565547209 439409.2938353083, 1235293.565547209 411809.2938603124, 1236093.565547295 411809.2938603124))')
+        self.assertTrue(envelope.shape.almost_equals(target_obj))
+
+    def test_envelope_top_edge(self):
+        rectangle = Polygon([(0, 0), (1, 0), (1, 3), (0, 3)])
+        envelope = EnvelopeCreator(rectangle).of_angle(90)
+        self.assertTrue(LineString([envelope.left_top, envelope.right_top]).equals(envelope.edge(EdgePosition.TOP)))

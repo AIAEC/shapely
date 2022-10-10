@@ -86,10 +86,10 @@ class Envelope:
     def _setup_endpoints(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]], angle: Angle):
         geom = unary_union(geom_or_geoms) if isinstance(geom_or_geoms, Sequence) else geom_or_geoms
         # rotate geom to x-y axis aligned direction to calculate the bounding points
-        x_min, y_min, x_max, y_max = rotate(geom, angle=-angle.degree).bounds
+        x_min, y_min, x_max, y_max = rotate(geom, angle=-angle.degree, origin='center').bounds
         multi_point = MultiPoint([Point(x_min, y_min), Point(x_max, y_min), Point(x_max, y_max), Point(x_min, y_max)])
         # rotate multi-point back to origin direction
-        return list(rotate(multi_point, angle=angle.degree, origin=geom.centroid).geoms)
+        return list(rotate(multi_point, angle=angle.degree, origin='center').geoms)
 
     def _setup_angle(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
                      angle: Union[Num, Angle]) -> Angle:
@@ -102,7 +102,7 @@ class Envelope:
             return Angle(0)
 
         if isinstance(geom_or_geoms, (LineString, Polygon)):
-            return geom_or_geoms.ext.angle().degree
+            return geom_or_geoms.ext.angle()
 
         # use the minimumn rotated rectangle's angle as its angle
         return unary_union(geom_or_geoms).minimum_rotated_rectangle.ext.angle()
@@ -126,11 +126,20 @@ class Envelope:
         return self.point(idx_or_position).coords[0]
 
     def edge(self, position: EdgePosition) -> LineString:
-        # TODO(WIP): add docstring here, notice the linestring direction
-        vertical_choices = {'left', 'right'}
-        horizontal_choices = {'bottom', 'top'}
-        vertical_choices.discard(position.value)
-        horizontal_choices.discard(position.value)
+        """
+        返回矩形的边
+        注意：边的方向总是从矩形的左边开始到矩形右边结束
+        """
+        vertical_choices = ['left', 'right', 'mid']
+        horizontal_choices = ['bottom', 'top', 'horizon']
+
+        if position.value in vertical_choices:
+            vertical_choices = {position.value}
+            horizontal_choices.remove('horizon')
+        elif position.value in horizontal_choices:
+            horizontal_choices = {position.value}
+            vertical_choices.remove('mid')
+
         return LineString([getattr(self, f'{v}_{h}') for v, h in product(list(vertical_choices),
                                                                          list(horizontal_choices))])
 

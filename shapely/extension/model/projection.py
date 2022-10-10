@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Union, List, Optional
 
-from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS
+from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS, MATH_MIDDLE_EPS
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import Num
@@ -145,7 +145,7 @@ class ProjectionOnLine:
         if projected_seg.length == 0:
             projected_seg = Point(projected_seg.coords[0])
         else:
-            projected_seg = rect_buffer(projected_seg, MATH_EPS * 10)
+            projected_seg = rect_buffer(projected_seg, MATH_MIDDLE_EPS)
 
         projected_seg = projected_seg.intersection(self.target_line)
 
