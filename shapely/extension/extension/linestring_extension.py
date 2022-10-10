@@ -254,12 +254,13 @@ class LineStringExtension(BaseGeomExtension):
         """
         return Projection(unary_union(geom_or_geoms)).onto(self._geom, direction, out_of_geom)
 
-    def projected_point(self, point_or_coord: Union[Point, CoordType]) -> Point:
+    def projected_point(self, point_or_coord: Union[Point, CoordType], on_extension: bool = True) -> Point:
         """
-        return the projected point given point_or_coord that are not necessary on the current linestring
+        return the projected point of point_or_coord onto the current linestring or its extension line
         Parameters
         ----------
         point_or_coord: Point | Coord | tuple[num, num]
+        on_extension: bool, whether return point that is on the extension segment of current linestring, default to True
 
         Returns
         -------
@@ -274,6 +275,9 @@ class LineStringExtension(BaseGeomExtension):
 
         def native_project(line, point: Union[Point, CoordType]) -> Point:
             return line.interpolate(line.project(Point(point)))
+
+        if not on_extension:
+            return native_project(self._geom, point_or_coord)
 
         if isinstance(self._geom, StraightSegment):
             return project_on_straight_line(self._geom, point_or_coord)

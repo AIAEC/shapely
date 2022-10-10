@@ -7,9 +7,26 @@ from shapely.geometry import Point, LineString, box
 
 class LineStringExtensionTest(TestCase):
     def test_projected_point(self):
+        # projected point on extension
         line = LineString([(0, 0), (1, 0)])
         result = line.ext.projected_point(Point(100, 1))
         self.assertTrue(result.equals(Point(100, 0)))
+
+        result = line.ext.projected_point(Point(-100, 1))
+        self.assertTrue(result.equals(Point(-100, 0)))
+
+        result = line.ext.projected_point(Point(0.5, -1))
+        self.assertTrue(result.equals(Point(0.5, 0)))
+
+        # projected point not on extension
+        result = line.ext.projected_point(Point(100, 1), on_extension=False)
+        self.assertTrue(result.equals(Point(1, 0)))
+
+        result = line.ext.projected_point(Point(-100, 1), on_extension=False)
+        self.assertTrue(result.equals(Point(0, 0)))
+
+        result = line.ext.projected_point(Point(0.6, 2), on_extension=False)
+        self.assertTrue(result.equals(Point(0.6, 0)))
 
     def test_getitem(self):
         line = LineString([(i, 0) for i in range(0, 100)])

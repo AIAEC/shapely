@@ -215,8 +215,8 @@ class ProjectionTowards:
 
         shadows = (raw_shadow
                    .difference(rect_buffer(self.projector, MATH_EPS))
-                   .difference(rect_buffer(self.target, MATH_EPS)).ext.flatten(
-            target_class_or_callable=(LineString, Polygon)).to_list())
+                   .difference(rect_buffer(self.target, MATH_EPS))
+                   .ext.flatten(target_class_or_callable=(LineString, Polygon)).to_list())
         valid_shadows = lfilter(lambda shadow: (shadow.distance(self.projector) < MATH_EPS * 2
                                                 and shadow.distance(self.target) < MATH_EPS * 2), shadows)
 
