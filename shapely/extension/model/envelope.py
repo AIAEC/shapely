@@ -85,11 +85,12 @@ class Envelope:
 
     def _setup_endpoints(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]], angle: Angle):
         geom = unary_union(geom_or_geoms) if isinstance(geom_or_geoms, Sequence) else geom_or_geoms
+        rotate_center = geom.centroid
         # rotate geom to x-y axis aligned direction to calculate the bounding points
-        x_min, y_min, x_max, y_max = rotate(geom, angle=-angle.degree, origin='center').bounds
+        x_min, y_min, x_max, y_max = rotate(geom, angle=-angle.degree, origin=rotate_center).bounds
         multi_point = MultiPoint([Point(x_min, y_min), Point(x_max, y_min), Point(x_max, y_max), Point(x_min, y_max)])
         # rotate multi-point back to origin direction
-        return list(rotate(multi_point, angle=angle.degree, origin='center').geoms)
+        return list(rotate(multi_point, angle=angle.degree, origin=rotate_center).geoms)
 
     def _setup_angle(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
                      angle: Union[Num, Angle]) -> Angle:

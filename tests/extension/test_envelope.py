@@ -1,6 +1,7 @@
 from operator import attrgetter
 from unittest import TestCase
 
+from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.envelope import Envelope, PointPosition, EdgePosition, HalfEdgePosition, DiagonalPosition, \
     HalfDiagonalPosition, EnvelopeCreator
 from shapely.geometry import Point, Polygon, LineString
@@ -58,7 +59,7 @@ class EnvelopeTest(TestCase):
         self.assertTupleEqual((0.5, 1), envelope.coord(PointPosition.MID_TOP))
         self.assertTupleEqual((1, 1), envelope.coord(PointPosition.RIGHT_TOP))
 
-    def test_create_envelope_by_points(self):
+    def test_create_envelope_by_points1(self):
         points = [Point(0.5, 0), Point(1, 0.5), Point(0.5, 1), Point(0, 0.3)]
         envelope = Envelope(points, angle=0)
         self.assertTrue(isinstance(envelope.shape, Polygon))
@@ -73,6 +74,14 @@ class EnvelopeTest(TestCase):
         self.assertTupleEqual((0, 1), envelope.coord(PointPosition.LEFT_TOP))
         self.assertTupleEqual((0.5, 1), envelope.coord(PointPosition.MID_TOP))
         self.assertTupleEqual((1, 1), envelope.coord(PointPosition.RIGHT_TOP))
+
+    def test_create_envelope_by_points2(self):
+        """
+        原图形和envelope中心不同时
+        """
+        multi_points = loads('MULTIPOINT (-16.367780269621388 4.1313879604772, -14.918891530187786 3.743159392823419, -14.840605022568914 6.933106095671379)')
+        envelope = Envelope(multi_points)
+        self.assertTrue(envelope.shape.buffer(MATH_EPS).contains(multi_points))
 
 
 class EnvelopeCreatorTest(TestCase):
