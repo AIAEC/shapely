@@ -11,7 +11,7 @@ class Angle:
     rotating_angle calculation and including_angle calculation
     """
 
-    def __init__(self, angle_degree: Union[Num, 'Angle'], range_: Tuple[Num, Num] = (0, 360)):
+    def __init__(self, angle_degree: Union[float, 'Angle'], range_: Tuple[float, float] = (0, 360)):
         """
         init angle instance
 
@@ -38,7 +38,7 @@ class Angle:
             self._range = range_
 
     @classmethod
-    def from_radian(cls, radian: Num, range_: Tuple[Num, Num] = (0, 360)):
+    def from_radian(cls, radian: float, range_: Tuple[float, float] = (0, 360)):
         return cls(angle_degree=degrees(radian), range_=range_)
 
     def _assert_valid_angle(self, angle_degree) -> None:
@@ -52,7 +52,7 @@ class Angle:
                 and range_[0] < range_[1]):
             raise ValueError(f'expect [num0, num1] as range, and num0 < num1, given {range_}')
 
-    def set_mod(self, range_: Tuple[Num, Num]) -> 'Angle':
+    def set_mod(self, range_: Tuple[float, float]) -> 'Angle':
         """
         set the angle degree mod range.
 
@@ -71,7 +71,7 @@ class Angle:
         return self
 
     @property
-    def degree(self) -> Num:
+    def degree(self) -> float:
         """
         angle in degree format modulo given range.
 
@@ -100,7 +100,7 @@ class Angle:
         return (self._angle_degree - self._range[0]) % (self._range[1] - self._range[0]) + self._range[0]
 
     @property
-    def radian(self) -> Num:
+    def radian(self) -> float:
         """
         the radian of angle degree
         Returns
@@ -121,7 +121,7 @@ class Angle:
         return tuple(self._range)
 
     @mod.setter
-    def mod(self, range_: Tuple[Num, Num]):
+    def mod(self, range_: Tuple[float, float]):
         self.set_mod(range_)
 
     def sin(self) -> float:
@@ -155,7 +155,7 @@ class Angle:
         return tan(self.radian)
 
     @classmethod
-    def asin(cls, value: Num) -> 'Angle':
+    def asin(cls, value: float) -> 'Angle':
         """
         shortcut for Angle(asin(value))
         Parameters
@@ -169,7 +169,7 @@ class Angle:
         return cls(degrees(asin(value)))
 
     @classmethod
-    def acos(cls, value: Num) -> 'Angle':
+    def acos(cls, value: float) -> 'Angle':
         """
         shortcut for Angle(acos(value))
         Parameters
@@ -183,7 +183,7 @@ class Angle:
         return cls(degrees(acos(value)))
 
     @classmethod
-    def atan(cls, value: Num) -> 'Angle':
+    def atan(cls, value: float) -> 'Angle':
         """
         shortcut for Angle(atan(value))
         Parameters
@@ -197,7 +197,7 @@ class Angle:
         return cls(degrees(atan(value)))
 
     @classmethod
-    def atan2(cls, y: Num, x: Num) -> 'Angle':
+    def atan2(cls, y: float, x: float) -> 'Angle':
         """
         shortcut for Angle(atan2(y, x))
         Parameters
@@ -301,35 +301,35 @@ class Angle:
     def __ceil__(self):
         return ceil(float(self))
 
-    def __add__(self, other: Union['Angle', Num]) -> 'Angle':
+    def __add__(self, other: Union['Angle', float]) -> 'Angle':
         return Angle(float(self) + float(other), range_=self._range)
 
-    def __radd__(self, other: Union['Angle', Num]) -> 'Angle':
+    def __radd__(self, other: Union['Angle', float]) -> 'Angle':
         _range = other._range if isinstance(other, Angle) else self._range
         return Angle(float(other) + float(self), range_=_range)
 
-    def __iadd__(self, other: Union['Angle', Num]) -> 'Angle':
+    def __iadd__(self, other: Union['Angle', float]) -> 'Angle':
         self._angle_degree += float(other)
         return self
 
-    def __sub__(self, other: Union['Angle', Num]) -> 'Angle':
+    def __sub__(self, other: Union['Angle', float]) -> 'Angle':
         return Angle(float(self) - float(other), range_=self._range)
 
-    def __rsub__(self, other: Union['Angle', Num]) -> 'Angle':
+    def __rsub__(self, other: Union['Angle', float]) -> 'Angle':
         _range = other._range if isinstance(other, Angle) else self._range
         return Angle(float(other) - float(self), range_=_range)
 
-    def __isub__(self, other: Union['Angle', Num]) -> 'Angle':
+    def __isub__(self, other: Union['Angle', float]) -> 'Angle':
         self._angle_degree -= float(other)
         return self
 
-    def __mul__(self, other: Num) -> 'Angle':
+    def __mul__(self, other: float) -> 'Angle':
         return Angle(self._angle_degree * other, range_=self._range)
 
-    def __rmul__(self, other: Num) -> 'Angle':
+    def __rmul__(self, other: float) -> 'Angle':
         return Angle(self._angle_degree * other, range_=self._range)
 
-    def __imul__(self, other: Num) -> 'Angle':
+    def __imul__(self, other: float) -> 'Angle':
         self._angle_degree *= other
         return self
 
@@ -338,12 +338,12 @@ class Angle:
             raise ValueError('Angle cannot divide by 0')
         return Angle(self._angle_degree / other, range_=self._range)
 
-    def __mod__(self, range_: Union[Num, Tuple[Num, Num]]) -> 'Angle':
+    def __mod__(self, range_: Union[float, Tuple[float, float]]) -> 'Angle':
         if isinstance(range_, Num):
             range_ = tuple(sorted([0, range_]))
         return Angle(self._angle_degree, range_=range_)
 
-    def __imod__(self, range_: Union[Num, Tuple[Num, Num]]) -> 'Angle':
+    def __imod__(self, range_: Union[float, Tuple[float, float]]) -> 'Angle':
         if isinstance(range_, Num):
             range_ = tuple(sorted([0, range_]))
         self._assert_valid_range(range_)
@@ -356,17 +356,17 @@ class Angle:
         return Angle(self._angle_degree, range_=range_)
 
     @staticmethod
-    def _angle_degree_of_other(other: Union['Angle', Num]) -> Num:
+    def _angle_degree_of_other(other: Union['Angle', float]) -> float:
         return other if isinstance(other, Num) else other.degree
 
-    def __eq__(self, other: Union['Angle', Num]) -> bool:
+    def __eq__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)
         return other_angle == self.degree
 
     def __hash__(self):
         return hash(('angle', self._angle_degree, self._range))
 
-    def almost_equal(self, other: Union['Angle', Num], angle_tol: Num) -> bool:
+    def almost_equal(self, other: Union['Angle', float], angle_tol: float) -> bool:
         """
         whether current angle is almost equal to given angle within given angle tolerance
         Parameters
@@ -380,19 +380,19 @@ class Angle:
         """
         return self.including_angle(Angle(other, self._range)) <= angle_tol
 
-    def __lt__(self, other: Union['Angle', Num]) -> bool:
+    def __lt__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)
         return self.degree < other_angle
 
-    def __le__(self, other: Union['Angle', Num]) -> bool:
+    def __le__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)
         return self.degree <= other_angle
 
-    def __gt__(self, other: Union['Angle', Num]) -> bool:
+    def __gt__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)
         return self.degree > other_angle
 
-    def __ge__(self, other: Union['Angle', Num]) -> bool:
+    def __ge__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)
         return self.degree >= other_angle
 

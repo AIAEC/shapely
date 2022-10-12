@@ -24,7 +24,7 @@ class NativeSimplifyStrategy(BaseSimplifyStrategy):
     simplify strategy that use native simplify api of shapely
     """
 
-    def __init__(self, simplify_dist: Num = 0):
+    def __init__(self, simplify_dist: float = 0):
         self._simplify_dist = simplify_dist
 
     def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List:

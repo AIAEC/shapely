@@ -17,10 +17,10 @@ class Arc(LineString):
     """
 
     def __init__(self, center: Union[Point, CoordType],
-                 radius: Num = 1,
-                 start_angle: Num = 0,
-                 rotate_angle: Num = 90,
-                 resolution: Num = 1):
+                 radius: float = 1,
+                 start_angle: float = 0,
+                 rotate_angle: float = 90,
+                 resolution: int = 1):
         self._center = Point(center)
         self._radius = float(radius)
 
@@ -38,7 +38,7 @@ class Arc(LineString):
         super(Arc, self).__init__(coords)
 
     @classmethod
-    def _angle_iter(cls, start_angle: Num, rotate_angle: Num, resolution: Num) -> Iterable[float]:
+    def _angle_iter(cls, start_angle: float, rotate_angle: float, resolution: int) -> Iterable[float]:
         end_angle = start_angle + rotate_angle
         resolution = sign(float(rotate_angle) > 0) * resolution
         last_angle = None
@@ -57,10 +57,10 @@ class Arc(LineString):
 
     @classmethod
     def _coord_iter(cls, center_coord: CoordType,
-                    radius: Num,
-                    start_angle: Num,
-                    rotate_angle: Num,
-                    resolution: Num) -> Iterable[CoordType]:
+                    radius: float,
+                    start_angle: float,
+                    rotate_angle: float,
+                    resolution: int) -> Iterable[CoordType]:
         return ((center_coord[0] + radius * cos(radians(a)), center_coord[1] + radius * sin(radians(a)))
                 for a in cls._angle_iter(start_angle, rotate_angle, resolution))
 
@@ -135,7 +135,7 @@ class Arc(LineString):
                    rotate_angle=-float(self._rotate_angle),
                    resolution=self._resolution)
 
-    def tangential(self, geom, dist_tol: Num = MATH_EPS) -> bool:
+    def tangential(self, geom, dist_tol: float = MATH_EPS) -> bool:
         if not isclose(self._center.distance(geom), self._radius, abs_tol=dist_tol):
             return False
 
@@ -150,7 +150,7 @@ class Arc(LineString):
                                                          cw_range=cw_range).contains_angle()
         return angle_in_range_predicator(LineString(nearest_points(self._center, geom)).ext.angle())
 
-    def tangent_point(self, geom, dist_tol: Num = MATH_EPS) -> Point:
+    def tangent_point(self, geom, dist_tol: float = MATH_EPS) -> Point:
         if not self.tangential(geom, dist_tol):
             return Point()
         return self.interpolate_by_angle(LineString(nearest_points(self._center, geom)).ext.angle())
@@ -171,14 +171,14 @@ class Arc(LineString):
         angle = self._start_angle + distance / self._radius
         return Point(center_coord[0] + self._radius * angle.cos(), center_coord[1] + self._radius * angle.sin())
 
-    def in_angle_range(self, angle: Union[Angle, Num]) -> bool:
+    def in_angle_range(self, angle: Union[Angle, float]) -> bool:
         end_angle = self._start_angle + self._rotate_angle
         if float(self._rotate_angle) > 0:
             return self._start_angle <= Angle(angle) <= end_angle
 
         return end_angle <= Angle(angle) <= self._start_angle
 
-    def interpolate_by_angle(self, angle: Union[Angle, Num]) -> Point:
+    def interpolate_by_angle(self, angle: Union[Angle, float]) -> Point:
         if not self.in_angle_range(angle):
             raise ValueError(f"{angle} is not in arc's angle range")
 

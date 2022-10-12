@@ -19,7 +19,7 @@ class Vector:
     calculator in some case.
     """
 
-    def __init__(self, x: Num = 0., y: Num = 0.):
+    def __init__(self, x: float = 0., y: float = 0.):
         """
         init a vector instance
 
@@ -151,7 +151,7 @@ class Vector:
         """
         return math.sqrt(self.x ** 2 + self.y ** 2)
 
-    def unit(self, n_unit: Num = 1) -> 'Vector':
+    def unit(self, n_unit: float = 1) -> 'Vector':
         """
         return the unit vector of current vector
 
@@ -172,7 +172,7 @@ class Vector:
         self.assert_vector_type(other)
         return self.x == other.x and self.y == other.y
 
-    def almost_equal(self, other: 'Vector', dist_tol: Num = 1e-6) -> bool:
+    def almost_equal(self, other: 'Vector', dist_tol: float = 1e-6) -> bool:
         """
         predicate whether given vector is almost equal to current vector
 
@@ -204,7 +204,7 @@ class Vector:
         """
         return Angle.atan2(self.y, self.x)
 
-    def ray(self, origin: Union[Point, CoordType], length: Num = 1e16) -> LineString:
+    def ray(self, origin: Union[Point, CoordType], length: float = 1e16) -> LineString:
         """
         return linestring that goes along the vector from the given origin
 
@@ -242,7 +242,7 @@ class Vector:
         """
         return self.ccw_perpendicular.invert()
 
-    def perpendicular_to(self, other: 'Vector', dist_tol: Num = MATH_EPS, angle_tol: Num = MATH_EPS) -> bool:
+    def perpendicular_to(self, other: 'Vector', dist_tol: float = MATH_EPS, angle_tol: float = MATH_EPS) -> bool:
         """
         return whether perpendicular to given vector. return True if it satisfies any tolerance
 
@@ -258,7 +258,7 @@ class Vector:
         """
         return abs(self @ other) < dist_tol or self.angle.perpendicular_to(other.angle, angle_tol=float(angle_tol))
 
-    def parallel_to(self, other: 'Vector', dist_tol: Num = MATH_EPS, angle_tol: Num = MATH_EPS):
+    def parallel_to(self, other: 'Vector', dist_tol: float = MATH_EPS, angle_tol: float = MATH_EPS):
         """
         return whether parallel to given vector. 2 vectors are parallel even when they are in inverse direction.
         return True if it satisfies any tolerance.
@@ -275,7 +275,7 @@ class Vector:
         """
         return abs(self.cross_prod(other)) < dist_tol or self.angle.parallel_to(other.angle, angle_tol=float(angle_tol))
 
-    def rotate(self, ccw_angle_degree: Num) -> 'Vector':
+    def rotate(self, ccw_angle_degree: float) -> 'Vector':
         """
         return vector that rotate given angle degree in counter clockwise
 
@@ -402,7 +402,7 @@ class Vector:
                 and isinstance(seq[0], Num)
                 and isinstance(seq[1], Num))
 
-    def multiply(self, multiple: Num):
+    def multiply(self, multiple: float):
         """
         multiple vector by scalar number
 
@@ -416,17 +416,17 @@ class Vector:
         """
         return Vector(self.x * multiple, self.y * multiple)
 
-    def __mul__(self, other: Num):
+    def __mul__(self, other: float):
         if not isinstance(other, Num):
             raise TypeError(f'expect vector * num, given {other}')
         return self.multiply(other)
 
-    def __rmul__(self, other: Num):
+    def __rmul__(self, other: float):
         if not isinstance(other, Num):
             raise TypeError(f'expect vector * num, given {other}')
         return self.multiply(other)
 
-    def __imul__(self, other: Num):
+    def __imul__(self, other: float):
         if not isinstance(other, Num):
             raise TypeError(f'expect vector * num, given {other}')
 
@@ -434,7 +434,7 @@ class Vector:
         self.y *= other
         return self
 
-    def __truediv__(self, other: Num):
+    def __truediv__(self, other: float):
         if not isinstance(other, Num) or other == 0:
             return self
 
@@ -454,7 +454,7 @@ class Vector:
         """
         return self.zero()
 
-    def cross_prod(self, other: 'Vector') -> Num:
+    def cross_prod(self, other: 'Vector') -> float:
         """
         calculate the cross product(a scalar) of 2 vectors
 
@@ -484,7 +484,7 @@ class Vector:
         if not isinstance(possible_vector, cls):
             raise TypeError(f"{possible_vector} is of type {type(possible_vector)}, expect Vector")
 
-    def dot(self, other: 'Vector') -> Num:
+    def dot(self, other: 'Vector') -> float:
         """
         calculate 2 vector dot product
 
@@ -499,10 +499,10 @@ class Vector:
         self.assert_vector_type(other)
         return self.x * other.x + self.y * other.y
 
-    def __matmul__(self, other: 'Vector') -> Num:
+    def __matmul__(self, other: 'Vector') -> float:
         return self.dot(other)
 
-    def __rmatmul__(self, other: 'Vector') -> Num:
+    def __rmatmul__(self, other: 'Vector') -> float:
         return self.dot(other)
 
     def plus(self, other: 'Vector') -> 'Vector':

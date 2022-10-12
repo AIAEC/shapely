@@ -136,7 +136,7 @@ class CurveDecomposeStrategy(DefaultDecomposeStrategy):
     decompose strategy that cut multi-linestring into linestrings according to its turning angle
     """
 
-    def __init__(self, min_cutting_angle: Num):
+    def __init__(self, min_cutting_angle: float):
         """
         Parameters
         ----------

@@ -48,8 +48,8 @@ class AlignPoint(BaseAlignGeom):
     def __init__(self, point: Point,
                  direction: Optional[Vector] = None,
                  origin: Optional[GeomObj] = None,
-                 direction_dist_tol: Num = MATH_EPS,
-                 angle_tol: Num = MATH_EPS):
+                 direction_dist_tol: float = MATH_EPS,
+                 angle_tol: float = MATH_EPS):
         self._point = point
         self._direction = direction or Vector(1, 0)
         self._origin = origin or point
@@ -112,8 +112,8 @@ class AlignPoint(BaseAlignGeom):
 class AlignLineString(BaseAlignGeom):
     def __init__(self, line: LineString,
                  origin: Optional[GeomObj] = None,
-                 direction_dist_tol: Num = MATH_EPS,
-                 angle_tol: Num = MATH_EPS):
+                 direction_dist_tol: float = MATH_EPS,
+                 angle_tol: float = MATH_EPS):
         self._line = line
         self._direction = Vector.from_endpoints_of(self._line)
         self._origin = origin or line
@@ -195,8 +195,8 @@ class AlignPolygon(BaseAlignMultiPartGeom):
     def __init__(self, poly: Polygon,
                  direction: Optional[Vector] = None,
                  origin: Optional[GeomObj] = None,
-                 direction_dist_tol: Num = MATH_EPS,
-                 angle_tol: Num = MATH_EPS):
+                 direction_dist_tol: float = MATH_EPS,
+                 angle_tol: float = MATH_EPS):
         self._poly = poly
         self._direction = direction
         self._origin = origin

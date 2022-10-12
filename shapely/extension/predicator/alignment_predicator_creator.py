@@ -14,8 +14,8 @@ from shapely.geometry.base import BaseGeometry
 class AlignmentPredicatorCreator:
     def __init__(self, geom: BaseGeometry,
                  direction: Optional[Vector] = None,
-                 direction_dist_tol: Num = MATH_EPS,
-                 angle_tol: Num = MATH_EPS):
+                 direction_dist_tol: float = MATH_EPS,
+                 angle_tol: float = MATH_EPS):
         if not isinstance(geom, (Point, LineString, Polygon)):
             raise TypeError(f'{type(geom)} has not been supported')
 

@@ -40,7 +40,7 @@ class LineStringExtension(BaseGeomExtension):
             return LineString(list(self._geom.coords).__getitem__(item))
         raise TypeError(f'{item} is not supported index')
 
-    def substring(self, interval: Union[Tuple[Num, Num], Interval], absolute: bool = True):
+    def substring(self, interval: Union[Tuple[float, float], Interval], absolute: bool = True):
         """
         calculate the substring of current linestring
         Parameters
@@ -114,7 +114,7 @@ class LineStringExtension(BaseGeomExtension):
         strategy = strategy or ShorterBypassingStrategy()
         return strategy.bypass(self._geom, geom)
 
-    def offset(self, dist: Num,
+    def offset(self, dist: float,
                towards: Union[str, BaseGeometry] = 'left',
                invert_coords: bool = False,
                strategy: Optional[BaseOffsetStrategy] = None) -> LineString:
@@ -145,7 +145,7 @@ class LineStringExtension(BaseGeomExtension):
                                invert_coords=invert_coords)
 
     def is_parallel_to(self, other: LineString,
-                       angle_tol: Num = MATH_EPS,
+                       angle_tol: float = MATH_EPS,
                        angle_strategy: Optional[Callable[[BaseGeometry], Angle]] = None) -> bool:
         """
         whether parallel to other linestring
@@ -163,7 +163,7 @@ class LineStringExtension(BaseGeomExtension):
         return angle.almost_equal(180, angle_tol=angle_tol) or angle.almost_equal(0, angle_tol=angle_tol)
 
     def is_perpendicular_to(self, other: LineString,
-                            angle_tol: Num = MATH_EPS,
+                            angle_tol: float = MATH_EPS,
                             angle_strategy: Optional[Callable[[BaseGeometry], Angle]] = None) -> bool:
         """
         whether perpendicular to other linestring
@@ -181,7 +181,7 @@ class LineStringExtension(BaseGeomExtension):
         return ((self.angle(angle_strategy) - other.ext.angle(angle_strategy)) % 180).almost_equal(90, angle_tol)
 
     def is_collinear_to(self, other: LineString,
-                        angle_tol: Num = MATH_EPS,
+                        angle_tol: float = MATH_EPS,
                         angle_strategy: Optional[Callable[[BaseGeometry], Angle]] = None) -> bool:
         """
         whether collinear to other linestring
@@ -202,7 +202,7 @@ class LineStringExtension(BaseGeomExtension):
             line0.ext.is_parallel_to(other=line1, angle_tol=angle_tol, angle_strategy=angle_strategy)
             for line0, line1 in combinations(lines, 2))
 
-    def is_straight(self, angle_tol: Num = MATH_EPS) -> bool:
+    def is_straight(self, angle_tol: float = MATH_EPS) -> bool:
         """
         whether the linestring is a straight line
         Parameters
@@ -217,7 +217,7 @@ class LineStringExtension(BaseGeomExtension):
             [Coord.angle(*coord_tuple) for coord_tuple in win_slice(self._geom.coords, win_size=2)])
         return min_angle.including_angle(max_angle) <= angle_tol
 
-    def extend_to_merge(self, line: LineString, extent_dist: Num = LARGE_ENOUGH_DISTANCE) -> Optional[LineString]:
+    def extend_to_merge(self, line: LineString, extent_dist: float = LARGE_ENOUGH_DISTANCE) -> Optional[LineString]:
         """
         prolong current linestring and given linestring, and return merged linestring or None if they don't intersect
         Parameters
@@ -291,7 +291,7 @@ class LineStringExtension(BaseGeomExtension):
                     projected_pt_at_start,
                     projected_pt_at_end], key=lambda pt: given_point.distance(pt))
 
-    def perpendicular_line(self, point: Point, length: Num, position: str = 'mid') -> LineString:
+    def perpendicular_line(self, point: Point, length: float, position: str = 'mid') -> LineString:
         """
         project the given point onto the current linestring and return the perpendicular linestring(normal line)
         of the projected point
@@ -322,7 +322,7 @@ class LineStringExtension(BaseGeomExtension):
             pt1 = perpendicular_vec_cw.unit(length).apply(point_on_line)
         return LineString([pt0, pt1])
 
-    def tangent_line(self, point: Point, length: Num, position: str = 'mid') -> LineString:
+    def tangent_line(self, point: Point, length: float, position: str = 'mid') -> LineString:
         """
         project the given point onto the current linestring and return the tangent linestring of the projected point
         Parameters

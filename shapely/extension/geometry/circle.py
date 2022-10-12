@@ -13,14 +13,14 @@ class Circle(Arc):
     """
 
     def __init__(self, center: Union[Point, CoordType],
-                 radius: Num = 1,
-                 resolution: Num = 1):
+                 radius: float = 1,
+                 resolution: int = 1):
         if radius <= 0:
             raise ValueError(f'radius must be greater than 0, given {radius}')
 
         super().__init__(center, radius, 0, 360, resolution)
 
-    def concentric(self, radius: Num) -> 'Circle':
+    def concentric(self, radius: float) -> 'Circle':
         return Circle(center=self._center, radius=radius, resolution=self._resolution)
 
     def arc(self, cutting_point_or_points: Union[Union[Point, CoordType], Iterable[Union[Point, CoordType]]]

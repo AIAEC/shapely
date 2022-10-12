@@ -12,7 +12,7 @@ from shapely.extension.util.iter_util import win_slice
 from shapely.geometry import Polygon, LineString
 from shapely.geometry.base import BaseGeometry
 
-AngleStrategyType = Callable[[Polygon], Num]
+AngleStrategyType = Callable[[Polygon], float]
 
 
 class PolygonAngleStrategy:
@@ -20,10 +20,10 @@ class PolygonAngleStrategy:
     polygon angle strategy factory
     """
 
-    def __init__(self, default_angle: Num):
+    def __init__(self, default_angle: float):
         self._default = default_angle
 
-    def by_prevailing_edge(self, same_angle_tol: Num = 2) -> AngleStrategyType:
+    def by_prevailing_edge(self, same_angle_tol: float = 2) -> AngleStrategyType:
         """
         return angle strategy for polygon that using prevail edges' average angle as the angle of the polygon.
         it will do statistics through all edges and pick the angle cluster that has the longest edge length sum.
@@ -36,7 +36,7 @@ class PolygonAngleStrategy:
         angle strategy instance for polygon angle calculation
         """
 
-        def _angle_calculator(polygon: Polygon) -> Num:
+        def _angle_calculator(polygon: Polygon) -> float:
             if not isinstance(polygon, Polygon):
                 polygon = polygon.convex_hull
 

@@ -61,7 +61,7 @@ class Prolong:
         self._line = line
         self._absolute = absolute
 
-    def from_end(self, end: Union[CoordType, Point], dist: Num):
+    def from_end(self, end: Union[CoordType, Point], dist: float):
         coords = list(self._line.coords)
         start_pt: Point = Point(coords[0])
         end_pt: Point = Point(coords[-1])
@@ -75,19 +75,19 @@ class Prolong:
 
         return self.from_tail(dist)
 
-    def from_ends(self, dist: Num):
+    def from_ends(self, dist: float):
         if not self._absolute:
             dist = dist * self._line.length
 
         return prolong(self._line, front_prolong_len=float(dist), end_prolong_len=float(dist))
 
-    def from_head(self, dist: Num):
+    def from_head(self, dist: float):
         if not self._absolute:
             dist = dist * self._line.length
 
         return prolong(self._line, front_prolong_len=float(dist))
 
-    def from_tail(self, dist: Num):
+    def from_tail(self, dist: float):
         if not self._absolute:
             dist = dist * self._line.length
 

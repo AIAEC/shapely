@@ -92,7 +92,7 @@ class BaseGeomExtension:
         return EnvelopeCreator(self._geom)
 
     def divided_by(self, line_or_lines: Union[LineString, Iterable[LineString], MultiLineString],
-                   dist_tol: Num = MATH_EPS) -> Aggregation:
+                   dist_tol: float = MATH_EPS) -> Aggregation:
         """
         divide current geometry by linestring(s) or multi-linestring. If you want to do divide by other types of geometry
         use difference instead
@@ -190,8 +190,8 @@ class BaseGeomExtension:
         return ShortestStraightPath(direction=direction).of(self._geom, geom)
 
     def difference(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]],
-                   self_buffer: Num = 0,
-                   component_buffer: Num = 0):
+                   self_buffer: float = 0,
+                   component_buffer: float = 0):
         """
         current geometry difference given geometry or geometries
         Parameters
@@ -216,8 +216,8 @@ class BaseGeomExtension:
         return self_geom.difference(given_geom_union)
 
     def intersection(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]],
-                     self_buffer: Num = 0,
-                     component_buffer: Num = 0):
+                     self_buffer: float = 0,
+                     component_buffer: float = 0):
         """
         current geometry intersection with given geometry or geometries
         Parameters
@@ -352,8 +352,8 @@ class BaseGeomExtension:
 
         return path.length
 
-    def alignment(self, direction_dist_tol: Num = MATH_EPS,
-                  angle_tol: Num = MATH_EPS) -> Union[BaseAlignMultiPartGeom, BaseAlignGeom]:
+    def alignment(self, direction_dist_tol: float = MATH_EPS,
+                  angle_tol: float = MATH_EPS) -> Union[BaseAlignMultiPartGeom, BaseAlignGeom]:
         """
         return the alignment object.
 
@@ -394,8 +394,8 @@ class BaseGeomExtension:
         return RelationPredicatorCreator(self._geom)
 
     def f_alignment(self, direction: Optional[Vector] = None,
-                    direction_dist_tol: Num = MATH_EPS,
-                    angle_tol: Num = MATH_EPS) -> AlignmentPredicatorCreator:
+                    direction_dist_tol: float = MATH_EPS,
+                    angle_tol: float = MATH_EPS) -> AlignmentPredicatorCreator:
         """
         used for predicating the alignment relationship between other geometry and current geometry
         Parameters
@@ -413,7 +413,7 @@ class BaseGeomExtension:
                                           direction_dist_tol=direction_dist_tol,
                                           angle_tol=angle_tol)
 
-    def f_angle(self, strategy: Optional[Callable[[BaseGeometry], Num]] = None) -> AnglePredicatorCreator:
+    def f_angle(self, strategy: Optional[Callable[[BaseGeometry], float]] = None) -> AnglePredicatorCreator:
         """
         used for predicating the angle relationship between other geometry and current geometry
         Parameters
@@ -427,7 +427,7 @@ class BaseGeomExtension:
         return AnglePredicatorCreator(self._geom, strategy)
 
     def almost_intersects(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]],
-                          dist_tol: Num = MATH_EPS) -> bool:
+                          dist_tol: float = MATH_EPS) -> bool:
         """
         whether current geometry almost intersects with given geom(s)
         Parameters
@@ -446,7 +446,7 @@ class BaseGeomExtension:
             return False
         return union_geoms.distance(self._geom) <= dist_tol
 
-    def similar(self, geom: BaseGeometry, area_diff_tol: Num) -> bool:
+    def similar(self, geom: BaseGeometry, area_diff_tol: float) -> bool:
         """
         whether is similar to given geometry in area difference tolerance
         Parameters

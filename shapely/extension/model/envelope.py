@@ -71,7 +71,7 @@ class HalfDiagonalPosition(EasyEnum):
 
 class Envelope:
     def __init__(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
-                 angle: Optional[Union[Num, Angle]] = None):
+                 angle: Optional[Union[float, Angle]] = None):
         self._angle = self._setup_angle(geom_or_geoms, angle)
         (self.left_bottom,
          self.right_bottom,
@@ -93,7 +93,7 @@ class Envelope:
         return list(rotate(multi_point, angle=angle.degree, origin=rotate_center).geoms)
 
     def _setup_angle(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
-                     angle: Union[Num, Angle]) -> Angle:
+                     angle: Union[float, Angle]) -> Angle:
         # if given angle, then return this angle
         if angle is not None:
             return Angle(angle)
@@ -163,15 +163,15 @@ class Envelope:
         return LineString([start_point, end_point])
 
     @property
-    def longer_length(self) -> Num:
+    def longer_length(self) -> float:
         return max(self.edge(EdgePosition.BOTTOM).length, self.edge(EdgePosition.LEFT).length)
 
     @property
-    def shorter_length(self) -> Num:
+    def shorter_length(self) -> float:
         return min(self.edge(EdgePosition.BOTTOM).length, self.edge(EdgePosition.LEFT).length)
 
     @property
-    def aspect_ratio(self) -> Num:
+    def aspect_ratio(self) -> float:
         if self.longer_length == 0:
             return float('inf')
         return self.shorter_length / self.longer_length
@@ -212,7 +212,7 @@ class EnvelopeCreator:
                             'from given object or object sequence')
         self._geoms = geoms
 
-    def of_angle(self, ccw_angle: Optional[Num] = None) -> Envelope:
+    def of_angle(self, ccw_angle: Optional[float] = None) -> Envelope:
         """
         create Envelope of given angle
         Parameters

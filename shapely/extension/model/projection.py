@@ -12,7 +12,7 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry, JOIN_STYL
 from shapely.ops import unary_union, substring
 
 
-def rect_buffer(geom: BaseGeometry, dist: Num):
+def rect_buffer(geom: BaseGeometry, dist: float):
     return geom.buffer(float(dist), join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
 
 

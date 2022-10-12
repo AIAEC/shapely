@@ -13,7 +13,7 @@ class Coord:
     def __init__(self, *args):
         self.x, self.y = self._setup(args)
 
-    def _setup(self, arg_list) -> Tuple[Num, Num]:
+    def _setup(self, arg_list) -> Tuple[float, float]:
         if len(arg_list) < 1:
             raise ValueError(f'{arg_list} cannot be used to initialize Coord object')
         if (isinstance(arg_list[0], Sequence)
@@ -64,23 +64,23 @@ class Coord:
         self.y -= other[1]
         return self
 
-    def __mul__(self, num: Num):
+    def __mul__(self, num: float):
         return Coord(self.x * num, self.y * num)
 
-    def __rmul__(self, num: Num):
+    def __rmul__(self, num: float):
         return Coord(self.x * num, self.y * num)
 
-    def __imul__(self, num: Num):
+    def __imul__(self, num: float):
         self.x *= num
         self.y *= num
         return self
 
-    def __truediv__(self, num: Num):
+    def __truediv__(self, num: float):
         if num == 0:
             raise ValueError('divider cannot be 0')
         return Coord(self.x / num, self.y / num)
 
-    def __itruediv__(self, num: Num):
+    def __itruediv__(self, num: float):
         self.x /= num
         self.y /= num
         return self

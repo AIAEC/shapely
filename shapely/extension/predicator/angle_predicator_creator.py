@@ -17,7 +17,7 @@ class IncludingAnglePredicatorCreator:
     predicator creator for angle comparison predication
     """
 
-    def __init__(self, angle: Union[Num, Angle]):
+    def __init__(self, angle: Union[float, Angle]):
         self._angle = Angle(angle)
 
     def less_than(self, angle: Union[float, Angle]):
@@ -83,9 +83,9 @@ class AngleRangePredicator:
     predicator creator for angle relationship(intersects, contains or more) predication
     """
 
-    def __init__(self, pivot_degree: Union[Num, Angle],
-                 ccw_range: Num = 0,
-                 cw_range: Num = 0,
+    def __init__(self, pivot_degree: Union[float, Angle],
+                 ccw_range: float = 0,
+                 cw_range: float = 0,
                  origin: Union[Point, CoordType, str] = 'origin'):
         """
         init angle range predicator instance
@@ -188,8 +188,8 @@ class AngleRangePredicator:
 
         return _contains
 
-    def contains_angle(self) -> Callable[[Union[Num, Angle]], bool]:
-        def _contains(angle: Union[Num, Angle]):
+    def contains_angle(self) -> Callable[[Union[float, Angle]], bool]:
+        def _contains(angle: Union[float, Angle]):
             given_angle_min, given_angle_max = self.conditional_angle_range
             return given_angle_min <= angle and angle <= given_angle_max
 
@@ -201,7 +201,7 @@ class AnglePredicatorCreator:
     angle predicator creator for angle comparison and range predication
     """
 
-    def __init__(self, geom: BaseGeometry, strategy: Optional[Callable[[BaseGeometry], Num]] = None):
+    def __init__(self, geom: BaseGeometry, strategy: Optional[Callable[[BaseGeometry], float]] = None):
         self._geom = geom
         self._strategy = strategy
 
@@ -214,8 +214,8 @@ class AnglePredicatorCreator:
         """
         return IncludingAnglePredicatorCreator(self._geom.ext.angle(self._strategy))
 
-    def angle_range_relation(self, ccw_range: Union[Num, Angle] = 0,
-                             cw_range: Union[Num, Angle] = 0,
+    def angle_range_relation(self, ccw_range: Union[float, Angle] = 0,
+                             cw_range: Union[float, Angle] = 0,
                              origin: Union[Point, CoordType, str] = 'origin') -> AngleRangePredicator:
         """
         enter the angle range predication mode

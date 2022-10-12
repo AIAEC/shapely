@@ -22,7 +22,7 @@ class FixedRadiusArcCreator:
     """
     helper class for arc or circle creation given fixed radius beforehand
     """
-    def __init__(self, radius: Num):
+    def __init__(self, radius: float):
         """
         Parameters
         ----------
@@ -32,7 +32,7 @@ class FixedRadiusArcCreator:
         self._geoms: List[BaseGeometry] = []
         self.constraint = None
 
-    def intersects_with(self, geom: BaseGeometry, dist_tol: Num = MATH_EPS) -> 'FixedRadiusArcCreator':
+    def intersects_with(self, geom: BaseGeometry, dist_tol: float = MATH_EPS) -> 'FixedRadiusArcCreator':
         """
         specify geometry that intersected with result arcs or circles. If you specify too many geometries to intersect
         with, it might raise RuntimeError that no arc or circle will be created under these many intersection constraint
@@ -142,7 +142,7 @@ class FixedCenterArcCreator:
         self._radius_candidates: List[float] = []
         self._geoms: List[BaseGeometry] = []
 
-    def intersects_with(self, geom: BaseGeometry, radius_dist_tol: Num = MATH_EPS) -> 'FixedCenterArcCreator':
+    def intersects_with(self, geom: BaseGeometry, radius_dist_tol: float = MATH_EPS) -> 'FixedCenterArcCreator':
         """
         specify geometry that intersected with result arcs or circles. If you specify too many geometries to intersect
         with, it might raise RuntimeError that no arc or circle will be created under these many intersection constraint
@@ -249,7 +249,7 @@ class ArcCreator:
         """
         return FixedCenterArcCreator(center)
 
-    def radius(self, radius: Num) -> FixedRadiusArcCreator:
+    def radius(self, radius: float) -> FixedRadiusArcCreator:
         """
         fix the radius beforehand and calculate the arc or circle with further intersected geometries given
         Parameters

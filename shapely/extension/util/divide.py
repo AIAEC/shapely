@@ -17,7 +17,7 @@ __all__ = ['divide']
 
 def _line_divided_by_points(line: Union[LineString, MultiLineString],
                             points: Union[Point, Sequence[Point], MultiPoint],
-                            dist_tol: Num = MATH_EPS) -> List[LineString]:
+                            dist_tol: float = MATH_EPS) -> List[LineString]:
     def divide_single_line(line_, points_):
         points_ = flatten(points_, Point).to_list()
 
@@ -37,7 +37,7 @@ def _line_divided_by_points(line: Union[LineString, MultiLineString],
 
 def _divide_polygon_by_multilinestring(polygon: Polygon,
                                        divider: MultiLineString,
-                                       dist_tol: Num = MATH_EPS) -> List[Polygon]:
+                                       dist_tol: float = MATH_EPS) -> List[Polygon]:
     lines = flatten(divider, LineString).to_list()
     cross_points: List[Point] = []
     for i in range(1, len(lines)):
@@ -54,7 +54,7 @@ def _divide_polygon_by_multilinestring(polygon: Polygon,
 
 def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
            divider: Union[LineString, MultiLineString, BaseGeometry],
-           dist_tol: Num = MATH_EPS) -> List:
+           dist_tol: float = MATH_EPS) -> List:
     """
     divide the geom_or_geoms by divider(only linestring(s) or multi-linestring)
     Parameters

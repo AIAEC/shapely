@@ -16,12 +16,12 @@ class RelationPredicatorCreator:
         self._geom = geom
 
     @staticmethod
-    def rect_buffer(geom: BaseGeometry, buffer_dist: Num):
+    def rect_buffer(geom: BaseGeometry, buffer_dist: float):
         return geom.buffer(float(buffer_dist),
                            cap_style=CAP_STYLE.flat,
                            join_style=JOIN_STYLE.mitre)
 
-    def _predicator_func(self, method_name: str, self_buffer: Num = 0., other_buffer: Num = 0.):
+    def _predicator_func(self, method_name: str, self_buffer: float = 0., other_buffer: float = 0.):
         def _func(geom_obj: GeomObj, attr_getter: Callable[[object], BaseGeometry] = identity):
             self_geom_buffered = self.rect_buffer(self._geom, self_buffer)
             other_geom_buffered = self.rect_buffer(attr_getter(geom_obj), other_buffer)
@@ -29,7 +29,7 @@ class RelationPredicatorCreator:
 
         return _func
 
-    def intersects(self, self_buffer: Num = 0., component_buffer: Num = 0.) -> Predicator:
+    def intersects(self, self_buffer: float = 0., component_buffer: float = 0.) -> Predicator:
         """
         create predicator that predicate the geometry bool relationship of current geometry and further given geometry
         Parameters

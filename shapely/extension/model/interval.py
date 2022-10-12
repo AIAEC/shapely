@@ -12,7 +12,7 @@ class Interval:
     代表数学上区间的类,但需要注意的是Interval类的运算还不涉及到区间的开闭性
     """
 
-    def __init__(self, left: Num = 0.0, right: Num = 0.0):
+    def __init__(self, left: float = 0.0, right: float = 0.0):
         self.left = left
         self.right = right
 
@@ -39,7 +39,7 @@ class Interval:
     def __ge__(self, other: 'Interval') -> bool:
         return tuple(self) >= tuple(other)
 
-    def __eq__(self, other: Union['Interval', Tuple[Num, Num]]) -> bool:
+    def __eq__(self, other: Union['Interval', Tuple[float, float]]) -> bool:
         if not isinstance(other, Interval):
             other = Interval.from_tuple(other)
         return self.left == other.left and self.right == other.right
@@ -50,7 +50,7 @@ class Interval:
     def __repr__(self):
         return f'interval({self.left},{self.right})'
 
-    def almost_equal(self, other: Union['Interval', Tuple[Num, Num]], abs_tol: Num) -> bool:
+    def almost_equal(self, other: Union['Interval', Tuple[float, float]], abs_tol: float) -> bool:
         """
 
         Parameters
@@ -68,7 +68,7 @@ class Interval:
                 and isclose(self.right, other.right, abs_tol=abs_tol))
 
     @property
-    def mid(self) -> Num:
+    def mid(self) -> float:
         """
 
         Returns
@@ -78,7 +78,7 @@ class Interval:
         return (self.left + self.right) / 2
 
     @property
-    def length(self) -> Num:
+    def length(self) -> float:
         """
         Returns
         -------
@@ -248,7 +248,7 @@ class Interval:
     def __sub__(self, other) -> List['Interval']:
         return self.minus(other)
 
-    def __contains__(self, num_or_interval: Union[Num, 'Interval']) -> bool:
+    def __contains__(self, num_or_interval: Union[float, 'Interval']) -> bool:
         if isinstance(num_or_interval, Num):
             return self.left <= num_or_interval <= self.right
         if isinstance(num_or_interval, Interval):
@@ -257,7 +257,7 @@ class Interval:
             f"num_or_interval should be of type (int, Num, 'Interval'), given {type(num_or_interval)}")
 
     @classmethod
-    def from_tuple(cls, tuple_: Tuple[Num, Num]) -> 'Interval':
+    def from_tuple(cls, tuple_: Tuple[float, float]) -> 'Interval':
         """
 
         Parameters
@@ -271,7 +271,7 @@ class Interval:
         return cls(*tuple_)
 
     @classmethod
-    def from_nums(cls, nums: List[Num]) -> 'Interval':
+    def from_nums(cls, nums: List[float]) -> 'Interval':
         """
 
         Parameters

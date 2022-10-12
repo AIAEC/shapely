@@ -13,7 +13,7 @@ class ShortestStraightPath:
     求两个shapely.geometry对象在指定方向上的最短LineString的类
     """
 
-    def __init__(self, direction: Optional[Vector] = None, dist_tol: Num = MATH_EPS):
+    def __init__(self, direction: Optional[Vector] = None, dist_tol: float = MATH_EPS):
         self._direction = direction
         self._dist_tol = dist_tol
 
