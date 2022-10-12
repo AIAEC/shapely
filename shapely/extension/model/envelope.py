@@ -4,7 +4,7 @@ from typing import Tuple, Optional, Union, Callable
 
 from shapely.affinity import rotate
 from shapely.extension.model.angle import Angle
-from shapely.extension.typing import CoordType, Num
+from shapely.extension.typing import CoordType
 from shapely.extension.util.easy_enum import EasyEnum
 from shapely.extension.util.func_util import lmap
 from shapely.geometry import Point, Polygon, LineString, MultiPoint

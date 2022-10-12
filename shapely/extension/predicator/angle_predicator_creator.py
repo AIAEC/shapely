@@ -6,7 +6,7 @@ from toolz import identity
 
 from shapely.extension.model.angle import Angle
 from shapely.extension.predicator.predicator import Predicator
-from shapely.extension.typing import Num, CoordType, GeomObj
+from shapely.extension.typing import CoordType, GeomObj
 from shapely.extension.util.func_util import min_max
 from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry

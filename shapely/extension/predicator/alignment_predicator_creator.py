@@ -6,7 +6,7 @@ from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.distance_predicator_creator import DistancePredicatorCreator
 from shapely.extension.predicator.predicator import Predicator
-from shapely.extension.typing import Num, GeomObj
+from shapely.extension.typing import GeomObj
 from shapely.geometry import Point, LineString, Polygon
 from shapely.geometry.base import BaseGeometry
 

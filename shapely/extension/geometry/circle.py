@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from typing import Union, List
 
 from shapely.extension.geometry.arc import Arc
-from shapely.extension.typing import CoordType, Num
+from shapely.extension.typing import CoordType
 from shapely.extension.util.iter_util import win_slice
 from shapely.geometry import Point, LineString
 

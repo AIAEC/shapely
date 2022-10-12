@@ -1,7 +1,7 @@
 from typing import Union, List
 
 from shapely.extension.model.vector import Vector
-from shapely.extension.typing import CoordType, Num
+from shapely.extension.typing import CoordType
 from shapely.geometry import Point, LineString
 
 

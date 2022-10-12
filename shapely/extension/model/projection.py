@@ -5,7 +5,6 @@ from typing import Union, List, Optional
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS, MATH_MIDDLE_EPS
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
-from shapely.extension.typing import Num
 from shapely.extension.util.func_util import lfilter, min_max, lconcat
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon, MultiLineString, GeometryCollection, LinearRing
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry, JOIN_STYLE, CAP_STYLE

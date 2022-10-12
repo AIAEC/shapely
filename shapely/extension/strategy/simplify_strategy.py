@@ -6,7 +6,6 @@ from typing import List, Optional, Union
 
 from functional.streams import seq
 
-from shapely.extension.typing import Num
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat
 from shapely.geometry import Polygon, JOIN_STYLE, CAP_STYLE

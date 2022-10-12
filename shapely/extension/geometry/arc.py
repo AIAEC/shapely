@@ -5,7 +5,7 @@ from typing import Union, Iterable
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.angle import Angle
 from shapely.extension.predicator.angle_predicator_creator import AngleRangePredicator
-from shapely.extension.typing import CoordType, Num
+from shapely.extension.typing import CoordType
 from shapely.extension.util.func_util import sign
 from shapely.geometry import LineString, Point
 from shapely.ops import nearest_points

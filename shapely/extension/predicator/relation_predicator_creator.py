@@ -3,7 +3,7 @@ from typing import Callable
 from toolz import identity
 
 from shapely.extension.predicator.predicator import Predicator
-from shapely.extension.typing import Num, GeomObj
+from shapely.extension.typing import GeomObj
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 
 

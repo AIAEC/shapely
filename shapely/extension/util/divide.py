@@ -4,7 +4,6 @@ from typing import Union, List, Dict
 from functional import seq
 
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.typing import Num
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lconcat
 from shapely.extension.util.iter_util import win_slice

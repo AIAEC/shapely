@@ -5,7 +5,7 @@ from typing import Union, List, Optional
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
-from shapely.extension.typing import Num, GeomObj
+from shapely.extension.typing import GeomObj
 from shapely.extension.util.func_util import lmap, lconcat, lfilter
 from shapely.geometry import Point, LineString, Polygon
 

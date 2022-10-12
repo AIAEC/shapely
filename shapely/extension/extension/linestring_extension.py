@@ -12,7 +12,7 @@ from shapely.extension.model.projection import Projection, ProjectionOnLine
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.bypassing_strategy import BaseBypassingStrategy, ShorterBypassingStrategy
 from shapely.extension.strategy.offset_strategy import BaseOffsetStrategy, OffsetStrategy
-from shapely.extension.typing import Num, CoordType
+from shapely.extension.typing import CoordType
 from shapely.extension.util.func_util import min_max
 from shapely.extension.util.iter_util import win_slice
 from shapely.extension.util.line_extent import LineExtent

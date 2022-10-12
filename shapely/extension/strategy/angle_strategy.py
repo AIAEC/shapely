@@ -5,7 +5,6 @@ from typing import Optional, Callable
 
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.coord import Coord
-from shapely.extension.typing import Num
 from shapely.extension.util.easy_enum import EasyEnum
 from shapely.extension.util.func_util import group
 from shapely.extension.util.iter_util import win_slice

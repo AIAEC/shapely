@@ -21,7 +21,7 @@ from shapely.extension.strategy.angle_strategy import PolygonAngleStrategy, Line
     AngleStrategyType
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
 from shapely.extension.strategy.simplify_strategy import BaseSimplifyStrategy, NativeSimplifyStrategy
-from shapely.extension.typing import CoordType, Num
+from shapely.extension.typing import CoordType
 from shapely.extension.util.ccw import ccw
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.divide import divide

@@ -2,7 +2,6 @@ from typing import Optional
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
-from shapely.extension.typing import Num
 from shapely.geometry import Point, LineString
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import nearest_points, unary_union

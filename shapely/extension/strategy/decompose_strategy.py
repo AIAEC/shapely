@@ -5,7 +5,6 @@ from typing import Union, Sequence, Callable, List
 import numpy as np
 
 from shapely.extension.model.coord import Coord
-from shapely.extension.typing import Num
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat
 from shapely.extension.util.iter_util import win_slice, first
