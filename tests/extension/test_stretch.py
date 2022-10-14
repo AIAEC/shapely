@@ -142,15 +142,18 @@ class StretchTest(TestCase):
         poly = box(0, 0, 1, 1)
         stretch = StretchFactory().create(poly)
 
-        stretch.edges[0].expand(Point(1, 0))
+        expanded_edges = stretch.edges[0].expand(Point(1, 0))
+        self.assertEqual(len(expanded_edges), 1)
         self.assertEqual(len(stretch.edges), 4)
         self.assertEqual(stretch.closures[0].shape.area, 1)
 
-        stretch.edges[0].expand(Point(2, 0))
+        expanded_edges = stretch.edges[0].expand(Point(2, 0))
+        self.assertEqual(len(expanded_edges), 2)
         self.assertEqual(len(stretch.edges), 5)
         self.assertEqual(stretch.closures[0].shape.area, 1.5)
 
-        stretch.edges[1].expand(Point(1, 0))
+        expanded_edges = stretch.edges[1].expand(Point(1, 0))
+        self.assertEqual(len(expanded_edges), 2)
         self.assertEqual(len(stretch.edges), 6)
         self.assertEqual(stretch.closures[0].shape.area, 1)
 
@@ -159,28 +162,47 @@ class StretchTest(TestCase):
         poly_1 = box(1, 0, 2, 1)
         stretch = StretchFactory().create([poly_0, poly_1])
 
-        stretch.edges[0].expand(Point(1, 0))
+        expanded_edges = stretch.edges[0].expand(Point(1, 0))
+        self.assertEqual(len(expanded_edges), 2)
         self.assertEqual(len(stretch.edges), 8)
         self.assertEqual(stretch.closures[0].shape.area, 1)
         self.assertEqual(stretch.closures[1].shape.area, 1)
 
-        stretch.edges[0].expand(Point(1.5, 0.5))
+        expanded_edges = stretch.edges[0].expand(Point(1.5, 0.5))
+        self.assertEqual(len(expanded_edges), 4)
         self.assertEqual(len(stretch.edges), 10)
         self.assertEqual(stretch.closures[0].shape.area, 1.25)
         self.assertEqual(stretch.closures[1].shape.area, 0.75)
 
-    def test_interpolate(self):
+    def test_single_interpolate(self):
         poly = box(0, 0, 8, 8)
         stretch = StretchFactory().create(poly)
-        stretch.closures[0].edges[0].interpolate(1)
-        self.assertEqual(stretch.closures[0].edges[0].shape.length, 1)
-        self.assertEqual(stretch.closures[0].edges[1].shape.length, 7)
+        new_edges = stretch.closures[0].edges[0].interpolate(1)
+        self.assertEqual(new_edges[0].shape.length, 1)
+        self.assertEqual(new_edges[1].shape.length, 7)
 
         poly = box(0, 0, 8, 8)
         stretch = StretchFactory().create(poly)
-        stretch.closures[0].edges[0].interpolate(0.5, normalized=True)
-        self.assertEqual(stretch.closures[0].edges[0].shape.length, 4)
-        self.assertEqual(stretch.closures[0].edges[1].shape.length, 4)
+        new_edges = stretch.closures[0].edges[0].interpolate(0.5, normalized=True)
+        self.assertEqual(new_edges[0].shape.length, 4)
+        self.assertEqual(new_edges[1].shape.length, 4)
+
+    def test_bilateral_interpolate(self):
+        poly_0 = box(0, 0, 8, 8)
+        poly_1 = box(8, 0, 16, 8)
+        stretch = StretchFactory().create([poly_0, poly_1])
+
+        new_edges = stretch.closures[0].edges[0].interpolate(0)
+        self.assertEqual(len(new_edges), 2)
+        self.assertEqual(new_edges[0].shape.length, 8)
+        self.assertEqual(new_edges[1].shape.length, 8)
+
+        new_edges = stretch.closures[0].edges[0].interpolate(3)
+        self.assertEqual(len(new_edges), 4)
+        self.assertEqual(new_edges[0].shape.length, 3)
+        self.assertEqual(new_edges[1].shape.length, 5)
+        self.assertEqual(new_edges[2].shape.length, 5)
+        self.assertEqual(new_edges[3].shape.length, 3)
 
     def test_divided_with_simple_poly(self):
         poly = box(0, 0, 4, 4)

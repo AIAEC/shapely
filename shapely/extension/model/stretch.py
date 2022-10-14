@@ -139,10 +139,11 @@ class DirectEdge:
         -------
 
         """
+        expanded_edges = self.expand_single_edge(extra_point)
         if reversed_edge := self.reversed_edge():
-            reversed_edge.expand_single_edge(extra_point)
+            expanded_edges.extend(reversed_edge.expand_single_edge(extra_point))
 
-        self.expand_single_edge(extra_point)
+        return expanded_edges
 
     def expand_single_edge(self, extra_point: Point) -> List['DirectEdge']:
         """
