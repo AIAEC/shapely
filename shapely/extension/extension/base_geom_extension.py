@@ -11,7 +11,7 @@ from shapely.extension.model.alignment import AlignPolygon, AlignLineString, Ali
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.envelope import EnvelopeCreator
 from shapely.extension.model.projection import Projection, ProjectionTowards
-from shapely.extension.model.stretch import Stretch
+from shapely.extension.model.stretch import Stretch, StretchFactory
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.alignment_predicator_creator import AlignmentPredicatorCreator
 from shapely.extension.predicator.angle_predicator_creator import AnglePredicatorCreator
@@ -43,7 +43,7 @@ class BaseGeomExtension:
         return self._cargo
 
     def stretch(self) -> Stretch:
-        return Stretch(self._geom)
+        return StretchFactory(self._geom)
 
     def decompose(self, target_class: type, strategy: Optional[BaseDecomposeStrategy] = None) -> Aggregation:
         """
