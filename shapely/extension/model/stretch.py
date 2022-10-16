@@ -1,15 +1,21 @@
-from typing import Union, Iterable, Dict, List, Optional
+from contextlib import suppress
+from operator import attrgetter
+from typing import Union, Iterable, Dict, List, Optional, Sequence
 from uuid import uuid4
+from weakref import ref, ReferenceType
 
-from shapely.extension.constant import MATH_EPS
+from functional import seq
+
+from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.geometry import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.vector import Vector
-from shapely.extension.util.divide import divide
-from shapely.extension.util.func_util import lconcat, lfilter
+from shapely.extension.typing import Num
+from shapely.extension.util.func_util import lconcat, lfilter, lmap
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.geometry import Point, Polygon, LineString, MultiLineString
 from shapely.geometry.base import BaseGeometry
+from shapely.strtree import STRtree
 
 
 class Pivot:
@@ -20,50 +26,64 @@ class Pivot:
     def __init__(self, origin: Union[Coord, Point],
                  in_edges: Optional[List['DirectEdge']] = None,
                  out_edges: Optional[List['DirectEdge']] = None):
-        if isinstance(origin, Coord) or isinstance(origin, tuple):
-            self.origin = Point(origin)
-        elif isinstance(origin, Point):
-            self.origin = origin
-        else:
-            raise TypeError('origin is not a point or coord!')
+        try:
+            self._origin = Point(origin)
+        except:
+            raise TypeError(f'given origin cannot form a point, given {origin}')
 
-        if not self.origin.is_valid:
-            raise ValueError('origin is invalid point')
+        if not self._origin.is_valid or self._origin.is_empty:
+            raise ValueError(f'origin is invalid point, given {origin}')
 
         self.in_edges = in_edges or []
         self.out_edges = out_edges or []
-        self._id = str(uuid4())
+        self._stretch: Optional[ReferenceType['Stretch']] = None
         self._cargo = {}
+        self._id = str(uuid4())
 
     def __hash__(self):
         return hash(('pivot', self._id))
 
     def __eq__(self, other):
-        return self.__hash__() == other.__hash__()
+        return hash(self) == hash(other)
+
+    def __repr__(self):
+        return f'Pivot({self.shape.x}, {self.shape.y})@{self._id[:4]}'
 
     @property
     def cargo(self) -> Dict:
         return self._cargo
 
     @property
+    def stretch(self) -> Optional['Stretch']:
+        return self._stretch if not self._stretch else self._stretch()
+
+    @stretch.setter
+    def stretch(self, stretch):
+        if not isinstance(stretch, Stretch):
+            raise TypeError(f'should specify stretch object, given {self}')
+
+        self._stretch = ref(stretch)
+
+    @property
     def shape(self) -> Point:
-        return self.origin
+        return self._origin
 
     @property
     def is_valid(self) -> bool:
         return len(self.in_edges) == len(self.out_edges)
 
-    # TODO: to add some different strategy
     def move_to(self, target: Union[Point, Coord]) -> None:
-        if isinstance(target, Coord):
+        try:
             target = Point(target)
-        elif not isinstance(target, Point):
-            raise TypeError('target is not a point!')
-        self.origin = target
+        except:
+            raise TypeError(f'target cannot form a point, given {target}')
+        self._origin = target
 
-    # TODO: ditto
     def move_by(self, direct: Vector) -> None:
-        self.origin = direct.apply(self.origin)
+        if not isinstance(direct, Vector):
+            raise TypeError(f'direct must be vector, given {direct}')
+
+        self._origin = direct.apply(self._origin)
 
 
 class DirectEdge:
@@ -71,122 +91,246 @@ class DirectEdge:
     edge of stretch
     """
 
-    def __init__(self, from_p: Pivot, to_p: Pivot,
-                 closure: Optional['Closure'] = None):
-        self.from_p = from_p
-        self.to_p = to_p
-        self.closure = closure
-        self._cargo = {}
+    def __init__(self, from_pivot: Pivot, to_pivot: Pivot):
+        if from_pivot == to_pivot:
+            raise ValueError('from_pivot should not be equal to to_pivot')
 
-        self.from_p.out_edges.append(self)
-        self.to_p.in_edges.append(self)
+        self._from_pivot = from_pivot
+        self._to_pivot = to_pivot
+        self._closure = None
+        self._cargo = {}
+        self._stretch: Optional[ReferenceType['Stretch']] = None
+        self._setup()
+
+    def _setup(self):
+        if self not in self._from_pivot.out_edges:
+            self._from_pivot.out_edges.append(self)
+        if self not in self._to_pivot.in_edges:
+            self._to_pivot.in_edges.append(self)
 
     def __hash__(self):
-        return hash(('direct_edge', self.from_p.__hash__(), self.to_p.__hash__()))
+        return hash(('direct_edge', hash(self._from_pivot), hash(self._to_pivot)))
 
     def __eq__(self, other):
-        return self.from_p == other.from_p and self.to_p == other.to_p
+        return self._from_pivot == other.from_pivot and self._to_pivot == other.to_pivot
+
+    def __repr__(self):
+        return f'Edge(({self.from_pivot})->({self.to_pivot}))'
+
+    @property
+    def from_pivot(self) -> Pivot:
+        return self._from_pivot
+
+    @property
+    def to_pivot(self) -> Pivot:
+        return self._to_pivot
+
+    @property
+    def pivots(self) -> List[Pivot]:
+        return [self.from_pivot, self.to_pivot]
+
+    @property
+    def edges(self) -> List['DirectEdge']:
+        return [self]
 
     @property
     def cargo(self) -> Dict:
         return self._cargo
 
     @property
+    def closure(self) -> Optional['Closure']:
+        return self._closure if not self._closure else self._closure()
+
+    @closure.setter
+    def closure(self, closure: 'Closure'):
+        if not isinstance(closure, Closure):
+            raise TypeError(f'should specify closure object, given {closure}')
+
+        self._closure = ref(closure)
+
+    @property
+    def stretch(self) -> Optional['Stretch']:
+        return self._stretch if not self._stretch else self._stretch()
+
+    @stretch.setter
+    def stretch(self, stretch):
+        if not isinstance(stretch, Stretch):
+            raise TypeError(f'should specify stretch object, given {stretch}')
+
+        self._stretch = ref(stretch)
+
+    @property
     def shape(self) -> StraightSegment:
-        return StraightSegment([self.from_p.origin, self.to_p.origin])
+        return StraightSegment([self._from_pivot.shape, self._to_pivot.shape])
 
-    def remove(self) -> None:
-        if self in self.from_p.out_edges:
-            self.from_p.out_edges.remove(self)
-        if self in self.to_p.in_edges:
-            self.to_p.in_edges.remove(self)
+    def delete(self) -> None:
+        self._from_pivot.out_edges = lfilter(lambda edge: edge is not self, self._from_pivot.out_edges)
+        self._to_pivot.in_edges = lfilter(lambda edge: edge is not self, self._to_pivot.in_edges)
 
-        try:
-            if self in self.closure.edges:
-                self.closure.edges.remove(self)
-        except AttributeError:
-            return
+        with suppress(Exception):
+            self.closure.edges.remove(self)
 
     def offset(self, dist: float) -> None:
+        if not isinstance(dist, Num):
+            raise TypeError(f'offset only accepts number as its input, given {dist}')
+
         towards = 'left' if dist > 0 else 'right'
         offset_segment = self.shape.ext.offset(dist=abs(dist), towards=towards)
-        from_c = min(offset_segment.coords, key=lambda c: self.from_p.origin.distance(Point(c)))
-        to_c = min(offset_segment.coords, key=lambda c: self.to_p.origin.distance(Point(c)))
-        self.from_p.origin = Point(from_c)
-        self.to_p.origin = Point(to_c)
+        from_coord = min(offset_segment.coords, key=lambda c: self._from_pivot.shape.distance(Point(c)))
+        to_coord = min(offset_segment.coords, key=lambda c: self._to_pivot.shape.distance(Point(c)))
+        self._from_pivot._origin = Point(from_coord)
+        self._to_pivot._origin = Point(to_coord)
 
     def is_reverse(self, other: 'DirectEdge') -> bool:
-        return self.from_p == other.to_p and self.to_p == other.from_p
+        return self._from_pivot == other._to_pivot and self._to_pivot == other._from_pivot
 
-    def reversed_edge(self) -> Optional['DirectEdge']:
-        try:
-            for edge in self.closure.stretch.edges:
-                if self.is_reverse(edge):
-                    return edge
-            return None
-        except AttributeError:
-            return None
+    def reversed_edge(self) -> 'DirectEdge':
+        with suppress(Exception):
+            return first(self.is_reverse, self.closure.stretch.edges, default=None)
 
-    # TODO: to add some different strategy
-    def expand(self, extra_point: Point) -> List['DirectEdge']:
+        return DirectEdge(from_pivot=self.to_pivot, to_pivot=self.from_pivot)
+
+    def __reversed__(self):
+        return self.reversed_edge()
+
+    def expand(self, point: Point, dist_tol: float = MATH_EPS) -> List['DirectEdge']:
         """
         插入一个点，生成新的有向边. 目前策略为: 存在对边时也同时expand对边
         Parameters
         ----------
-        extra_point: 待插入的点
+        point: 待插入的点
+        dist_tol:
 
         Returns
         -------
 
         """
-        expanded_edges = self.expand_single_edge(extra_point)
+        extra_pivot = Pivot(origin=point)
+
+        def expand_single_edge(edge: DirectEdge) -> List[DirectEdge]:
+            """
+            对于单条有向边，插入一个点，生成新的有向边:
+            1. 插入点位于原有向边from_p和to_p之间
+            2. 若插入点与原有向边from_p或to_p重合，则返回原有向边
+            Parameters
+            ----------
+            edge
+
+            Returns
+            -------
+
+            """
+            if (point.distance(edge._from_pivot.shape) < dist_tol
+                    or point.distance(edge._to_pivot.shape) < dist_tol):
+                return [edge]
+
+            new_direct_edge_0 = DirectEdge(from_pivot=edge._from_pivot, to_pivot=extra_pivot)
+            new_direct_edge_1 = DirectEdge(from_pivot=extra_pivot, to_pivot=edge._to_pivot)
+
+            if edge.closure:
+                try:
+                    idx = edge.closure.edges.index(edge)
+                    edge.closure.edges[idx:idx + 1] = [new_direct_edge_0, new_direct_edge_1]
+                    new_direct_edge_0.closure = edge.closure
+                    new_direct_edge_1.closure = edge.closure
+
+                except ValueError:
+                    pass
+
+            return [new_direct_edge_0, new_direct_edge_1]
+
+        expanded_edges = expand_single_edge(self)
+
         if reversed_edge := self.reversed_edge():
-            expanded_edges.extend(reversed_edge.expand_single_edge(extra_point))
+            expand_single_edge(reversed_edge)
 
         return expanded_edges
 
-    def expand_single_edge(self, extra_point: Point) -> List['DirectEdge']:
-        """
-        对于单条有向边，插入一个点，生成新的有向边:
-        1. 插入点位于原有向边from_p和to_p之间
-        2. 若插入点与原有向边from_p或to_p重合，则返回原有向边
-        Parameters
-        ----------
-        extra_point: 待插入的点
-
-        Returns
-        -------
-
-        """
-        if extra_point.almost_equals(self.from_p.origin) or extra_point.almost_equals(self.to_p.origin):
-            return [self]
-
-        extra_pivot = Pivot(origin=extra_point)
-        new_direct_edge_0 = DirectEdge(from_p=self.from_p, to_p=extra_pivot, closure=self.closure)
-        new_direct_edge_1 = DirectEdge(from_p=extra_pivot, to_p=self.to_p, closure=self.closure)
-
-        if self.closure:
-            self.closure.pivots.append(extra_pivot)
-            idx = self.closure.edges.index(self)
-            self.closure.edges.insert(idx, new_direct_edge_0)
-            self.closure.edges.insert(idx + 1, new_direct_edge_1)
-        self.remove()
-        return [new_direct_edge_0, new_direct_edge_1]
-
-    def interpolate(self, distance: float, normalized: bool = False) -> List['DirectEdge']:
+    def interpolate(self, distance: float, absolute: bool = True, dist_tol: float = MATH_EPS) -> List['DirectEdge']:
         """
         在有向边指定位置插入点，生成新的有向边
         Parameters
         ----------
         distance: 插入点距离有向边from_p的距离
-        normalized: 是否为归一化距离. 默认为False
+        absolute: 是否使用绝对距离, 而不是相对距离
+        dist_tol:
 
         Returns
         -------
 
         """
-        extra_point = self.shape.interpolate(distance, normalized=normalized)
-        return self.expand(extra_point=extra_point)
+        point = self.shape.interpolate(distance, normalized=not absolute)
+        return self.expand(point=point, dist_tol=dist_tol)
+
+    def expand_by_intersection(self, line: LineString, dist_tol: float = MATH_EPS):
+        point = self.shape.intersection(line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE))
+        if not (point and isinstance(point, Point)):
+            return [self]
+        return self.expand(point, dist_tol=dist_tol)
+
+
+class MultiDirectEdge:
+    def __init__(self, edges: Sequence[DirectEdge]):
+        self._assert_valid_edge_order(edges)
+        self._edges = edges
+        self._pivots = lmap(lambda edge: edge.from_pivot, self._edges) + [self._edges[-1].to_pivot]
+
+    @staticmethod
+    def _assert_valid_edge_order(edges: Sequence[DirectEdge]) -> None:
+        if not edges:
+            raise ValueError('given empty edges')
+
+        for edge, next_edge in win_slice(edges, win_size=2):
+            if edge.to_pivot is not next_edge.from_pivot:
+                raise ValueError('edges are not in order')
+
+    def __hash__(self):
+        return hash(('multi_direct_edge', (hash(edge) for edge in self._edges)))
+
+    def __eq__(self, other):
+        if not isinstance(other, MultiDirectEdge):
+            return False
+
+        return all(edge is other_edge for edge, other_edge in zip(self._edges, other._edges))
+
+    def __repr__(self):
+        pivot_str = '->'.join(map(str, self.pivots))
+        return f'Edge({pivot_str})'
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self.pivots[item]
+        elif isinstance(item, slice):
+            return MultiDirectEdge(self.edges[item])
+
+        raise TypeError('can only accept int or slice as index')
+
+    @property
+    def from_pivot(self) -> Pivot:
+        return self._edges[0].from_pivot
+
+    @property
+    def to_pivot(self) -> Pivot:
+        return self._edges[-1].to_pivot
+
+    @property
+    def pivots(self) -> List[Pivot]:
+        return self._pivots
+
+    @property
+    def edges(self) -> List[DirectEdge]:
+        return list(self._edges)
+
+    @property
+    def shape(self) -> LineString:
+        return LineString(lmap(attrgetter('shape'), self.pivots))
+
+    def delete(self) -> None:
+        for edge in self._edges:
+            edge.delete()
+
+    def reversed_edge(self) -> 'MultiDirectEdge':
+        return MultiDirectEdge([edge.reversed_edge() for edge in reversed(self.edges)])
 
 
 class Closure:
@@ -194,20 +338,45 @@ class Closure:
     entry of stretch
     """
 
-    def __init__(self, edges: List[DirectEdge], stretch: Optional['Stretch'] = None):
+    def __init__(self, edges: List[DirectEdge]):
         """
 
         Parameters
         ----------
         edges: 闭包所有有向边. 严格首尾相连
         """
-        self.edges = edges
-        self.stretch = stretch
+        self._edges = self._normalize_edges(edges)
+        self._stretch: Optional[ReferenceType['Stretch']] = None
         self._id = str(uuid4())
         self._cargo = {}
 
-        for edge in self.edges:
+        for edge in self._edges:
             edge.closure = self
+
+    @staticmethod
+    def _normalize_edges(edges: Sequence[DirectEdge]) -> List[DirectEdge]:
+        if not edges:
+            raise ValueError('given empty edges')
+
+        next_pivot = {edge.from_pivot: edge.to_pivot for edge in edges}
+        from_pivot_to_edge = {edge.from_pivot: edge for edge in edges}
+
+        result: List[DirectEdge] = []
+        cur_edge = edges[0]
+
+        for _ in range(len(edges)):
+            result.append(cur_edge)
+            cur_edge = from_pivot_to_edge.get(next_pivot.get(cur_edge.from_pivot))
+            if not cur_edge:  # error case, just exit loop
+                break
+
+            if cur_edge is result[0]:  # valid case
+                break
+
+        if not result or result[-1].to_pivot is not result[0].from_pivot:
+            raise ValueError('given edges cannot form valid closure')
+
+        return result
 
     def __hash__(self):
         return hash(('closure', self._id))
@@ -220,83 +389,156 @@ class Closure:
         return self._cargo
 
     @property
+    def stretch(self) -> Optional['Stretch']:
+        return self._stretch if not self._stretch else self._stretch()
+
+    @stretch.setter
+    def stretch(self, stretch):
+        if not isinstance(stretch, Stretch):
+            raise TypeError('should specify stretch obj')
+
+        self._stretch = ref(stretch)
+
+    @property
+    def edges(self) -> List[DirectEdge]:
+        return self._edges
+
+    @property
     def shape(self) -> Polygon:
-        exterior_pts = [edge.from_p.shape for edge in self.edges]
+        exterior_pts = [edge.from_pivot.shape for edge in self._edges]
         exterior_pts.append(exterior_pts[0])
         return Polygon(shell=exterior_pts)
 
     @property
     def pivots(self) -> List[Pivot]:
-        return list(set(lconcat([[edge.from_p, edge.to_p] for edge in self.edges])))
+        pivots = [edge.from_pivot for edge in self.edges]
+        if self.edges[-1].to_pivot is not pivots[0]:
+            pivots.append(self.edges[-1].to_pivot)
+        return pivots
 
-    def remove(self) -> None:
+    def delete(self) -> None:
         for edge in self.edges:
-            edge.remove()
+            edge.delete()
 
-        try:
-            if self in self.stretch.closures:
-                self.stretch.closures.remove(self)
-        except AttributeError:
-            return
+        with suppress(Exception):
+            self.stretch.closures.remove(self)
 
-    def divided_by(self, divider: Union[LineString, MultiLineString, List[LineString]]) -> List['Closure']:
-        """
-        用divider切分闭包，生成新的闭包
-        Parameters
-        ----------
-        divider
+    def split_to_halves(self, edge: Union[DirectEdge, MultiDirectEdge]):
+        if not all(edge_p in set(self.pivots) for edge_p in [edge.from_pivot, edge.to_pivot]):
+            raise ValueError('only accept edge with starting pivot and end pivot on current closure')
 
-        Returns
-        -------
-
-        """
-        if isinstance(divider, LineString):
-            return self._divided_by_single_line(divider)
-        elif isinstance(divider, MultiLineString):
-            divider = divider.ext.flatten(LineString)
-        elif not isinstance(divider, list):
-            raise TypeError('type of divider is error!')
-
-        closures: List['Closure'] = [self]
-        for single_divider in divider:
-            closures = lconcat([closure._divided_by_single_line(single_divider) for closure in closures])
-
-        return closures
-
-    def _divided_by_single_line(self, divider: LineString) -> List['Closure']:
-        if not isinstance(divider, LineString):
-            raise TypeError('single divider is not a LineString')
-
-        pre_shape = self.shape
-        cur_shapes = divide(pre_shape, divider=divider)
-        if len(cur_shapes) <= 1:
+        if not self.shape.contains(edge.shape):
             return [self]
 
-        exist_pivots = self.stretch.pivots
-        closures: List['Closure'] = []
-        for cur_shape in cur_shapes:
-            ring_nodes = [Point(coord) for coord in cur_shape.exterior.coords[:-1]]
-            ring_pivots = [first(lambda p: p.shape.almost_equals(node), exist_pivots) or Pivot(node)
-                           for node in ring_nodes]
-            exist_pivots = list(set(exist_pivots + ring_pivots))
+        pivot_indices = (seq(self.pivots)
+                         .map(lambda pivot: pivot in edge.pivots)
+                         .enumerate()
+                         .filter(lambda idx_flag_pair: idx_flag_pair[1])
+                         .map(lambda idx_flag_pair: idx_flag_pair[0])
+                         .sorted()
+                         .to_list())
 
-            ring_edges: List[DirectEdge] = []
-            for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
-                edge = DirectEdge(from_p=pivots_pair[0], to_p=pivots_pair[1])
-                ring_edges.append(edge)
-            closures.append(Closure(edges=ring_edges, stretch=self.stretch))
+        def closure_edges(existed_edges, newly_added_edge):
+            if existed_edges[-1].to_pivot is not newly_added_edge.from_pivot:
+                newly_added_edge = newly_added_edge.reversed_edge()
 
-        self.stretch.closures.extend(closures)
-        self.remove()
+            if not (existed_edges[-1].to_pivot is newly_added_edge.from_pivot
+                    and existed_edges[0].from_pivot is newly_added_edge.to_pivot):
+                raise ValueError('newly added edge is not suitable for existed edges to form closure,'
+                                 f' given existed pivots {existed_edges[-1].to_pivot}, {existed_edges[0].from_pivot}'
+                                 f' and new edge {newly_added_edge}')
+
+            if isinstance(newly_added_edge, DirectEdge):
+                return [*existed_edges, newly_added_edge]
+
+            return [*existed_edges, *newly_added_edge.edges]
+
+        # create first closure
+        first_closure_edges = closure_edges(self.edges[pivot_indices[0]: pivot_indices[1]], edge)
+        first_closure = Closure(first_closure_edges)
+
+        # create second closure
+        second_closure_edges = closure_edges(self._edges[pivot_indices[1]:] + self._edges[:pivot_indices[0]], edge)
+        second_closure = Closure(second_closure_edges)
+
+        # assign origin stretch to newborn closure
+        if self.stretch:
+            first_closure.stretch = self.stretch
+            second_closure.stretch = self.stretch
+
+        # since edge and pivots are shared by newborn closure,
+        # so there's no need to call delete to recycle these objects.
+        return [first_closure, second_closure]
+
+    def split_by(self, edge: Union[DirectEdge, MultiDirectEdge]) -> List['Closure']:
+        if isinstance(edge, DirectEdge):
+            return self.split_to_halves(edge)
+
+        # find all sub multi direct edges for splitting
+        edge_pivot_indices: List[int] = (seq(edge.pivots)
+                                         .map(lambda pivot: pivot in self.pivots)
+                                         .enumerate()
+                                         .filter(lambda idx_flag_pair: idx_flag_pair[1])
+                                         .map(lambda idx_flag_pair: idx_flag_pair[0])
+                                         .to_list())
+
+        # use each sub multi direct edges to split every closure and aggregate them to get result
+        closures = [self]
+        for edge in [edge[i: j] for i, j in win_slice(edge_pivot_indices, win_size=2)]:
+            new_closures = []
+            for closure in closures:
+                try:
+                    new_closures.extend(closure.split_to_halves(edge))
+                except ValueError:
+                    new_closures.append(closure)
+
+            closures = new_closures
+
         return closures
+
+    def map_to_edge(self, line: LineString) -> Optional[MultiDirectEdge]:
+        pivot_points = [pivot.shape for pivot in self.pivots]
+        for pivot_point, pivot in zip(pivot_points, self.pivots):
+            pivot_point.ext.cargo['pivot'] = pivot
+        pivot_db = STRtree(pivot_points)
+
+        def find_or_create_pivot(position: Point, dist: float = MATH_EPS):
+            result = None
+
+            if points := pivot_db.query(position.buffer(dist)):
+                result = min(points, key=position.distance).ext.cargo.get('pivot')
+
+            if not result:
+                result = Pivot(position)
+
+            return result
+
+        pivots_of_line = (line.intersection(self.shape)
+                          .ext.decompose(Point)
+                          .map(find_or_create_pivot)
+                          .to_list())
+        if len(pivots_of_line) < 2:
+            return None
+
+        return MultiDirectEdge(
+            [DirectEdge(pivot, next_pivot) for pivot, next_pivot in win_slice(pivots_of_line, win_size=2)
+             if pivot is not next_pivot])
 
 
 class Stretch:
     def __init__(self, closures: List[Closure]):
         self.closures = closures
+        self._setup()
 
+    def _setup(self):
         for closure in self.closures:
             closure.stretch = self
+
+        for edge in self.edges:
+            edge.stretch = self
+
+        for pivot in self.pivots:
+            pivot.stretch = self
 
     @property
     def edges(self) -> List[DirectEdge]:
@@ -318,9 +560,38 @@ class Stretch:
     def delete_closures(self, closures: List[Closure]) -> None:
         for closure in closures:
             if closure in self.closures:
-                closure.remove()
-            else:
-                raise ValueError('The closure not in stretch!')
+                closure.delete()
+
+    def divided_by(self, divider: Union[LineString, MultiLineString, Sequence[Union[LineString, MultiLineString]]]):
+        from shapely.extension.util.flatten import flatten
+        lines = flatten(divider, LineString).to_list()
+
+        for line in lines:
+            for edge in self.edges:
+                edge.expand_by_intersection(line)
+
+            new_closures = []
+            for closure in self.closures:
+                if multi_direct_edge := closure.map_to_edge(line):
+                    try:
+                        new_closures.extend(closure.split_by(multi_direct_edge))
+                        continue
+                    except ValueError:
+                        pass
+
+                new_closures.append(closure)
+
+            self.closures = new_closures
+
+        return self.closures
+
+    def union(self, stretch: 'Stretch') -> 'Stretch':
+        # TODO
+        pass
+
+    def difference(self, stretch: 'Stretch') -> 'Stretch':
+        # TODO
+        pass
 
 
 class StretchFactory:
@@ -330,28 +601,33 @@ class StretchFactory:
     def create(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]]) -> Stretch:
         if isinstance(geom_or_geoms, BaseGeometry):
             geom_or_geoms = [geom_or_geoms]
-        geoms = lconcat([geom.ext.flatten().to_list() for geom in geom_or_geoms])
 
-        # TODO:just for polygon without holes now
-        if not (geoms := lfilter(lambda g: isinstance(g, Polygon) and g.is_valid and not g.interiors, geoms)):
-            raise ValueError('The unit of geom_or_geoms is not valid polygon which has not holes!')
+        # local import to prevent recursive import
+        from shapely.extension.util.flatten import flatten
 
-        nodes_grps = self._create_nodes_grps(geoms)
-        node_set = set(lconcat(nodes_grps))
-        pivots = [Pivot(origin=node) for node in list(set(node_set))]
+        # extract valid non-empty polygons and remove its holes
+        polys = (flatten(geom_or_geoms, Polygon, validate=False)
+                 .map(lambda poly: poly.ext.shell)
+                 .to_list())
+
+        if not polys:
+            raise ValueError('given input should contain valid non-empty polygon with no holes')
+
+        nodes_grps = self._create_nodes_groups(polys)
+        pivots = [Pivot(origin=node) for node in set(lconcat(nodes_grps))]
 
         closures: List[Closure] = []
         for nodes_grp in nodes_grps:
             ring_pivots = [first(lambda p: p.shape.almost_equals(node), pivots) or Pivot(node) for node in nodes_grp]
             ring_edges: List[DirectEdge] = []
             for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
-                edge = DirectEdge(from_p=pivots_pair[0], to_p=pivots_pair[1])
+                edge = DirectEdge(from_pivot=pivots_pair[0], to_pivot=pivots_pair[1])
                 ring_edges.append(edge)
             closures.append(Closure(edges=ring_edges))
 
         return Stretch(closures=closures)
 
-    def _create_nodes_grps(self, geoms: List[BaseGeometry]) -> List[List[Point]]:
+    def _create_nodes_groups(self, geoms: List[BaseGeometry]) -> List[List[Point]]:
         """
         生成结点组. 每个geom生成一个结点列表, 该列表可有序插入其他geom生成的临近结点
 
