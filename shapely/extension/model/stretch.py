@@ -101,7 +101,6 @@ class DirectEdge:
         self._to_pivot = to_pivot
         self._closure = None
         self._cargo = {}
-        self._stretch: Optional[ReferenceType['Stretch']] = None
         self._setup()
 
     def _setup(self):
@@ -152,14 +151,7 @@ class DirectEdge:
 
     @property
     def stretch(self) -> Optional['Stretch']:
-        return self._stretch if not self._stretch else self._stretch()
-
-    @stretch.setter
-    def stretch(self, stretch):
-        if not isinstance(stretch, Stretch):
-            raise TypeError(f'should specify stretch object, given {stretch}')
-
-        self._stretch = ref(stretch)
+        return None if not self.closure else self.closure.stretch
 
     @property
     def shape(self) -> StraightSegment:
@@ -190,7 +182,7 @@ class DirectEdge:
         default = DirectEdge(from_pivot=self.to_pivot, to_pivot=self.from_pivot) if create_if_not_existed else None
 
         with suppress(Exception):
-            return first(self.is_reverse, self.stretch.edges, default=default)
+            return first(self.is_reverse, self.closure.stretch.edges, default=default)
 
         return default
 
@@ -452,11 +444,6 @@ class Closure:
 
             return [*existed_edges, *newly_added_edge.edges]
 
-        # assign stretch
-        if self.stretch:
-            for _edge in edge.edges:
-                _edge.stretch = self.stretch
-
         # create first closure
         first_closure_edges = closure_edges(self.edges[pivot_indices[0]: pivot_indices[1]], edge)
         first_closure = Closure(first_closure_edges)
@@ -599,9 +586,7 @@ class Stretch:
     def _setup(self):
         for closure in self.closures:
             closure.stretch = self
-
-        for edge in self.edges:
-            edge.stretch = self
+            # edge's stretch is followed by its belonging closure's stretch
 
         for pivot in self.pivots:
             pivot.stretch = self
