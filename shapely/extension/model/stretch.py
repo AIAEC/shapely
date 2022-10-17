@@ -11,6 +11,8 @@ from shapely.extension.geometry import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import Num
+from shapely.extension.util.ccw import ccw
+from shapely.extension.util.divide import divide
 from shapely.extension.util.func_util import lconcat, lfilter, lmap
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.geometry import Point, Polygon, LineString, MultiLineString
@@ -184,14 +186,13 @@ class DirectEdge:
     def is_reverse(self, other: 'DirectEdge') -> bool:
         return self._from_pivot == other._to_pivot and self._to_pivot == other._from_pivot
 
-    def reversed_edge(self) -> 'DirectEdge':
+    def reversed_edge(self, create_if_not_existed: bool = False) -> Optional['DirectEdge']:
+        default = DirectEdge(from_pivot=self.to_pivot, to_pivot=self.from_pivot) if create_if_not_existed else None
+
         with suppress(Exception):
-            return first(self.is_reverse, self.closure.stretch.edges, default=None)
+            return first(self.is_reverse, self.stretch.edges, default=default)
 
-        return DirectEdge(from_pivot=self.to_pivot, to_pivot=self.from_pivot)
-
-    def __reversed__(self):
-        return self.reversed_edge()
+        return default
 
     def expand(self, point: Point, dist_tol: float = MATH_EPS) -> List['DirectEdge']:
         """
@@ -329,8 +330,8 @@ class MultiDirectEdge:
         for edge in self._edges:
             edge.delete()
 
-    def reversed_edge(self) -> 'MultiDirectEdge':
-        return MultiDirectEdge([edge.reversed_edge() for edge in reversed(self.edges)])
+    def reversed_edge(self, create_if_not_existed: bool = True) -> 'MultiDirectEdge':
+        return MultiDirectEdge([edge.reversed_edge(create_if_not_existed) for edge in reversed(self.edges)])
 
 
 class Closure:
@@ -395,7 +396,7 @@ class Closure:
     @stretch.setter
     def stretch(self, stretch):
         if not isinstance(stretch, Stretch):
-            raise TypeError('should specify stretch obj')
+            raise TypeError('should specify stretch object')
 
         self._stretch = ref(stretch)
 
@@ -440,7 +441,7 @@ class Closure:
 
         def closure_edges(existed_edges, newly_added_edge):
             if existed_edges[-1].to_pivot is not newly_added_edge.from_pivot:
-                newly_added_edge = newly_added_edge.reversed_edge()
+                newly_added_edge = newly_added_edge.reversed_edge(create_if_not_existed=True)
 
             if not (existed_edges[-1].to_pivot is newly_added_edge.from_pivot
                     and existed_edges[0].from_pivot is newly_added_edge.to_pivot):
@@ -523,6 +524,64 @@ class Closure:
         return MultiDirectEdge(
             [DirectEdge(pivot, next_pivot) for pivot, next_pivot in win_slice(pivots_of_line, win_size=2)
              if pivot is not next_pivot])
+
+    # need more test
+    def divided_by(self, divider: Union[LineString, MultiLineString, List[LineString]]) -> List['Closure']:
+        """
+        用divider切分闭包，生成新的闭包
+        Parameters
+        ----------
+        divider
+
+        Returns
+        -------
+
+        """
+        from shapely.extension.util.flatten import flatten
+        divider = flatten(divider, LineString).to_list()
+
+        closures: List['Closure'] = [self]
+        for single_divider in divider:
+            closures = lconcat([closure._divided_by_single_line(single_divider) for closure in closures])
+
+        return closures
+
+    # need more test
+    def _divided_by_single_line(self, divider: LineString) -> List['Closure']:
+        if not isinstance(divider, LineString) or divider.is_empty:
+            raise TypeError('single divider is not a valid LineString')
+
+        from shapely.extension.util.flatten import flatten
+
+        # make each polygon ccw thus keep the closure and direct edge relationship correct
+        polygons = (flatten(divide(self.shape, divider=divider), Polygon)
+                    .map(ccw)
+                    .to_list())
+
+        if len(polygons) <= 1:
+            return [self]
+
+        existed_pivots = self.stretch.pivots if self.stretch else []
+        closures: List['Closure'] = []
+
+        for cur_shape in polygons:
+            ring_points = [Point(coord) for coord in cur_shape.exterior.coords[:-1]]
+            ring_pivots = [first(lambda p: p.shape.almost_equals(node), existed_pivots) or Pivot(node)
+                           for node in ring_points]
+            existed_pivots = list(set(existed_pivots + ring_pivots))
+
+            ring_edges: List[DirectEdge] = []
+            for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
+                edge = DirectEdge(from_pivot=pivots_pair[0], to_pivot=pivots_pair[1])
+                ring_edges.append(edge)
+
+            closure = Closure(edges=ring_edges)
+            closure.stretch = self.stretch
+            closures.append(closure)
+
+        self.stretch.closures.extend(closures)
+        self.delete()
+        return closures
 
 
 class Stretch:

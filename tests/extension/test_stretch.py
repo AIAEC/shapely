@@ -2,7 +2,7 @@ from math import isclose
 from unittest import TestCase
 
 from shapely.extension.model.coord import Coord
-from shapely.extension.model.stretch import Pivot, DirectEdge, StretchFactory, Closure, MultiDirectEdge
+from shapely.extension.model.stretch import Pivot, DirectEdge, StretchFactory, Closure, MultiDirectEdge, Stretch
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.geometry import Point, LineString, box, Polygon
@@ -373,6 +373,26 @@ class ClosureTest(TestCase):
         self.assertEqual(1, len(result.edges))
         self.assertTrue(result.pivots[0] is pivots[0])
 
+    def test_divided_by_lines(self):
+        poly = Polygon([(0, 0), (100, 0), (100, 10), (0, 10)])
+        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
+        closure = Closure(valid_edges)
+        _ = Stretch([closure])
+
+        divider = [LineString([(i, 0), (i, 10)]) for i in range(0, 110, 10)]
+        result = closure.divided_by(divider)
+
+        self.assertEqual(10, len(result))
+        self.assertTrue(all(isinstance(item, Closure) for item in result))
+
+        result.sort(key=lambda cls: cls.shape.centroid.x)
+        for i, closure in enumerate(result):
+            self.assertTrue(closure.shape.equals(box(i * 10, 0, i * 10 + 10, 10)))
+
+
+
+class StretchTest(TestCase):
     def test_divided_with_simple_poly(self):
         poly = box(0, 0, 4, 4)
         stretch = StretchFactory().create(poly)
