@@ -526,7 +526,7 @@ class Closure:
              if pivot is not next_pivot])
 
     # need more test
-    def divided_by(self, divider: Union[LineString, MultiLineString, List[LineString]]) -> List['Closure']:
+    def divided_by(self, divider: Union[LineString, MultiLineString, Sequence[LineString]]) -> List['Closure']:
         """
         用divider切分闭包，生成新的闭包
         Parameters
@@ -672,12 +672,12 @@ class StretchFactory:
         if not polys:
             raise ValueError('given input should contain valid non-empty polygon with no holes')
 
-        nodes_grps = self._create_nodes_groups(polys)
-        pivots = [Pivot(origin=node) for node in set(lconcat(nodes_grps))]
+        node_groups = self._create_nodes_groups(polys)
+        pivots = [Pivot(origin=node) for node in set(lconcat(node_groups))]
 
         closures: List[Closure] = []
-        for nodes_grp in nodes_grps:
-            ring_pivots = [first(lambda p: p.shape.almost_equals(node), pivots) or Pivot(node) for node in nodes_grp]
+        for node_group in node_groups:
+            ring_pivots = [first(lambda p: p.shape.almost_equals(node), pivots) or Pivot(node) for node in node_group]
             ring_edges: List[DirectEdge] = []
             for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
                 edge = DirectEdge(from_pivot=pivots_pair[0], to_pivot=pivots_pair[1])
@@ -698,19 +698,19 @@ class StretchFactory:
         -------
 
         """
-        nodes_grps = [[Point(c) for c in geom.boundary.ext.ccw().coords[:-1]] for geom in geoms]
-        for i, nodes_grp in enumerate(nodes_grps):
-            for idx in range(len(nodes_grps)):
+        node_groups = [[Point(c) for c in geom.boundary.ext.ccw().coords[:-1]] for geom in geoms]
+        for i, node_group in enumerate(node_groups):
+            for idx in range(len(node_groups)):
                 if idx == i:
                     continue
-                if not (pre_inserters := lfilter(lambda p: geoms[i].distance(p) < self._dist_tol, nodes_grps[idx])):
+                if not (pre_inserters := lfilter(lambda p: geoms[i].distance(p) < self._dist_tol, node_groups[idx])):
                     continue
 
                 has_operated = True if idx < i else False
                 for inserter in pre_inserters:
-                    nodes_grps[i] = self._insert_ring_nodes(nodes_grp, inserter, has_operated)
+                    node_groups[i] = self._insert_ring_nodes(node_group, inserter, has_operated)
 
-        return nodes_grps
+        return node_groups
 
     def _insert_ring_nodes(self, ring_nodes: List[Point], inserter: Point, has_operated: bool) -> List[Point]:
         """

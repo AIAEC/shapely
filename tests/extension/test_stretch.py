@@ -391,7 +391,6 @@ class ClosureTest(TestCase):
             self.assertTrue(closure.shape.equals(box(i * 10, 0, i * 10 + 10, 10)))
 
 
-
 class StretchTest(TestCase):
     def test_divided_with_simple_poly(self):
         poly = box(0, 0, 4, 4)
