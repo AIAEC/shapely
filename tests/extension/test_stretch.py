@@ -210,6 +210,7 @@ class StretchTest(TestCase):
         divider = LineString([(1, 0), (1, 4)])
 
         closures = stretch.closures[0].divided_by(divider)
+        closures = sorted(closures, key=lambda c: c.shape.area, reverse=True)
         self.assertEqual(len(stretch.pivots), 6)
         self.assertEqual(len(stretch.edges), 8)
         self.assertEqual(len(stretch.closures), 2)
@@ -222,6 +223,7 @@ class StretchTest(TestCase):
         divider = LineString([(1, 0), (1, 4)])
 
         closures = stretch.closures[0].divided_by(divider)
+        closures = sorted(closures, key=lambda c: c.shape.area, reverse=True)
         self.assertEqual(len(stretch.pivots), 10)
         self.assertEqual(len(stretch.edges), 14)
         self.assertEqual(len(stretch.closures), 3)
@@ -236,6 +238,7 @@ class StretchTest(TestCase):
                    LineString([(0, 4), (4, 0)])]
 
         closures = stretch.closures[0].divided_by(divider)
+        closures = sorted(closures, key=lambda c: c.shape.area, reverse=True)
         self.assertEqual(len(stretch.pivots), 5)
         self.assertEqual(len(stretch.edges), 12)
         self.assertEqual(len(stretch.closures), 4)
