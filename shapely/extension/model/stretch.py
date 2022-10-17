@@ -1,4 +1,5 @@
 from contextlib import suppress
+from itertools import starmap, product
 from operator import attrgetter
 from typing import Union, Iterable, Dict, List, Optional, Sequence
 from uuid import uuid4
@@ -671,53 +672,48 @@ class StretchFactory:
         from shapely.extension.util.flatten import flatten
 
         # extract valid non-empty polygons and remove its holes
-        polys = (flatten(geom_or_geoms, Polygon, validate=False, filter_out_empty=True)
-                 .map(ccw)
+        polys = (flatten(geom_or_geoms, Polygon, validate=False)
                  .map(lambda poly: poly.ext.shell)
                  .to_list())
 
         if not polys:
             raise ValueError('given input should contain valid non-empty polygon with no holes')
 
-        node_groups = self._create_nodes_groups(polys)
-        pivots = [Pivot(origin=node) for node in set(lconcat(node_groups))]
+        point_groups: List[List[Point]] = self._create_nodes_groups(polys)
+        pivots: List[Pivot] = [Pivot(origin=node) for node in set(lconcat(point_groups))]
+
+        def find_or_create_pivots(point: Point) -> Pivot:
+            return first(lambda pvt: pvt.shape.distance(point) < self._dist_tol, pivots, default=Pivot(point))
 
         closures: List[Closure] = []
-        for node_group in node_groups:
-            ring_pivots = [first(lambda p: p.shape.almost_equals(node), pivots) or Pivot(node) for node in node_group]
-            ring_edges: List[DirectEdge] = []
-            for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
-                edge = DirectEdge(from_pivot=pivots_pair[0], to_pivot=pivots_pair[1])
-                ring_edges.append(edge)
+        for point_group in point_groups:
+            ring_pivots = lmap(find_or_create_pivots, point_group)
+            ring_edges = list(starmap(DirectEdge, win_slice(ring_pivots, win_size=2, tail_cycling=True)))
             closures.append(Closure(edges=ring_edges))
 
         return Stretch(closures=closures)
 
-    def _create_nodes_groups(self, geoms: List[BaseGeometry]) -> List[List[Point]]:
+    def _create_nodes_groups(self, polys: List[Polygon]) -> List[List[Point]]:
         """
         生成结点组. 每个geom生成一个结点列表, 该列表可有序插入其他geom生成的临近结点
 
         Parameters
         ----------
-        geoms
+        polys
 
         Returns
         -------
 
         """
-        node_groups = [[Point(c) for c in geom.boundary.ext.ccw().coords[:-1]] for geom in geoms]
-        for i, node_group in enumerate(node_groups):
-            for idx in range(len(node_groups)):
-                if idx == i:
-                    continue
-                if not (pre_inserters := lfilter(lambda p: geoms[i].distance(p) < self._dist_tol, node_groups[idx])):
-                    continue
+        point_groups = [[Point(c) for c in geom.exterior.ext.ccw().coords[:-1]] for geom in polys]
+        for i, j in product(range(len(point_groups)), repeat=2):
+            if j == i:
+                continue
 
-                has_operated = True if idx < i else False
-                for inserter in pre_inserters:
-                    node_groups[i] = self._insert_ring_nodes(node_group, inserter, has_operated)
+            for inserter in lfilter(lambda pt: polys[i].distance(pt) < self._dist_tol, point_groups[j]):
+                point_groups[i] = self._insert_ring_nodes(point_groups[i], inserter, has_operated=j < i)
 
-        return node_groups
+        return point_groups
 
     def _insert_ring_nodes(self, ring_nodes: List[Point], inserter: Point, has_operated: bool) -> List[Point]:
         """
@@ -733,7 +729,7 @@ class StretchFactory:
         -------
 
         """
-        sign = -1
+        index = -1
         for idx_pair in win_slice(range(len(ring_nodes)), win_size=2, tail_cycling=True):
             seg = StraightSegment([ring_nodes[idx_pair[0]], ring_nodes[idx_pair[1]]])
             if seg.distance(inserter) > self._dist_tol:
@@ -743,13 +739,12 @@ class StretchFactory:
                 if ring_nodes[idx_pair[i]].distance(inserter) < self._dist_tol:
                     if has_operated:
                         ring_nodes[idx_pair[i]] = inserter
-                        return ring_nodes
                     return ring_nodes
 
-            sign = idx_pair[1]
+            index = idx_pair[1]
             break
 
-        if sign > -1:
-            ring_nodes.insert(sign, inserter)
+        if index > -1:
+            ring_nodes.insert(index, inserter)
 
         return ring_nodes
