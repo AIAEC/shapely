@@ -206,7 +206,9 @@ class DirectEdge:
         -------
 
         """
-        extra_pivot = Pivot(origin=point)
+        new_pivot = Pivot(point)
+        with suppress(Exception):
+            new_pivot = self.stretch.query_pivots(point)[0]
 
         def expand_single_edge(edge: DirectEdge) -> List[DirectEdge]:
             """
@@ -221,12 +223,12 @@ class DirectEdge:
             -------
 
             """
-            if (point.distance(edge._from_pivot.shape) < dist_tol
+            if (point.distance(edge.from_pivot.shape) < dist_tol
                     or point.distance(edge._to_pivot.shape) < dist_tol):
                 return [edge]
 
-            new_direct_edge_0 = DirectEdge(from_pivot=edge._from_pivot, to_pivot=extra_pivot)
-            new_direct_edge_1 = DirectEdge(from_pivot=extra_pivot, to_pivot=edge._to_pivot)
+            new_direct_edge_0 = DirectEdge(from_pivot=edge.from_pivot, to_pivot=new_pivot)
+            new_direct_edge_1 = DirectEdge(from_pivot=new_pivot, to_pivot=edge._to_pivot)
 
             if edge.closure:
                 try:
@@ -335,10 +337,6 @@ class MultiDirectEdge:
 
 
 class Closure:
-    """
-    entry of stretch
-    """
-
     def __init__(self, edges: List[DirectEdge]):
         """
 
@@ -453,6 +451,11 @@ class Closure:
                 return [*existed_edges, newly_added_edge]
 
             return [*existed_edges, *newly_added_edge.edges]
+
+        # assign stretch
+        if self.stretch:
+            for _edge in edge.edges:
+                _edge.stretch = self.stretch
 
         # create first closure
         first_closure_edges = closure_edges(self.edges[pivot_indices[0]: pivot_indices[1]], edge)
@@ -585,6 +588,10 @@ class Closure:
 
 
 class Stretch:
+    """
+    entry of stretch
+    """
+
     def __init__(self, closures: List[Closure]):
         self.closures = closures
         self._setup()
@@ -666,6 +673,7 @@ class StretchFactory:
 
         # extract valid non-empty polygons and remove its holes
         polys = (flatten(geom_or_geoms, Polygon, validate=False)
+                 .map(ccw)
                  .map(lambda poly: poly.ext.shell)
                  .to_list())
 
