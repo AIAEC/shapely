@@ -17,6 +17,7 @@ from shapely.extension.util.func_util import lconcat, lfilter, lmap
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.geometry import Point, Polygon, LineString, MultiLineString
 from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
 
@@ -185,6 +186,12 @@ class DirectEdge:
             return first(self.is_reverse, self.closure.stretch.edges, default=default)
 
         return default
+
+    def intersects(self, edge: 'DirectEdge') -> bool:
+        return self.shape.intersects(edge.shape)
+
+    def intersection(self, edge: 'DirectEdge') -> BaseGeometry:
+        return self.shape.intersection(edge.shape)
 
     def expand(self, point: Point, dist_tol: float = MATH_EPS) -> List['DirectEdge']:
         """
@@ -407,6 +414,9 @@ class Closure:
             pivots.append(self.edges[-1].to_pivot)
         return pivots
 
+    def intersects(self, closure: 'Closure') -> bool:
+        return self.shape.intersects(closure.shape)
+
     def delete(self) -> None:
         for edge in self.edges:
             edge.delete()
@@ -599,6 +609,10 @@ class Stretch:
     def pivots(self) -> List[Pivot]:
         return list(set(lconcat([closure.pivots for closure in self.closures])))
 
+    @property
+    def occupation(self) -> BaseGeometry:
+        return unary_union([closure.shape for closure in self.closures])
+
     def query_pivots(self, geom: BaseGeometry) -> List[Pivot]:
         return lfilter(lambda pivot: geom.intersects(pivot.shape), self.pivots)
 
@@ -657,7 +671,7 @@ class StretchFactory:
         from shapely.extension.util.flatten import flatten
 
         # extract valid non-empty polygons and remove its holes
-        polys = (flatten(geom_or_geoms, Polygon, validate=False)
+        polys = (flatten(geom_or_geoms, Polygon, validate=False, filter_out_empty=True)
                  .map(ccw)
                  .map(lambda poly: poly.ext.shell)
                  .to_list())
