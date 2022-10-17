@@ -10,6 +10,12 @@ from shapely.wkt import loads
 
 
 class PivotTest(TestCase):
+    def test_pivot_in_out_edges(self):
+        pass
+
+    def test_pivot_stretch_attributes(self):
+        pass
+
     def test_pivot_attributes(self):
         pivot = Pivot(Coord(0, 0))
         self.assertTrue(isinstance(pivot.shape, Point))
@@ -78,7 +84,6 @@ class DirectEdgeTest(TestCase):
         edge_1 = DirectEdge(from_pivot=pivot_1, to_pivot=pivot_0)
         self.assertIsNone(edge_0.stretch)
         self.assertIsNone(edge_1.stretch)
-
         self.assertEqual(1, len(pivot_0.in_edges))
         self.assertEqual(1, len(pivot_0.out_edges))
         self.assertEqual(1, len(pivot_1.in_edges))
@@ -143,6 +148,7 @@ class DirectEdgeTest(TestCase):
         self.assertEqual(4, len(stretch.pivots))
         self.assertEqual(4, len(stretch.edges))
 
+        # expand by endpoint of the edge
         target_edge = max(stretch.edges, key=lambda edge: edge.shape.centroid.x)
         expanded_edges = target_edge.expand(Point(1, 0))
         self.assertEqual(1, len(expanded_edges))
@@ -151,6 +157,7 @@ class DirectEdgeTest(TestCase):
         self.assertEqual(1, len(stretch.closures))
         self.assertTrue(stretch.closures[0].shape.equals(poly))
 
+        # expand by point that nearby endpoint of the edge
         expanded_edges = target_edge.expand(Point(1 + 1e-6, 0), dist_tol=1e-5)
         self.assertEqual(1, len(expanded_edges))
         self.assertEqual(4, len(stretch.edges))
@@ -158,12 +165,16 @@ class DirectEdgeTest(TestCase):
         self.assertEqual(1, len(stretch.closures))
         self.assertTrue(stretch.closures[0].shape.equals(poly))
 
+        # expand by point outside edge
         expanded_edges = target_edge.expand(Point(2, 0))
         self.assertEqual(2, len(expanded_edges))
         self.assertEqual(5, len(stretch.edges))
         self.assertEqual(5, len(stretch.pivots))
         self.assertEqual(1, len(stretch.closures))
         self.assertTrue(stretch.closures[0].shape.equals(loads('POLYGON ((1 0, 2 0, 1 1, 0 1, 0 0, 1 0))')))
+
+        # TODO: expand same point several time
+        # TODO: test new pivot's edge relationship
 
     def test_bilateral_expand(self):
         poly_0 = box(0, 0, 1, 1)
@@ -189,6 +200,9 @@ class DirectEdgeTest(TestCase):
         self.assertEqual(7, len(stretch.pivots))
         self.assertTrue(stretch.closures[0].shape.equals(loads('POLYGON ((1 0, 1.5 0.5, 1 1, 0 1, 0 0, 1 0))')))
         self.assertTrue(stretch.closures[1].shape.equals(loads('POLYGON ((2 0, 2 1, 1 1, 1.5 0.5, 1 0, 2 0))')))
+
+        # TODO: expand same point several time
+        # TODO: test new pivot's edge relationship
 
     def test_single_interpolate(self):
         poly = box(0, 0, 8, 8)
@@ -273,6 +287,9 @@ class ClosureTest(TestCase):
         self.assertEqual(4, len(closure._edges))
         self.assertTrue(closure.shape.equals(box(0, 0, 1, 1)))
 
+    def test_closure_attributes(self):
+        pass
+
     def test_split_to_halves_by_edge(self):
         # split by direct edge into 2 halves
         pivots = [Pivot(Point(0, 0)), Pivot(Point(1, 0)), Pivot(Point(1, 1)), Pivot(Point(0, 1))]
@@ -289,6 +306,8 @@ class ClosureTest(TestCase):
         result.sort(key=lambda cls: cls.shape.centroid.x)
         self.assertTrue(result[0].shape.equals(Polygon([(0, 0), (1, 1), (0, 1)])))
         self.assertTrue(result[1].shape.equals(Polygon([(0, 0), (1, 0), (1, 1)])))
+
+        # TODO: test new closures' attributes
 
     def test_split_to_halves_by_multi_edge(self):
         # split by multi direct edge into 2 halves
@@ -311,6 +330,8 @@ class ClosureTest(TestCase):
         result.sort(key=lambda cls: cls.shape.centroid.x)
         self.assertTrue(result[0].shape.equals(Polygon([(0, 0), (0.5, 0.5), (1, 1), (0, 1)])))
         self.assertTrue(result[1].shape.equals(Polygon([(0, 0), (1, 0), (1, 1), (0.5, 0.5), (0, 0)])))
+
+        # TODO: test new closures' attributes
 
     def test_split_to_halves_when_edge_on_closure(self):
         # cut by linestring that actually is the edge of the closure, which will return the origin closure
@@ -373,6 +394,8 @@ class ClosureTest(TestCase):
         self.assertEqual(1, len(result.edges))
         self.assertTrue(result.pivots[0] is pivots[0])
 
+        # TODO: test edge's attributes
+
     def test_divided_by_lines(self):
         poly = Polygon([(0, 0), (100, 0), (100, 10), (0, 10)])
         pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
@@ -389,6 +412,10 @@ class ClosureTest(TestCase):
         result.sort(key=lambda cls: cls.shape.centroid.x)
         for i, closure in enumerate(result):
             self.assertTrue(closure.shape.equals(box(i * 10, 0, i * 10 + 10, 10)))
+
+        # TODO: test cutting on pivot
+        # TODO: test cutting nothing
+        # TODO: test closures' attributes
 
 
 class StretchTest(TestCase):
@@ -475,8 +502,6 @@ class StretchTest(TestCase):
         self.assertEqual(33, len(stretch.pivots))
         self.assertEqual(80, len(stretch.edges))
 
-
-class StretchFactorTest(TestCase):
     def test_delete_closure(self):
         poly_0 = box(0, 0, 8, 8)
         poly_1 = box(8, 0, 16, 8)
@@ -498,6 +523,8 @@ class StretchFactorTest(TestCase):
         self.assertEqual(0, len(stretch.pivots))
         self.assertEqual(0, len(stretch.edges))
 
+
+class StretchFactorTest(TestCase):
     def test_reference_relationship(self):
         poly = box(0, 0, 1, 1)
         stretch = StretchFactory().create(poly)
@@ -519,6 +546,9 @@ class StretchFactorTest(TestCase):
         self.assertEqual(2, len(stretch.closures))
         self.assertEqual(7, len(stretch.pivots))
         self.assertEqual(8, len(stretch.edges))
+
+    def test_stretch_created_by_multi_polygons(self):
+        pass
 
     def test_stretch_created_by_invalid_input(self):
         poly = box(0, 0, 0, 0)
@@ -599,3 +629,6 @@ class StretchFactorTest(TestCase):
 
         stretch = StretchFactory(dist_tol=1e-6).create(result)
         self.assertEqual(4, len(stretch.closures))
+
+    def test_stretch_created_by_dividing_polys(self):
+        pass
