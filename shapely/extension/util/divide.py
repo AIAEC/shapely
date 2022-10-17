@@ -1,10 +1,7 @@
 from collections.abc import Sequence
 from typing import Union, List, Dict
 
-from functional import seq
-
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lconcat
 from shapely.extension.util.iter_util import win_slice
 from shapely.geometry import LineString, MultiLineString, Point, Polygon, MultiPolygon, MultiPoint
@@ -17,8 +14,10 @@ __all__ = ['divide']
 def _line_divided_by_points(line: Union[LineString, MultiLineString],
                             points: Union[Point, Sequence[Point], MultiPoint],
                             dist_tol: float = MATH_EPS) -> List[LineString]:
+    from shapely.extension.util.flatten import flatten
+
     def divide_single_line(line_, points_):
-        points_ = flatten(points_, Point).to_list()
+        points_ = flatten(points_).to_list()
 
         marks: List[float] = []
         for point in filter(lambda pt: pt.distance(line_) <= dist_tol, points_):
@@ -27,17 +26,22 @@ def _line_divided_by_points(line: Union[LineString, MultiLineString],
                 marks.append(project_mark)
 
         marks = [0, *sorted(marks), line_.length]
-        return flatten([substring(line_, mark0, mark1) for mark0, mark1 in win_slice(marks, win_size=2)],
-                       LineString).to_list()
+        substrings = [substring(line_, mark0, mark1) for mark0, mark1 in win_slice(marks, win_size=2)]
 
-    lines = flatten(line, LineString).to_list()
+        return (unary_union(substrings)
+                .ext.flatten(LineString)
+                .to_list())
+
+    lines = line.ext.flatten(LineString).to_list()
     return lconcat([divide_single_line(line, points) for line in lines])
 
 
 def _divide_polygon_by_multilinestring(polygon: Polygon,
                                        divider: MultiLineString,
                                        dist_tol: float = MATH_EPS) -> List[Polygon]:
-    lines = flatten(divider, LineString).to_list()
+    from shapely.extension.util.flatten import flatten
+
+    lines = divider.ext.flatten(LineString).to_list()
     cross_points: List[Point] = []
     for i in range(1, len(lines)):
         cross_points.extend(flatten(unary_union(lines[:i]).intersection(lines[i]), Point).to_list())
@@ -48,7 +52,7 @@ def _divide_polygon_by_multilinestring(polygon: Polygon,
     divider = divider.difference(
         unary_union(deleting_segments).buffer(dist_tol / 10, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre))
     divider = divider.buffer(dist_tol, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre)
-    return flatten(polygon.difference(divider), Polygon).to_list()
+    return polygon.difference(divider).ext.flatten(Polygon).to_list()
 
 
 def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
@@ -67,9 +71,10 @@ def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
     list of geometry instances
     """
     if not isinstance(divider, (LineString, MultiLineString)):
-        return flatten(unary_union(geom_or_geoms).difference(divider)).to_list()
+        return unary_union(geom_or_geoms).difference(divider).ext.flatten().to_list()
 
-    geom_dict: Dict[type, List[BaseGeometry]] = seq(flatten(geom_or_geoms).to_list()).group_by(type).to_dict()
+    from shapely.extension.util.flatten import flatten
+    geom_dict: Dict[type, List[BaseGeometry]] = flatten(geom_or_geoms).group_by(type).to_dict()
 
     points = geom_dict.get(Point, [])
     lines = geom_dict.get(LineString, [])
@@ -77,7 +82,7 @@ def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
 
     if isinstance(divider, LineString):
         if polygons:
-            polygons = flatten(split(MultiPolygon(polygons), divider), Polygon).to_list()
+            polygons = split(MultiPolygon(polygons), divider).ext.flatten(Polygon).to_list()
     else:  # MultiLineString
         # the shapely split method can only handle linestring as splitter, and they do so for reason as that,
         # when splitting by a multi-linestring, the order of splitting by each linestring affects the result
@@ -98,6 +103,6 @@ def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
         polygons = divided_polys
 
     if len(lines) > 0:
-        lines = flatten(split(MultiLineString(lines), divider), LineString).to_list()
+        lines = split(MultiLineString(lines), divider).ext.flatten(LineString).to_list()
 
     return polygons + lines + points

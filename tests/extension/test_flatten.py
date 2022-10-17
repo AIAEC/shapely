@@ -51,3 +51,12 @@ class TestFlatten(TestCase):
         self.assertTrue(isinstance(result, list))
         self.assertEqual(1, len(result))
         self.assertTrue(result[0].equals(box(0, 0, 1, 1)))
+
+    def test_flatten_polygons_with_holes(self):
+        polys = [
+            Polygon([(0, 0), (10, 0), (10, 10), (0, 10)],
+                    [[(1, 1), (2, 1), (2, 2), (1, 2)]])
+        ]
+        result = flatten(polys, Polygon).to_list()
+        self.assertEqual(1, len(result))
+        self.assertTrue(result[0].equals(polys[0]))

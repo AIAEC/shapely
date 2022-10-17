@@ -11,6 +11,10 @@ from shapely.ops import unary_union
 
 
 class PolygonExtension(BaseGeomExtension):
+    @property
+    def shell(self) -> Polygon:
+        return Polygon(self._geom.exterior)
+
     def edge_pair_with(self, poly_or_line: Union[Polygon, LineString],
                        decompose_strategy: Optional[BaseDecomposeStrategy] = None
                        ) -> Iterable[Tuple[LineString, LineString]]:
