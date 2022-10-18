@@ -637,6 +637,7 @@ class Closure:
         self.delete()
         other.delete()
         new_closure = Closure(edges=edges)
+        self_stretch.closures.append(new_closure)
         new_closure.stretch = self_stretch
         return [new_closure]
 
