@@ -68,7 +68,7 @@ class Pivot:
     @stretch.setter
     def stretch(self, stretch):
         if not isinstance(stretch, Stretch):
-            raise TypeError(f'should specify stretch object, given {self}')
+            raise TypeError(f'should specify stretch object, given {stretch}')
 
         self._stretch = ref(stretch)
 
@@ -402,7 +402,7 @@ class Closure:
     @stretch.setter
     def stretch(self, stretch):
         if not isinstance(stretch, Stretch):
-            raise TypeError('should specify stretch object')
+            raise TypeError(f'should specify stretch object, given {stretch}')
 
         self._stretch = ref(stretch)
 
