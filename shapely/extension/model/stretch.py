@@ -32,7 +32,7 @@ class Pivot:
                  out_edges: Optional[List['DirectEdge']] = None):
         try:
             self._origin = Point(origin)
-        except:
+        except Exception:
             raise TypeError(f'given origin cannot form a point, given {origin}')
 
         if not self._origin.is_valid or self._origin.is_empty:
@@ -83,7 +83,7 @@ class Pivot:
     def move_to(self, target: Union[Point, Coord]) -> None:
         try:
             target = Point(target)
-        except:
+        except Exception:
             raise TypeError(f'target cannot form a point, given {target}')
         self._origin = target
 
@@ -269,7 +269,7 @@ class DirectEdge:
         point = self.shape.interpolate(distance, normalized=not absolute)
         return self.expand(point=point, dist_tol=dist_tol)
 
-    def expand_by_intersection(self, line: LineString, dist_tol: float = MATH_EPS):
+    def expand_by_intersection(self, line: LineString, dist_tol: float = MATH_EPS) -> List['DirectEdge']:
         point = self.shape.intersection(line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE))
         if not (point and isinstance(point, Point)):
             return [self]
@@ -433,7 +433,7 @@ class Closure:
         with suppress(Exception):
             self.stretch.closures.remove(self)
 
-    def split_to_halves(self, edge: Union[DirectEdge, MultiDirectEdge]):
+    def split_to_halves(self, edge: Union[DirectEdge, MultiDirectEdge]) -> List["Closure"]:
         if not all(edge_p in set(self.pivots) for edge_p in [edge.from_pivot, edge.to_pivot]):
             raise ValueError('only accept edge with starting pivot and end pivot on current closure')
 
