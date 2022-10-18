@@ -58,6 +58,10 @@ class Pivot:
         return self._cargo
 
     @property
+    def id(self) -> str:
+        return self._id
+
+    @property
     def stretch(self) -> Optional['Stretch']:
         return self._stretch if not self._stretch else self._stretch()
 
@@ -388,6 +392,10 @@ class Closure:
         return self._cargo
 
     @property
+    def id(self) -> str:
+        return self._id
+
+    @property
     def stretch(self) -> Optional['Stretch']:
         return self._stretch if not self._stretch else self._stretch()
 
@@ -666,6 +674,14 @@ class Stretch:
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    @property
+    def cargo(self) -> Dict:
+        return self._cargo
+
+    @property
+    def id(self) -> str:
+        return self._id
 
     @property
     def edges(self) -> List[DirectEdge]:
