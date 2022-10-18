@@ -413,9 +413,80 @@ class ClosureTest(TestCase):
         for i, closure in enumerate(result):
             self.assertTrue(closure.shape.equals(box(i * 10, 0, i * 10 + 10, 10)))
 
-        # TODO: test cutting on pivot
-        # TODO: test cutting nothing
-        # TODO: test closures' attributes
+    def test_divided_by_nothing(self):
+        poly = box(0, 0, 1, 1)
+        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
+        closure = Closure(valid_edges)
+        _ = Stretch([closure])
+
+        divider_0 = None
+        result = closure.divided_by(divider_0)
+        self.assertEqual(result, [closure])
+
+        divider_1 = []
+        result = closure.divided_by(divider_1)
+        self.assertEqual(result, [closure])
+
+        divider_2 = LineString()
+        result = closure.divided_by(divider_2)
+        self.assertEqual(result, [closure])
+
+    def test_divided_by_divider_cross_pivot(self):
+        poly = box(0, 0, 4, 4)
+        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
+        closure = Closure(valid_edges)
+        _ = Stretch([closure])
+
+        divider = LineString([(0, 0), (4, 4)])
+        result = closure.divided_by(divider)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].shape.area, 8)
+        self.assertEqual(len(result[0].pivots), 3)
+        self.assertEqual(len(result[0].edges), 3)
+        self.assertEqual(len(result[0].stretch.pivots), 4)
+        self.assertEqual(len(result[0].stretch.edges), 6)
+
+    def test_union_simple_closure(self):
+        poly_0 = box(0, 0, 2, 2)
+        poly_1 = box(2, 0, 3, 1)
+        stretch = StretchFactory().create([poly_0, poly_1])
+
+        closure_0, closure_1 = stretch.closures
+        union_closure = closure_0.union(closure_1)
+        self.assertEqual(len(union_closure), 1)
+        self.assertEqual(union_closure[0].stretch, stretch)
+        self.assertEqual(union_closure[0].shape.area, 5)
+        self.assertEqual(len(union_closure[0].edges), 6)
+        self.assertEqual(len(union_closure[0].pivots), 6)
+
+    def test_union_complex_closure(self):
+        poly_0 = Polygon([(0, 0), (2, 0), (2, 1), (1, 1), (1, 2), (2, 2), (2, 3), (0, 3), (0, 0)])
+        poly_1 = box(1, 1, 2, 2)
+        stretch = StretchFactory().create([poly_0, poly_1])
+
+        closure_0, closure_1 = stretch.closures
+        union_closure = closure_0.union(closure_1)
+        self.assertEqual(len(union_closure), 1)
+        self.assertEqual(union_closure[0].stretch, stretch)
+        self.assertEqual(union_closure[0].shape.area, 6)
+        self.assertEqual(len(union_closure[0].edges), 4)
+        self.assertEqual(len(union_closure[0].pivots), 4)
+
+    def test_union_with_eps(self):
+        poly_0 = box(0, 0, 2, 2)
+        poly_1 = box(2.1, -1, 3.1, 1)
+        stretch = StretchFactory().create([poly_0, poly_1])
+
+        closure_0, closure_1 = stretch.closures
+        union_closure = closure_0.union(closure_1, dist=0.2)
+        self.assertEqual(len(union_closure), 1)
+        self.assertEqual(union_closure[0].stretch, stretch)
+        self.assertAlmostEqual(union_closure[0].shape.area, 6.2)
+        self.assertEqual(len(union_closure[0].edges), 8)
+        self.assertEqual(len(union_closure[0].pivots), 8)
 
 
 class StretchTest(TestCase):

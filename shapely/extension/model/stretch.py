@@ -381,7 +381,7 @@ class Closure:
         return hash(('closure', self._id))
 
     def __eq__(self, other):
-        return self.__hash__() == other.__hash__()
+        return hash(self) == hash(other)
 
     @property
     def cargo(self) -> Dict:
@@ -538,6 +538,9 @@ class Closure:
         -------
 
         """
+        if not divider:
+            return [self]
+
         from shapely.extension.util.flatten import flatten
         divider = flatten(divider, LineString).to_list()
 
@@ -549,8 +552,11 @@ class Closure:
 
     # need more test
     def _divided_by_single_line(self, divider: LineString) -> List['Closure']:
-        if not isinstance(divider, LineString) or divider.is_empty:
+        if not isinstance(divider, LineString):
             raise TypeError('single divider is not a valid LineString')
+
+        if divider.is_empty:
+            return [self]
 
         from shapely.extension.util.flatten import flatten
 
@@ -563,11 +569,13 @@ class Closure:
             return [self]
 
         existed_pivots = self.stretch.pivots if self.stretch else []
+        self_stretch = self.stretch
+        self.delete()
         closures: List['Closure'] = []
 
         for cur_shape in polygons:
             ring_points = [Point(coord) for coord in cur_shape.exterior.coords[:-1]]
-            ring_pivots = [first(lambda p: p.shape.almost_equals(node), existed_pivots) or Pivot(node)
+            ring_pivots = [first(lambda p: node.buffer(MATH_EPS).covers(p.shape), existed_pivots) or Pivot(node)
                            for node in ring_points]
             existed_pivots = list(set(existed_pivots + ring_pivots))
 
@@ -577,12 +585,60 @@ class Closure:
                 ring_edges.append(edge)
 
             closure = Closure(edges=ring_edges)
-            closure.stretch = self.stretch
+            closure.stretch = self_stretch
             closures.append(closure)
 
-        self.stretch.closures.extend(closures)
-        self.delete()
+        self_stretch.closures.extend(closures)
         return closures
+
+    def union(self, other: 'Closure', dist: float = MATH_EPS) -> List['Closure']:
+        """
+        联合闭包生成新闭包(两闭包需属于同一stretch)：
+            1. 两闭包不属于同一stretch时抛出异常
+            2. 符合联合条件时, 得到新生成的联合闭包
+            3. 不符合联合条件时, 返回原有的两个闭包
+
+        Parameters
+        ----------
+        other: 待联合闭包
+        dist: 距离容差. 默认为MATH_EPS
+
+        Returns
+        -------
+
+        """
+        if not self.stretch:
+            raise ValueError('The reference of stretch is error!')
+
+        if self.stretch != other.stretch:
+            raise ValueError('The closures do not belong to same stretch!')
+
+        union_shape = unary_union([
+            self.shape.buffer(dist / 2, cap_style=2, join_style=2),
+            other.shape.buffer(dist / 2, cap_style=2, join_style=2)
+        ]).buffer(-dist / 2, cap_style=2, join_style=2).ext.flatten(Polygon).to_list()
+
+        if len(union_shape) > 1:
+            return [self, other]
+
+        existed_pivots = list(set(self.pivots + other.pivots))
+        self_stretch = self.stretch
+        self.delete()
+        other.delete()
+
+        ring_points = [Point(c) for c in union_shape[0].exterior.ext.ccw().coords[:-1]]
+        ring_pivots = [first(lambda p: node.buffer(dist).covers(p.shape), existed_pivots) or Pivot(node)
+                       for node in ring_points]
+
+        ring_edges: List[DirectEdge] = []
+        for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
+            edge = DirectEdge(from_pivot=pivots_pair[0], to_pivot=pivots_pair[1])
+            ring_edges.append(edge)
+
+        closure = Closure(edges=ring_edges)
+        closure.stretch = self_stretch
+        self_stretch.closures.append(closure)
+        return [closure]
 
 
 class Stretch:
@@ -592,6 +648,8 @@ class Stretch:
 
     def __init__(self, closures: List[Closure]):
         self.closures = closures
+        self._id = str(uuid4())
+        self._cargo = {}
         self._setup()
 
     def _setup(self):
@@ -601,6 +659,12 @@ class Stretch:
 
         for pivot in self.pivots:
             pivot.stretch = self
+
+    def __hash__(self):
+        return hash(('stretch', self._id))
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     @property
     def edges(self) -> List[DirectEdge]:
@@ -650,14 +714,6 @@ class Stretch:
             self.closures = new_closures
 
         return self.closures
-
-    def union(self, stretch: 'Stretch') -> 'Stretch':
-        # TODO
-        pass
-
-    def difference(self, stretch: 'Stretch') -> 'Stretch':
-        # TODO
-        pass
 
 
 class StretchFactory:
