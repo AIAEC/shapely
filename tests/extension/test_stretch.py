@@ -453,27 +453,44 @@ class ClosureTest(TestCase):
         poly_0 = box(0, 0, 2, 2)
         poly_1 = box(2, 0, 3, 1)
         stretch = StretchFactory().create([poly_0, poly_1])
+        self.assertEqual(2, len(stretch.closures))
+        self.assertEqual(7, len(stretch.pivots))
+        self.assertEqual(9, len(stretch.edges))
 
         closure_0, closure_1 = stretch.closures
-        union_closure = closure_0.union(closure_1)
-        self.assertEqual(len(union_closure), 1)
-        self.assertEqual(union_closure[0].stretch, stretch)
-        self.assertEqual(union_closure[0].shape.area, 5)
-        self.assertEqual(len(union_closure[0].edges), 7)
-        self.assertEqual(len(union_closure[0].pivots), 7)
+        union_closures = closure_0.union(closure_1)
+
+        self.assertEqual(len(union_closures), 1)
+        self.assertEqual(union_closures[0].stretch, stretch)
+        self.assertTrue(union_closures[0].shape.equals(Polygon([(0, 0), (3, 0), (3, 1), (2, 1), (2, 2), (0, 2)])))
+        self.assertEqual(len(union_closures[0].edges), 7)
+        self.assertEqual(len(union_closures[0].pivots), 7)
+
+        self.assertEqual(1, len(stretch.closures))
+        self.assertEqual(7, len(stretch.edges))
+        self.assertEqual(7, len(stretch.pivots))
 
     def test_union_complex_closure(self):
         poly_0 = Polygon([(0, 0), (2, 0), (2, 1), (1, 1), (1, 2), (2, 2), (2, 3), (0, 3), (0, 0)])
         poly_1 = box(1, 1, 2, 2)
         stretch = StretchFactory().create([poly_0, poly_1])
 
+        self.assertEqual(2, len(stretch.closures))
+        self.assertEqual(8, len(stretch.pivots))
+        self.assertEqual(12, len(stretch.edges))
+
         closure_0, closure_1 = stretch.closures
         union_closure = closure_0.union(closure_1)
+
         self.assertEqual(len(union_closure), 1)
         self.assertEqual(union_closure[0].stretch, stretch)
-        self.assertEqual(union_closure[0].shape.area, 6)
+        self.assertTrue(union_closure[0].shape.equals(box(0, 0, 2, 3)))
         self.assertEqual(len(union_closure[0].edges), 6)
         self.assertEqual(len(union_closure[0].pivots), 6)
+
+        self.assertEqual(1, len(stretch.closures))
+        self.assertEqual(6, len(stretch.edges))
+        self.assertEqual(6, len(stretch.pivots))
 
 
 class StretchTest(TestCase):
