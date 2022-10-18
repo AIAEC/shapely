@@ -591,7 +591,7 @@ class Closure:
         self_stretch.closures.extend(closures)
         return closures
 
-    def union(self, other: 'Closure', dist: float = MATH_EPS) -> List['Closure']:
+    def union(self, other: 'Closure') -> List['Closure']:
         """
         联合闭包生成新闭包(两闭包需属于同一stretch)：
             1. 两闭包不属于同一stretch时抛出异常
@@ -601,7 +601,6 @@ class Closure:
         Parameters
         ----------
         other: 待联合闭包
-        dist: 距离容差. 默认为MATH_EPS
 
         Returns
         -------
@@ -613,32 +612,33 @@ class Closure:
         if self.stretch != other.stretch:
             raise ValueError('The closures do not belong to same stretch!')
 
-        union_shape = unary_union([
-            self.shape.buffer(dist / 2, cap_style=2, join_style=2),
-            other.shape.buffer(dist / 2, cap_style=2, join_style=2)
-        ]).buffer(-dist / 2, cap_style=2, join_style=2).ext.flatten(Polygon).to_list()
-
-        if len(union_shape) > 1:
+        if not self.intersects(other):
             return [self, other]
 
-        existed_pivots = list(set(self.pivots + other.pivots))
+        edges = self.edges + other.edges
+        intersection_pts = self.shape.intersection(other.shape).ext.decompose(Point).to_list()
+        for point in intersection_pts:
+            for edge in self.edges:
+                if edge.shape.covers(point):
+                    edge.expand(point)
+                    break
+            for edge in other.edges:
+                if edge.shape.covers(point):
+                    edge.expand(point)
+                    break
+
+        for edge in self.edges:
+            if (reversed_edge := edge.reversed_edge()) and (reversed_edge in edges):
+                with suppress(Exception):
+                    edges.remove(edge)
+                    edges.remove(reversed_edge)
+
         self_stretch = self.stretch
         self.delete()
         other.delete()
-
-        ring_points = [Point(c) for c in union_shape[0].exterior.ext.ccw().coords[:-1]]
-        ring_pivots = [first(lambda p: node.buffer(dist).covers(p.shape), existed_pivots) or Pivot(node)
-                       for node in ring_points]
-
-        ring_edges: List[DirectEdge] = []
-        for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
-            edge = DirectEdge(from_pivot=pivots_pair[0], to_pivot=pivots_pair[1])
-            ring_edges.append(edge)
-
-        closure = Closure(edges=ring_edges)
-        closure.stretch = self_stretch
-        self_stretch.closures.append(closure)
-        return [closure]
+        new_closure = Closure(edges=edges)
+        new_closure.stretch = self_stretch
+        return [new_closure]
 
 
 class Stretch:
