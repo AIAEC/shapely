@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from shapely.extension.model import Interval
 from shapely.extension.strategy.bypassing_strategy import LongerBypassingStrategy
+from shapely.extension.util.func_util import lmap
 from shapely.geometry import Point, LineString, box
 
 
@@ -59,6 +60,13 @@ class LineStringExtensionTest(TestCase):
 
         result = line.ext.prolong().from_ends(1)
         self.assertEqual(LineString([(-1, 0), (1, 0), (1, 2)]), result)
+
+        # given_end 是否需要在 line上？
+        result = line.ext.prolong().from_end((0, 0.5), 2)
+        self.assertEqual(LineString([(-2, 0), (1, 0), (1, 1)]), result)
+
+        result = line.ext.prolong().from_end((1.5, 1), 2)
+        self.assertEqual(LineString([(0, 0), (1, 0), (1, 3)]), result)
 
     def test_bypass(self):
         line = LineString([(0, 0), (10, 0)])
@@ -144,3 +152,45 @@ class LineStringExtensionTest(TestCase):
         self.assertEqual(float('inf'), line.ext.perpendicular_distance(Point(0, 2)))
         self.assertEqual(float('inf'), line.ext.perpendicular_distance(Point(10, 2)))
         self.assertAlmostEqual(10, line.ext.perpendicular_distance(Point(10, 1)))
+
+    def test_interpolate(self):
+        line = LineString([(0, 0), (0, 1), (0, 2), (0, 3)])
+
+        with self.assertRaises(TypeError):
+            line.ext.interpolate(None)
+            line.ext.interpolate('abc')
+
+        self.assertListEqual(line.ext.interpolate([]), [])
+
+        result = line.ext.interpolate(4, absolute=True)
+        self.assertListEqual([Point(0, 4)], result)
+
+        result = line.ext.interpolate(-1.5, absolute=False)
+        self.assertListEqual([Point(0, -4.5)], result)
+
+        result = line.ext.interpolate([-5.5, -1, 0, 3, 6], absolute=True)
+        self.assertListEqual([Point(0, -5.5), Point(0, -1), Point(0, 0), Point(0, 3), Point(0, 6)], result)
+
+        result = line.ext.interpolate([-2.0, -0.75, 0, 1, 1.25], absolute=False)
+        self.assertListEqual([Point(0, -6), Point(0, -2.25), Point(0, 0), Point(0, 3), Point(0, 3.75)], result)
+
+        result = line.ext.interpolate(range(-5, 6), absolute=True)
+        self.assertEqual(11, len(result))
+        self.assertListEqual([Point(0, i) for i in range(-5, 6)], result)
+
+        line = LineString([(0, 0), (0, 1), (1, 1), (1, 0), (3, 0)])
+        result = line.ext.interpolate(4, absolute=True)
+        self.assertListEqual([Point(2, 0)], result)
+
+        result = line.ext.interpolate(-1, absolute=False)
+        self.assertListEqual([Point(0, -5)], result)
+
+        result = line.ext.interpolate([-5.5, -1, 0, 3, 6], absolute=True)
+        self.assertListEqual([Point(0, -5.5), Point(0, -1), Point(0, 0), Point(1, 0), Point(4, 0)], result)
+
+        result = line.ext.interpolate([-2.0, -0.2, 0, 1, 1.2], absolute=False)
+        self.assertListEqual([Point(0, -10), Point(0, -1), Point(0, 0), Point(3, 0), Point(4, 0)], result)
+
+        result = line.ext.interpolate(map(lambda i: i/5, range(6)), absolute=False)
+        self.assertEqual(6, len(result))
+        self.assertListEqual(lmap(lambda coord: Point(coord), [(0, 0), (0, 1), (1, 1), (1, 0), (2, 0), (3, 0)]), result)

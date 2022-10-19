@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from itertools import product, combinations
-from typing import Union, Tuple, Optional, Iterable, Callable
-
+from typing import Union, Tuple, Optional, Iterable, Callable, List
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.geometry.straight_segment import StraightSegment
@@ -12,7 +11,7 @@ from shapely.extension.model.projection import Projection, ProjectionOnLine
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.bypassing_strategy import BaseBypassingStrategy, ShorterBypassingStrategy
 from shapely.extension.strategy.offset_strategy import BaseOffsetStrategy, OffsetStrategy
-from shapely.extension.typing import CoordType
+from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.func_util import min_max
 from shapely.extension.util.iter_util import win_slice
 from shapely.extension.util.line_extent import LineExtent
@@ -352,5 +351,32 @@ class LineStringExtension(BaseGeomExtension):
         perpendicular_direction = Vector.from_endpoints_of(self._geom).cw_perpendicular
         return self.distance(geom, direction=perpendicular_direction)
 
-    # TODO: interpolate()
-    # TODO: 等分(按长度, 按数量)
+    def interpolate(self, distance: Union[Num, Iterable], absolute: bool = True) -> List[Point]:
+        result: List[Point] = []
+        distances = []
+
+        if isinstance(distance, (float, int)):
+            distances.append(distance)
+        elif isinstance(distance, Iterable):
+            distances = distance
+        else:
+            raise TypeError(f'{distance} type is not supported')
+
+        for dist in distances:
+            if not isinstance(dist, (float, int)):
+                raise TypeError(f'distance contains invalid type')
+
+            dist = float(dist)
+            if not absolute:
+                dist = dist * self._geom.length
+
+            if dist < 0:
+                point = self.prolong(absolute=True).from_head(abs(dist)).ext.start()
+            elif dist > self._geom.length:
+                point = self.prolong(absolute=True).from_tail(dist - self._geom.length).ext.end()
+            else:
+                point = self._geom.interpolate(dist, normalized=False)
+
+            result.append(point)
+
+        return result
