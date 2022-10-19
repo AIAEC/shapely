@@ -605,6 +605,26 @@ class StretchTest(TestCase):
         self.assertEqual(0, len(stretch.pivots))
         self.assertEqual(0, len(stretch.edges))
 
+    def test_append_closure(self):
+        poly_0 = box(0, 0, 1, 1)
+        stretch_0 = StretchFactory().create(poly_0)
+        poly_1 = box(1, 0, 2, 2)
+        stretch_1 = StretchFactory().create(poly_1)
+
+        stretch_0.append(stretch_1.closures[0])
+        self.assertEqual(len(stretch_0.closures), 2)
+        self.assertEqual(len(stretch_1.closures), 0)
+        self.assertEqual(len(stretch_0.pivots), 7)
+        self.assertEqual(stretch_0.closures[-1].pivots[-1].stretch, stretch_0)
+
+        poly_2 = box(0, 1, 1, 2)
+        stretch_2 = StretchFactory().create(poly_2)
+        stretch_0.append(stretch_2.closures[0])
+        self.assertEqual(len(stretch_0.closures), 3)
+        self.assertEqual(len(stretch_2.closures), 0)
+        self.assertEqual(len(stretch_0.pivots), 8)
+        self.assertEqual(stretch_0.closures[-1].pivots[0].stretch, stretch_0)
+
 
 class StretchFactorTest(TestCase):
     def test_reference_relationship(self):

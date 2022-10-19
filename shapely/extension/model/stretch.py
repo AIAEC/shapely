@@ -61,6 +61,12 @@ class Pivot:
     def id(self) -> str:
         return self._id
 
+    @id.setter
+    def id(self, new_id):
+        if not isinstance(new_id, str):
+            raise TypeError(f'should specify new_id object, given {new_id}')
+        self._id = new_id
+
     @property
     def stretch(self) -> Optional['Stretch']:
         return self._stretch if not self._stretch else self._stretch()
@@ -659,10 +665,6 @@ class Stretch:
         self._closures = closures
         self._setup()
 
-    def append(self, closure: Closure) -> None:
-        closure.stretch = self
-        self._closures.append(closure)
-
     def _setup(self):
         for closure in self.closures:
             closure.stretch = self
@@ -710,6 +712,25 @@ class Stretch:
         for closure in closures:
             if closure in self.closures:
                 closure.delete()
+
+    def append(self, other: Closure) -> None:
+        if other.stretch and other.stretch != self:
+            for pivot in other.pivots:
+                if exist_pivot := first(lambda p: pivot.shape.equals(p.shape), self.pivots):
+                    exist_pivot.in_edges.extend(pivot.in_edges)
+                    exist_pivot.out_edges.extend(pivot.out_edges)
+                    pivot.in_edges = exist_pivot.in_edges
+                    pivot.out_edges = exist_pivot.out_edges
+                    pivot.id = exist_pivot.id
+                    pivot.stretch = exist_pivot.stretch
+                else:
+                    pivot.stretch = self
+
+            with suppress(Exception):
+                other.stretch.closures.remove(other)
+
+        other.stretch = self
+        self._closures.append(other)
 
     def divided_by(self, divider: Union[LineString, MultiLineString, Sequence[Union[LineString, MultiLineString]]]):
         from shapely.extension.util.flatten import flatten
