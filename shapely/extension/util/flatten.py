@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Union, Iterable, List, Tuple, Callable
 
-from shapely.extension.model.aggregation import Aggregation
+from shapely.extension.model import Aggregation
 from shapely.extension.util.func_util import lconcat
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.validation import make_valid

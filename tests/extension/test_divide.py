@@ -36,15 +36,27 @@ class DivideTest(TestCase):
         poly = box(0, 0, 10, 10)
         line = LineString([(0, 0), (0, 10)])
         result = divide(poly, line)
-        self.assertTrue(1, len(result))
+        self.assertEqual(1, len(result))
         self.assertTrue(poly.equals(result[0]))
 
         line = LineString([(5, 0), (5, 10)])
         result = divide(poly, line)
-        self.assertTrue(2, len(result))
+        self.assertEqual(2, len(result))
         self.assertTrue(all(isinstance(item, Polygon) for item in result))
 
         line = LineString([(5, -1), (5, 5)])
         result = divide(poly, line)
-        self.assertTrue(1, len(result))
+        self.assertEqual(1, len(result))
         self.assertTrue(isinstance(result[0], Polygon))
+
+    def test_divide_by_boundary(self):
+        poly = Polygon([(0, 0), (1, 1), (0, 2), (-1, 1)])
+        line = LineString([(0, 0), (1, 1)])
+        result = divide(poly, line)
+        self.assertEqual(1, len(result))
+        self.assertTrue(result[0].equals(poly))
+
+        line = LineString([(0, 0), (1, 1), (0, 2)])
+        result = divide(poly, line)
+        self.assertEqual(1, len(result))
+        self.assertTrue(result[0].equals(poly))

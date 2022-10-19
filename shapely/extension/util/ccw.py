@@ -1,4 +1,3 @@
-from shapely.extension.util.flatten import flatten
 from shapely.geometry import Point, LinearRing, LineString, Polygon, MultiPoint
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import orient
@@ -30,4 +29,4 @@ def ccw(geom: BaseGeometry) -> BaseGeometry:
     if isinstance(geom, (Point, MultiPoint, LineString)):
         return geom
 
-    return type(geom)([ccw(sub) for sub in flatten(geom).to_list()])
+    return type(geom)([ccw(sub) for sub in geom.ext.flatten().to_list()])
