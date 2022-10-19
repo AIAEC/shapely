@@ -14,7 +14,7 @@ from shapely.extension.model.vector import Vector
 from shapely.extension.typing import Num
 from shapely.extension.util.ccw import ccw
 from shapely.extension.util.divide import divide
-from shapely.extension.util.func_util import lconcat, lfilter, lmap
+from shapely.extension.util.func_util import lconcat, lfilter, lmap, group
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.geometry import Point, Polygon, LineString, MultiLineString
 from shapely.geometry.base import BaseGeometry
@@ -623,30 +623,19 @@ class Closure:
         if not self.intersects(other):
             return [self, other]
 
-        edges = self.edges + other.edges
-        intersection_pts = self.shape.intersection(other.shape).ext.decompose(Point).to_list()
-        for point in intersection_pts:
-            for edge in self.edges:
-                if edge.shape.covers(point):
-                    edge.expand(point)
-                    break
-            for edge in other.edges:
-                if edge.shape.covers(point):
-                    edge.expand(point)
-                    break
+        edge_groups = group(lambda edge0, edge1: edge0.is_reverse(edge1), self.edges + other.edges)
+        edges = (seq(edge_groups)
+                 .filter(lambda grp: len(grp) == 1)
+                 .flatten()
+                 .to_list())
 
-        for edge in self.edges:
-            if (reversed_edge := edge.reversed_edge()) and (reversed_edge in edges):
-                with suppress(Exception):
-                    edges.remove(edge)
-                    edges.remove(reversed_edge)
-
-        self_stretch = self.stretch
+        # CAUTION: delete must precede creating new closure, otherwise it'll cause bug
         self.delete()
         other.delete()
+
         new_closure = Closure(edges=edges)
-        self_stretch.closures.append(new_closure)
-        new_closure.stretch = self_stretch
+        self.stretch.append(new_closure)
+
         return [new_closure]
 
 
@@ -656,10 +645,23 @@ class Stretch:
     """
 
     def __init__(self, closures: List[Closure]):
-        self.closures = closures
+        self._closures = closures
         self._id = str(uuid4())
         self._cargo = {}
         self._setup()
+
+    @property
+    def closures(self) -> List[Closure]:
+        return self._closures
+
+    @closures.setter
+    def closures(self, closures: List[Closure]):
+        self._closures = closures
+        self._setup()
+
+    def append(self, closure: Closure) -> None:
+        closure.stretch = self
+        self._closures.append(closure)
 
     def _setup(self):
         for closure in self.closures:
