@@ -53,7 +53,11 @@ class ConservativeSimplifyStrategy(BaseSimplifyStrategy):
             simplified_geom: BaseGeometry = geom.simplify(simplify_dist)
             if (area_diff := abs(geom.area - simplified_geom.area)) <= area_diff_tolerance:
                 return simplified_geom
-            simplify_dist *= 0.5
+
+            if can_improve_area_diff := (simplify_dist > 0):
+                simplify_dist *= 0.5
+            else:
+                break
 
         return geom
 
