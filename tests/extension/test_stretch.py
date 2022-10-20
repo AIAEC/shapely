@@ -71,8 +71,36 @@ class PivotTest(TestCase):
         with self.assertRaises(TypeError):
             pivot_0.move_by(None)
 
+    def test_intersects(self):
+        pivot_0 = Pivot(origin=Coord((0, 0)))
+        pivot_1 = Pivot(origin=Coord((1, 1)))
+
+        self.assertTrue(pivot_1.intersects(pivot_1))
+        self.assertFalse(pivot_1.intersects(pivot_0))
+        self.assertTrue(pivot_0.intersects(Pivot(origin=Coord((0, 0)))))
+
 
 class DirectEdgeTest(TestCase):
+
+    def test_intersects(self):
+        pivot_0 = Pivot(origin=Coord((0, 0)))
+        pivot_1 = Pivot(origin=Coord((1, 1)))
+
+        edge_0 = DirectEdge(from_pivot=pivot_0, to_pivot=pivot_1)
+        edge_1 = DirectEdge(from_pivot=pivot_1, to_pivot=pivot_0)
+
+        self.assertTrue(edge_0.intersects(edge_1))
+
+        pivot_2 = Pivot(origin=Coord((0, 1)))
+        pivot_3 = Pivot(origin=Coord((1, 0)))
+        edge_2 = DirectEdge(from_pivot=pivot_2, to_pivot=pivot_3)
+        self.assertFalse(edge_0.intersects(edge_2))
+
+        edge_3 = DirectEdge(from_pivot=pivot_1, to_pivot=pivot_3)
+
+        self.assertEqual(edge_1, edge_0.intersection(edge_1))
+        self.assertEqual(pivot_1, edge_3.intersection(edge_0))
+
     def test_edge_create(self):
         pivot_0 = Pivot(origin=Coord((0, 0)))
         pivot_1 = Pivot(origin=Coord((1, 1)))

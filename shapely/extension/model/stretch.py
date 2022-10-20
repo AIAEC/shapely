@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from contextlib import suppress
 from itertools import starmap, product
 from operator import attrgetter
@@ -22,7 +23,20 @@ from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
 
-class Pivot:
+class StretchMixin(ABC):
+    @property
+    @abstractmethod
+    def pivots(self) -> List["Pivot"]:
+        raise NotImplementedError("pivots not implemented")
+
+    def intersects(self, other: "StretchMixin"):
+        if isinstance(self.shape, Point) and isinstance(other.shape, Point):
+            return self.shape == other.shape or self == other
+
+        return any(p1.intersects(p2) for p1, p2 in product(self.pivots, other.pivots))
+
+
+class Pivot(StretchMixin):
     """
     node of stretch
     """
@@ -99,8 +113,12 @@ class Pivot:
 
         self._origin = direct.apply(self._origin)
 
+    @property
+    def pivots(self):
+        return [self]
 
-class DirectEdge:
+
+class DirectEdge(StretchMixin):
     """
     edge of stretch
     """
@@ -198,11 +216,14 @@ class DirectEdge:
 
         return default
 
-    def intersects(self, edge: 'DirectEdge') -> bool:
-        return self.shape.intersects(edge.shape)
+    def intersection(self, other: 'DirectEdge') -> Optional[Union[Pivot, "DirectEdge"]]:
 
-    def intersection(self, edge: 'DirectEdge') -> BaseGeometry:
-        return self.shape.intersection(edge.shape)
+        intersects_pivot_in_other: List[Pivot] = lfilter(self.intersects, other.pivots)
+        if len(intersects_pivot_in_other) == 2:
+            return other
+        if len(intersects_pivot_in_other) == 1:
+            return intersects_pivot_in_other[0]
+        return None
 
     def expand(self, point: Point, dist_tol: float = MATH_EPS) -> List['DirectEdge']:
         """
@@ -282,7 +303,7 @@ class DirectEdge:
         return self.expand(point, dist_tol=dist_tol)
 
 
-class MultiDirectEdge:
+class MultiDirectEdge(StretchMixin):
     def __init__(self, edges: Sequence[DirectEdge]):
         self._assert_valid_edge_order(edges)
         self._edges = edges
@@ -346,7 +367,7 @@ class MultiDirectEdge:
         return MultiDirectEdge([edge.reversed_edge(create_if_not_existed) for edge in reversed(self.edges)])
 
 
-class Closure:
+class Closure(StretchMixin):
     def __init__(self, edges: List[DirectEdge]):
         """
 
@@ -428,9 +449,6 @@ class Closure:
         if self.edges[-1].to_pivot is not pivots[0]:
             pivots.append(self.edges[-1].to_pivot)
         return pivots
-
-    def intersects(self, closure: 'Closure') -> bool:
-        return self.shape.intersects(closure.shape)
 
     def delete(self) -> None:
         for edge in self.edges:
@@ -645,7 +663,7 @@ class Closure:
         return [new_closure]
 
 
-class Stretch:
+class Stretch(StretchMixin):
     """
     entry of stretch
     """
