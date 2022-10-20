@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 from functional.streams import seq
 
+from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat
 from shapely.geometry import Polygon, JOIN_STYLE, CAP_STYLE
@@ -14,7 +15,7 @@ from shapely.geometry.base import BaseGeometry
 
 class BaseSimplifyStrategy(ABC):
     @abstractmethod
-    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List:
+    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
         raise NotImplementedError
 
 
@@ -26,8 +27,35 @@ class NativeSimplifyStrategy(BaseSimplifyStrategy):
     def __init__(self, simplify_dist: float = 0):
         self._simplify_dist = simplify_dist
 
-    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List:
+    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
         return [geom.simplify(self._simplify_dist) for geom in flatten(geom_or_geoms).to_list()]
+
+
+class ConservativeSimplifyStrategy(BaseSimplifyStrategy):
+    """
+    simplify strategy that repeatedly use native simplify api of shapely with a decreasing simplify_dist,
+    until simplify_dist is small enough not to make an area difference in one geom exceed given tolerance.
+    return flattened original geom if failed.
+    """
+
+    def __init__(self, initial_simplify_dist: float = MATH_MIDDLE_EPS, area_diff_tolerance: float = MATH_MIDDLE_EPS):
+        self._initial_simplify_dist = initial_simplify_dist
+        self._area_diff_tolerance = area_diff_tolerance
+
+    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
+        return [self._conservative_simplify(geom, self._initial_simplify_dist, self._area_diff_tolerance)
+                for geom in flatten(geom_or_geoms)]
+
+    @staticmethod
+    def _conservative_simplify(geom: BaseGeometry, simplify_dist: float, area_diff_tolerance: float) -> BaseGeometry:
+
+        for _ in range(try_limit := 10):
+            simplified_geom: BaseGeometry = geom.simplify(simplify_dist)
+            if (area_diff := abs(geom.area - simplified_geom.area)) <= area_diff_tolerance:
+                return simplified_geom
+            simplify_dist *= 0.5
+
+        return geom
 
 
 class BufferSimplifyStrategy(BaseSimplifyStrategy):

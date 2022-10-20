@@ -43,7 +43,7 @@ class BaseGeomExtension:
         return self._cargo
 
     def stretch(self) -> Stretch:
-        return StretchFactory(self._geom)
+        return StretchFactory().create(self._geom)
 
     def decompose(self, target_class: type, strategy: Optional[BaseDecomposeStrategy] = None) -> Aggregation:
         """
