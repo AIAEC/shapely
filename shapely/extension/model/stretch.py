@@ -15,6 +15,7 @@ from shapely.extension.model.vector import Vector
 from shapely.extension.typing import Num
 from shapely.extension.util.ccw import ccw
 from shapely.extension.util.divide import divide
+from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat, lfilter, lmap, group
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.geometry import Point, Polygon, LineString, MultiLineString
@@ -26,10 +27,13 @@ from shapely.strtree import STRtree
 class StretchMixin(ABC):
     @property
     @abstractmethod
-    def pivots(self) -> List["Pivot"]:
+    def pivots(self) -> List['Pivot']:
         raise NotImplementedError("pivots not implemented")
 
-    def intersects(self, other: "StretchMixin"):
+    def shape(self) -> BaseGeometry:
+        raise NotImplementedError("shape not implemented")
+
+    def intersects(self, other: 'StretchMixin'):
         if isinstance(self.shape, Point) and isinstance(other.shape, Point):
             return self.shape == other.shape or self == other
 
@@ -74,12 +78,6 @@ class Pivot(StretchMixin):
     @property
     def id(self) -> str:
         return self._id
-
-    @id.setter
-    def id(self, new_id):
-        if not isinstance(new_id, str):
-            raise TypeError(f'should specify new_id object, given {new_id}')
-        self._id = new_id
 
     @property
     def stretch(self) -> Optional['Stretch']:
@@ -155,6 +153,18 @@ class DirectEdge(StretchMixin):
     @property
     def to_pivot(self) -> Pivot:
         return self._to_pivot
+
+    @from_pivot.setter
+    def from_pivot(self, from_pivot: Pivot):
+        if not isinstance(from_pivot, Pivot):
+            raise TypeError(f'should specify from_pivot object, given {from_pivot}')
+        self._from_pivot = from_pivot
+
+    @to_pivot.setter
+    def to_pivot(self, to_pivot: Pivot):
+        if not isinstance(to_pivot, Pivot):
+            raise TypeError(f'should specify to_pivot object, given {to_pivot}')
+        self._to_pivot = to_pivot
 
     @property
     def pivots(self) -> List[Pivot]:
@@ -368,6 +378,10 @@ class MultiDirectEdge(StretchMixin):
 
 
 class Closure(StretchMixin):
+    """
+    entry of stretch
+    """
+
     def __init__(self, edges: List[DirectEdge]):
         """
 
@@ -573,7 +587,6 @@ class Closure(StretchMixin):
         if not divider:
             return [self]
 
-        from shapely.extension.util.flatten import flatten
         divider = flatten(divider, LineString).to_list()
 
         closures: List['Closure'] = [self]
@@ -589,8 +602,6 @@ class Closure(StretchMixin):
 
         if divider.is_empty:
             return [self]
-
-        from shapely.extension.util.flatten import flatten
 
         # make each polygon ccw thus keep the closure and direct edge relationship correct
         polygons = (flatten(divide(self.shape, divider=divider), Polygon)
@@ -663,11 +674,7 @@ class Closure(StretchMixin):
         return [new_closure]
 
 
-class Stretch(StretchMixin):
-    """
-    entry of stretch
-    """
-
+class Stretch:
     def __init__(self, closures: List[Closure]):
         self._closures = closures
         self._id = str(uuid4())
@@ -732,26 +739,39 @@ class Stretch(StretchMixin):
                 closure.delete()
 
     def append(self, other: Closure) -> None:
-        if other.stretch and other.stretch != self:
+        if other.stretch:
+            if other.stretch == self:
+                return
+            else:
+                self._append_closure_in_different_stretch(other)
+
+        other.stretch = self
+        self._closures.append(other)
+        self._insert_breakpoint_for_closures()
+
+    def _append_closure_in_different_stretch(self, other: Closure) -> None:
+        with suppress(Exception):
             for pivot in other.pivots:
                 if exist_pivot := first(lambda p: pivot.shape.equals(p.shape), self.pivots):
                     exist_pivot.in_edges.extend(pivot.in_edges)
                     exist_pivot.out_edges.extend(pivot.out_edges)
-                    pivot.in_edges = exist_pivot.in_edges
-                    pivot.out_edges = exist_pivot.out_edges
-                    pivot.id = exist_pivot.id
-                    pivot.stretch = exist_pivot.stretch
-                else:
-                    pivot.stretch = self
+                    for edge in pivot.in_edges:
+                        edge.to_pivot = exist_pivot
+                    for edge in pivot.out_edges:
+                        edge.from_pivot = exist_pivot
+                    pivot.in_edges = []
+                    pivot.out_edges = []
 
-            with suppress(Exception):
-                other.stretch.closures.remove(other)
+            other.stretch.closures.remove(other)
 
-        other.stretch = self
-        self._closures.append(other)
+    def _insert_breakpoint_for_closures(self) -> None:
+        endpoints = [pivot.shape for pivot in self.pivots]
+        for edge in self.edges:
+            for endpoint in endpoints:
+                if edge.shape.contains(endpoint):
+                    _ = edge.expand(endpoint)
 
     def divided_by(self, divider: Union[LineString, MultiLineString, Sequence[Union[LineString, MultiLineString]]]):
-        from shapely.extension.util.flatten import flatten
         lines = flatten(divider, LineString).to_list()
 
         for line in lines:
@@ -781,9 +801,6 @@ class StretchFactory:
     def create(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]]) -> Stretch:
         if isinstance(geom_or_geoms, BaseGeometry):
             geom_or_geoms = [geom_or_geoms]
-
-        # local import to prevent recursive import
-        from shapely.extension.util.flatten import flatten
 
         # extract valid non-empty polygons and remove its holes
         polys = (flatten(geom_or_geoms, Polygon, validate=False)

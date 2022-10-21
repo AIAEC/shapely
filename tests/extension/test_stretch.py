@@ -641,16 +641,19 @@ class StretchTest(TestCase):
 
         stretch_0.append(stretch_1.closures[0])
         self.assertEqual(len(stretch_0.closures), 2)
-        self.assertEqual(len(stretch_1.closures), 0)
         self.assertEqual(len(stretch_0.pivots), 7)
+        self.assertEqual(len(stretch_0.edges), 9)
+        self.assertEqual(len(stretch_1.closures), 0)
+        self.assertEqual(len(stretch_1.pivots), 0)
+        self.assertEqual(len(stretch_1.edges), 0)
         self.assertEqual(stretch_0.closures[-1].pivots[-1].stretch, stretch_0)
 
         poly_2 = box(0, 1, 1, 2)
         stretch_2 = StretchFactory().create(poly_2)
         stretch_0.append(stretch_2.closures[0])
         self.assertEqual(len(stretch_0.closures), 3)
-        self.assertEqual(len(stretch_2.closures), 0)
         self.assertEqual(len(stretch_0.pivots), 8)
+        self.assertEqual(len(stretch_0.edges), 13)
         self.assertEqual(stretch_0.closures[-1].pivots[0].stretch, stretch_0)
 
 
