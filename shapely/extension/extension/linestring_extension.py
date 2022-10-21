@@ -4,7 +4,7 @@ from typing import Union, Tuple, Optional, Iterable, Callable, List
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.geometry.straight_segment import StraightSegment
-from shapely.extension.model import Angle
+from shapely.extension.model.angle import Angle
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.projection import Projection, ProjectionOnLine

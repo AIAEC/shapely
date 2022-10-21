@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from shapely.extension.model import Interval
+from shapely.extension.model.interval import Interval
 from shapely.extension.strategy.bypassing_strategy import LongerBypassingStrategy
 from shapely.extension.util.func_util import lmap
 from shapely.geometry import Point, LineString, box

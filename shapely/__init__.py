@@ -1,2 +1,2 @@
-__version__ = "1.8.5.4"
+__version__ = "1.8.5.5"
 # NOTICE: only change the last number for our customized shapely packages

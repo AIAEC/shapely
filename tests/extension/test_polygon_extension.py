@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from shapely.extension.model import Vector
+from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
 from shapely.geometry import box, LineString, Polygon
 
