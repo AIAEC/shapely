@@ -18,7 +18,7 @@ from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat, lfilter, lmap, group
 from shapely.extension.util.iter_util import first, win_slice
-from shapely.geometry import Point, Polygon, LineString, MultiLineString
+from shapely.geometry import Point, Polygon, LineString, MultiLineString, MultiPolygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
@@ -27,15 +27,17 @@ from shapely.strtree import STRtree
 class StretchMixin(ABC):
     @property
     @abstractmethod
-    def pivots(self) -> List['Pivot']:
+    def pivots(self) -> List["Pivot"]:
         raise NotImplementedError("pivots not implemented")
 
-    def shape(self) -> BaseGeometry:
-        raise NotImplementedError("shape not implemented")
+    @property
+    @abstractmethod
+    def shape(self) -> Union[Point, LineString, Polygon, MultiPolygon]:
+        raise NotImplementedError("should implement shape property")
 
-    def intersects(self, other: 'StretchMixin'):
-        if isinstance(self.shape, Point) and isinstance(other.shape, Point):
-            return self.shape == other.shape or self == other
+    def intersects(self, other: "StretchMixin"):
+        if isinstance(self, Pivot) and isinstance(other, Pivot):
+            return self.shape.equals(other.shape)
 
         return any(p1.intersects(p2) for p1, p2 in product(self.pivots, other.pivots))
 
@@ -703,6 +705,10 @@ class Stretch:
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    @property
+    def shape(self) -> MultiPolygon:
+        return MultiPolygon(lmap(attrgetter('shape'), self.closures))
 
     @property
     def cargo(self) -> Dict:
