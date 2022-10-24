@@ -9,7 +9,7 @@ from weakref import ref, ReferenceType
 from functional import seq
 
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
-from shapely.extension.geometry import StraightSegment
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import Num
