@@ -85,6 +85,12 @@ class Pivot(StretchMixin):
     def stretch(self) -> Optional['Stretch']:
         return self._stretch if not self._stretch else self._stretch()
 
+    @cargo.setter
+    def cargo(self, cargo: Dict):
+        if not isinstance(cargo, dict):
+            raise TypeError(f'should specify cargo object, given {cargo}')
+        self._cargo = cargo
+
     @stretch.setter
     def stretch(self, stretch):
         if not isinstance(stretch, Stretch):
@@ -149,12 +155,22 @@ class DirectEdge(StretchMixin):
         return f'Edge(({self.from_pivot})->({self.to_pivot}))'
 
     @property
+    def cargo(self) -> Dict:
+        return self._cargo
+
+    @property
     def from_pivot(self) -> Pivot:
         return self._from_pivot
 
     @property
     def to_pivot(self) -> Pivot:
         return self._to_pivot
+
+    @cargo.setter
+    def cargo(self, cargo: Dict):
+        if not isinstance(cargo, dict):
+            raise TypeError(f'should specify cargo object, given {cargo}')
+        self._cargo = cargo
 
     @from_pivot.setter
     def from_pivot(self, from_pivot: Pivot):
@@ -175,10 +191,6 @@ class DirectEdge(StretchMixin):
     @property
     def edges(self) -> List['DirectEdge']:
         return [self]
-
-    @property
-    def cargo(self) -> Dict:
-        return self._cargo
 
     @property
     def closure(self) -> Optional['Closure']:
@@ -441,6 +453,12 @@ class Closure(StretchMixin):
     @property
     def stretch(self) -> Optional['Stretch']:
         return self._stretch if not self._stretch else self._stretch()
+
+    @cargo.setter
+    def cargo(self, cargo: Dict):
+        if not isinstance(cargo, dict):
+            raise TypeError(f'should specify cargo object, given {cargo}')
+        self._cargo = cargo
 
     @stretch.setter
     def stretch(self, stretch):
@@ -713,6 +731,12 @@ class Stretch:
     @property
     def cargo(self) -> Dict:
         return self._cargo
+
+    @cargo.setter
+    def cargo(self, cargo: Dict):
+        if not isinstance(cargo, dict):
+            raise TypeError(f'should specify cargo object, given {cargo}')
+        self._cargo = cargo
 
     @property
     def id(self) -> str:
