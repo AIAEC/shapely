@@ -866,7 +866,8 @@ class StretchFactory:
         -------
 
         """
-        point_groups = [[Point(c) for c in geom.exterior.ext.ccw().coords[:-1]] for geom in polys]
+        point_groups = [[Point(c) for c in geom.simplify(self._dist_tol * 2).exterior.ext.ccw().coords[:-1]]
+                        for geom in polys]
         for i, j in product(range(len(point_groups)), repeat=2):
             if j == i:
                 continue
