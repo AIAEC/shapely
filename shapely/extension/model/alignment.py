@@ -3,6 +3,8 @@ from functools import cached_property
 from operator import attrgetter
 from typing import Union, List, Optional
 
+from shapely.extension.geometry.straight_segment import StraightSegment
+
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import GeomObj
@@ -221,12 +223,11 @@ class AlignPolygon(BaseAlignMultiPartGeom):
 
     @cached_property
     def align_linestrings(self) -> List[AlignLineString]:
-        from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
         align_lines = lmap(lambda line: AlignLineString(line=line,
                                                         origin=self,
                                                         direction_dist_tol=self._direction_dist_tol,
                                                         angle_tol=self._angle_tol),
-                           self._poly.ext.decompose(LineString, StraightSegmentDecomposeStrategy()))
+                           self._poly.ext.decompose(StraightSegment))
 
         if self._direction:
             return lfilter(lambda line: self._direction.parallel_to(line.direction,

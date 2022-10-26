@@ -1,10 +1,12 @@
 from itertools import product
 from typing import Union, Optional, Iterable, Tuple
 
+from shapely.extension.geometry.straight_segment import StraightSegment
+
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.model.vector import Vector
-from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy, BaseDecomposeStrategy
+from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
 from shapely.extension.util.decompose import decompose
 from shapely.geometry import Polygon, LineString, JOIN_STYLE, CAP_STYLE, MultiPolygon
 from shapely.ops import unary_union
@@ -29,9 +31,9 @@ class PolygonExtension(BaseGeomExtension):
         -------
         iterator[linestring, linestring], with first item the edges of current polygon and second the edges of other geom
         """
-        decompose_strategy = decompose_strategy or StraightSegmentDecomposeStrategy()
-        target_lines = decompose(poly_or_line, LineString, decompose_strategy)
-        own_lines = self.decompose(LineString, decompose_strategy)
+        decompose_strategy = decompose_strategy
+        target_lines = decompose(poly_or_line, StraightSegment, decompose_strategy)
+        own_lines = self.decompose(StraightSegment, decompose_strategy)
         yield from product(own_lines, target_lines)
 
     def has_edge_parallel_to(self, poly_or_line: Union[Polygon, LineString],

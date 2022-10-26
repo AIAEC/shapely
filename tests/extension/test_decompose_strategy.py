@@ -59,9 +59,9 @@ class DecomposeStrategyTest(TestCase):
     def test_linestring_to_multipoint(self):
         strategy = DefaultDecomposeStrategy()
         linestring = LineString([(0, 0), (1, 1)])
-        self.assertTrue(all(isinstance(geom, MultiPoint) for geom in strategy.linestring_to_multipoint(linestring)))
-        self.assertTrue(all(isinstance(geom, MultiPoint) for geom in strategy.linestring_to_multipoint([linestring])))
-        self.assertEqual(1, len(strategy.linestring_to_multipoint([linestring])))
+        self.assertTrue(all(isinstance(geom, MultiPoint) for geom in strategy.segment_to_multipoint(linestring)))
+        self.assertTrue(all(isinstance(geom, MultiPoint) for geom in strategy.segment_to_multipoint([linestring])))
+        self.assertEqual(1, len(strategy.segment_to_multipoint([linestring])))
 
     def test_multipoint_to_point(self):
         strategy = DefaultDecomposeStrategy()

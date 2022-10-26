@@ -376,7 +376,7 @@ class ClosureTest(TestCase):
     def test_split_to_halves_when_edge_extrude_outside_of_closure(self):
         # cut by linestring that extrude the closure, which will return the origin closure
         poly = loads('POLYGON ((1 0, 0 0, 0 2, 1 2, 1 1.5, 0.5 1.5, 0.5 0.5, 1 0.5, 1 0))')
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         self.assertEqual(Point(1, 1.5), pivots[4].shape)
@@ -388,7 +388,7 @@ class ClosureTest(TestCase):
 
     def test_split_by(self):
         poly = loads('POLYGON ((0.5 1.5, 1 1.5, 1 2, 0.5 2, -0.5 2, -0.5 0.5, -0.5 0, 0 0, 0 1, 0 1.5, 0.5 1.5))')
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         self.assertEqual(Point(0.5, 2), pivots[3].shape)
@@ -413,7 +413,7 @@ class ClosureTest(TestCase):
 
     def test_map_to_edge(self):
         poly = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
 
@@ -426,7 +426,7 @@ class ClosureTest(TestCase):
 
     def test_divided_by_lines(self):
         poly = Polygon([(0, 0), (100, 0), (100, 10), (0, 10)])
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         _ = Stretch([closure])
@@ -443,7 +443,7 @@ class ClosureTest(TestCase):
 
     def test_divided_by_nothing(self):
         poly = box(0, 0, 1, 1)
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         _ = Stretch([closure])
@@ -462,7 +462,7 @@ class ClosureTest(TestCase):
 
     def test_divided_by_divider_cross_pivot(self):
         poly = box(0, 0, 4, 4)
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         _ = Stretch([closure])
