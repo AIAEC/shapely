@@ -844,7 +844,7 @@ class StretchFactory:
         pivots: List[Pivot] = [Pivot(origin=node) for node in set(lconcat(point_groups))]
 
         def find_or_create_pivots(point: Point) -> Pivot:
-            return first(lambda pvt: pvt.shape.distance(point) < self._dist_tol, pivots, default=Pivot(point))
+            return first(lambda pvt: point.equals(pvt.shape), pivots, default=Pivot(point))
 
         closures: List[Closure] = []
         for point_group in point_groups:
