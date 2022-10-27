@@ -84,13 +84,10 @@ class Angle:
         """
         # denote angle_degree as angle, range as (lower, upper)
         # special case: for conveniency in angle or side predication case, sometimes we want to return upper directly.
-        # we return upper directly, iff angle != lower and angle can be exactly divided by upper. In this case upper
-        # shouldn't be 0 apparently. but if angle == 0, 0 can always be divided exactly by any number, so angle should
-        # be 0 neither. In some rare case, both upper == 0 and angle == 0, we should return upper directly as well.
-        if (self._angle_degree == self._range[1]) or (self._angle_degree != self._range[0]
-                                                      and self._angle_degree != 0
-                                                      and self._range[1] != 0
-                                                      and (self._angle_degree - self._range[1]) % (self._range[1] - self._range[0]) == 0):
+        # we return upper directly, iff angle != lower and angle mod range === upper.
+        if (self._angle_degree == self._range[1]) or (
+                self._angle_degree != self._range[0]
+                and ((self._angle_degree - self._range[1]) / (self._range[1] - self._range[0])).is_integer()):
             return self._range[1]
 
         # normal case: in most case, we calculate the value modulo
