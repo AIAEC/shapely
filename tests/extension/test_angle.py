@@ -47,6 +47,7 @@ class AngleTest(TestCase):
         assert_valid_degree_mod(origin_angle=-0, range_=(-90, 90), expect_angle=0)
         assert_valid_degree_mod(origin_angle=90, range_=(-90, 90), expect_angle=90)
         assert_valid_degree_mod(origin_angle=120, range_=(-90, 90), expect_angle=-60)
+        assert_valid_degree_mod(origin_angle=180, range_=(-90, 90), expect_angle=0)
 
         # range is (-90, 270)
         assert_valid_degree_mod(origin_angle=-100, range_=(-90, 270), expect_angle=260)
@@ -161,7 +162,7 @@ class AngleTest(TestCase):
 
         # here we calculate including angle to be 180, but in modulo space of (-90, 90), the
         # degree here will be 90
-        self.assertEqual(90, angle.rotating_angle(-90, direct='cw').degree)
+        self.assertEqual(0, angle.rotating_angle(-90, direct='cw').degree)
         self.assertEqual(180, float(angle.rotating_angle(-90, direct='cw')))
 
     def test_including_angle(self):

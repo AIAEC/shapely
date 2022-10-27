@@ -90,7 +90,7 @@ class Angle:
         if (self._angle_degree == self._range[1]) or (self._angle_degree != self._range[0]
                                                       and self._angle_degree != 0
                                                       and self._range[1] != 0
-                                                      and (self._angle_degree / self._range[1]).is_integer()):
+                                                      and (self._angle_degree - self._range[1]) % (self._range[1] - self._range[0]) == 0):
             return self._range[1]
 
         # normal case: in most case, we calculate the value modulo
