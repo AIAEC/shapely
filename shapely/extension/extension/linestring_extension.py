@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from itertools import product, combinations
 from typing import Union, Tuple, Optional, Iterable, Callable, List
+
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.geometry.straight_segment import StraightSegment
@@ -57,6 +58,9 @@ class LineStringExtension(BaseGeomExtension):
                          start_dist=float(interval.left),
                          end_dist=float(interval.right),
                          normalized=not absolute)
+
+    def segments(self) -> List[StraightSegment]:
+        return self.decompose(target_class=StraightSegment).to_list()
 
     def inverse(self) -> LineString:
         """
