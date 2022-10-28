@@ -41,6 +41,12 @@ class AngleTest(TestCase):
         assert_valid_degree_mod(origin_angle=90, range_=(0, 90), expect_angle=90)
         assert_valid_degree_mod(origin_angle=120, range_=(0, 90), expect_angle=30)
 
+        # range is (-45, 45)
+        assert_valid_degree_mod(origin_angle=-45, range_=(-45, 45), expect_angle=-45)
+        assert_valid_degree_mod(origin_angle=45, range_=(-45, 45), expect_angle=45)
+        assert_valid_degree_mod(origin_angle=90, range_=(-45, 45), expect_angle=0)
+        assert_valid_degree_mod(origin_angle=180, range_=(-45, 45), expect_angle=0)
+
         # range is (-90, 90)
         assert_valid_degree_mod(origin_angle=-100, range_=(-90, 90), expect_angle=80)
         assert_valid_degree_mod(origin_angle=-90, range_=(-90, 90), expect_angle=-90)
@@ -48,6 +54,7 @@ class AngleTest(TestCase):
         assert_valid_degree_mod(origin_angle=90, range_=(-90, 90), expect_angle=90)
         assert_valid_degree_mod(origin_angle=120, range_=(-90, 90), expect_angle=-60)
         assert_valid_degree_mod(origin_angle=180, range_=(-90, 90), expect_angle=0)
+        assert_valid_degree_mod(origin_angle=360, range_=(-90, 90), expect_angle=0)
 
         # range is (-90, 270)
         assert_valid_degree_mod(origin_angle=-100, range_=(-90, 270), expect_angle=260)
