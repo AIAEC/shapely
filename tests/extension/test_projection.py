@@ -263,3 +263,11 @@ class ProjectionTest(TestCase):
 
         segs = Projection(line0).onto(line1).segments
         self.assertTrue(len(segs) > 0)
+
+    def test_projection(self):
+        l1: LineString = loads("LINESTRING (200 100, 0 -100)")
+        o1: LineString = loads(
+            "POLYGON ((92.22182682116156 0, 94.500001 2.278174178838449, 94.500001 0, 92.22182682116156 0))")
+        negative_intervals = l1.ext.projection_by(o1).negative_intervals()
+
+        self.assertEqual(2, len(negative_intervals))

@@ -1,5 +1,7 @@
+from typing import List
 from unittest import TestCase
 
+from shapely.extension.geometry import StraightSegment
 from shapely.extension.model.interval import Interval
 from shapely.extension.strategy.bypassing_strategy import LongerBypassingStrategy
 from shapely.extension.util.func_util import lmap
@@ -191,6 +193,22 @@ class LineStringExtensionTest(TestCase):
         result = line.ext.interpolate([-2.0, -0.2, 0, 1, 1.2], absolute=False)
         self.assertListEqual([Point(0, -10), Point(0, -1), Point(0, 0), Point(3, 0), Point(4, 0)], result)
 
-        result = line.ext.interpolate(map(lambda i: i/5, range(6)), absolute=False)
+        result = line.ext.interpolate(map(lambda i: i / 5, range(6)), absolute=False)
         self.assertEqual(6, len(result))
         self.assertListEqual(lmap(lambda coord: Point(coord), [(0, 0), (0, 1), (1, 1), (1, 0), (2, 0), (3, 0)]), result)
+
+    def test_segments(self):
+        line = LineString([(0, 0), (0, 1)])
+        segments = line.ext.segments()
+        self.assertTrue(isinstance(segments, List))
+        self.assertEqual(1, len(segments))
+        self.assertTrue(all(isinstance(seg, StraightSegment) for seg in segments))
+        self.assertEqual(segments[0], StraightSegment([(0, 0), (0, 1)]))
+
+        line = LineString([(0, 0), (0, 1), (0, 2)])
+        segments = line.ext.segments()
+        self.assertTrue(isinstance(segments, List))
+        self.assertEqual(2, len(segments))
+        self.assertTrue(all(isinstance(seg, StraightSegment) for seg in segments))
+        self.assertEqual(segments[0], StraightSegment([(0, 0), (0, 1)]))
+        self.assertEqual(segments[1], StraightSegment([(0, 1), (0, 2)]))

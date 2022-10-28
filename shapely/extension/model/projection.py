@@ -2,9 +2,8 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Union, List, Optional
 
-from shapely.extension.geometry.straight_segment import StraightSegment
-
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS, MATH_MIDDLE_EPS
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.func_util import lfilter, min_max, lconcat
@@ -185,8 +184,8 @@ class ProjectionOnLine:
         origin = Point(self.target_line.coords[0])
         target_ray = Vector.from_endpoints_of(self.target_line).ray(origin)
         dist = origin.distance(point)
-
-        location = dist if rect_buffer(target_ray, MATH_EPS).covers(point) else -dist
+        # ray_len = 1e10 + buffer = 1e6  或者ray_len = 1e4 + buffer = 1e12 才能正常工作
+        location = dist if rect_buffer(target_ray, MATH_MIDDLE_EPS).covers(point) else -dist
 
         if normalized:
             location /= self.target_line.length

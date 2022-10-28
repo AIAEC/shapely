@@ -204,7 +204,7 @@ class Vector:
         """
         return Angle.atan2(self.y, self.x)
 
-    def ray(self, origin: Union[Point, CoordType], length: float = 1e16) -> LineString:
+    def ray(self, origin: Union[Point, CoordType], length: float = 1e9) -> LineString:
         """
         return linestring that goes along the vector from the given origin
 
