@@ -138,18 +138,20 @@ class BaseGeomExtension:
         target = Point(point_or_coord)
         return Vector.from_origin_to_target(origin=origin, target=target).apply(self._geom)
 
-    def rotate_ccw(self, angle: float):
+    def rotate_ccw(self, angle: float, origin='center'):
         """
         rotate the current geometry around its centroid
         Parameters
         ----------
+        origin :The point of origin can be a keyword 'center' for the bounding box center (default),
+        'centroid' for the geometry's centroid, a Point object or a coordinate tuple (x0, y0).
         angle: ccw angle in degree format
 
         Returns
         -------
         rotated geometry
         """
-        return rotate(self._geom, angle=angle)
+        return rotate(self._geom, angle=angle, origin=origin)
 
     def scale(self, x_ratio: float = 1., y_ratio: float = 1.):
         """
