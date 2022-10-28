@@ -1,4 +1,3 @@
-import math
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
 from typing import Union, Sequence, Tuple
 
@@ -256,7 +255,8 @@ class Angle:
         """
         ccw_including = self.rotating_angle(angle)
         cw_including = self.rotating_angle(angle, direct='cw')
-        return min(ccw_including, cw_including)
+        including = min(ccw_including, cw_including)
+        return self._range[0] if including == self._range[1] else including
 
     def parallel_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
         """
