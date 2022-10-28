@@ -170,8 +170,15 @@ class AngleTest(TestCase):
         self.assertEqual(8, angle.including_angle(-4))
         self.assertEqual(8, angle.including_angle(Angle(-4, (0, 180))))
 
+        angle = Angle(-4, (0, 180))
+        self.assertEqual(8, angle.including_angle(4))
+        self.assertEqual(8, angle.including_angle(Angle(4, (0, 180))))
+
         angle = Angle(40, (0, 360))
         self.assertEqual(90, angle.including_angle(-50))
+
+        angle = Angle(180, (-90, 90))
+        self.assertEqual(-90, angle.including_angle(Angle(90, (-90, 90))))
 
     def test_is_close(self):
         angle0 = Angle(0)
@@ -193,6 +200,9 @@ class AngleTest(TestCase):
         self.assertTrue(angle1.almost_equal(-0.001, angle_tol=0.1))
         self.assertTrue((angle1 % 180).almost_equal(179.999, angle_tol=0.1))
         self.assertTrue((angle1 % 360).almost_equal(359.999, angle_tol=0.1))
+
+        angle3 = Angle(180)
+        self.assertFalse(angle3.set_mod((-90, 90)).almost_equal(90, angle_tol=0.1))
 
     def test_bool(self):
         self.assertTrue(Angle(1))

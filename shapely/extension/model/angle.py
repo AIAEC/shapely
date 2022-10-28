@@ -1,3 +1,4 @@
+import math
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
 from typing import Union, Sequence, Tuple
 
@@ -257,7 +258,8 @@ class Angle:
         Angle instance
         """
         ccw_including = self.rotating_angle(angle)
-        return min(ccw_including, ccw_including.complementary())
+        cw_including = self.rotating_angle(angle, direct='cw')
+        return min(ccw_including, cw_including)
 
     def parallel_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
         """
@@ -378,7 +380,7 @@ class Angle:
         -------
         bool
         """
-        return self.including_angle(Angle(other, self._range)) <= angle_tol
+        return abs(self.including_angle(Angle(other, self._range))) <= angle_tol
 
     def __lt__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)
@@ -397,4 +399,4 @@ class Angle:
         return self.degree >= other_angle
 
     def __abs__(self):
-        return self.degree
+        return abs(self.degree)
