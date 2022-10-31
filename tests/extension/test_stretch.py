@@ -439,7 +439,7 @@ class ClosureTest(TestCase):
 
         result.sort(key=lambda cls: cls.shape.centroid.x)
         for i, closure in enumerate(result):
-            self.assertTrue(closure.shape.equals(box(i * 10, 0, i * 10 + 10, 10)))
+            self.assertTrue(closure.shape.centroid.almost_equals(box(i * 10, 0, i * 10 + 10, 10).centroid))
 
     def test_divided_by_nothing(self):
         poly = box(0, 0, 1, 1)

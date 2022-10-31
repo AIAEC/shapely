@@ -8,7 +8,7 @@ from weakref import ref, ReferenceType
 
 from functional import seq
 
-from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
+from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, MATH_MIDDLE_EPS
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.vector import Vector
@@ -607,21 +607,11 @@ class Closure(StretchMixin):
         if not divider:
             return [self]
 
-        divider = flatten(divider, LineString).to_list()
+        if isinstance(divider, Sequence):
+            divider = unary_union(list(divider))
 
-        closures: List['Closure'] = [self]
-        for single_divider in divider:
-            closures = lconcat([closure._divided_by_single_line(single_divider) for closure in closures])
-
-        return closures
-
-    # need more test
-    def _divided_by_single_line(self, divider: LineString) -> List['Closure']:
-        if not isinstance(divider, LineString):
-            raise TypeError('single divider is not a valid LineString')
-
-        if divider.is_empty:
-            return [self]
+        if not isinstance(divider, (LineString, MultiLineString)):
+            raise TypeError(f'Type of divider is error! The divider is {divider}')
 
         # make each polygon ccw thus keep the closure and direct edge relationship correct
         polygons = (flatten(divide(self.shape, divider=divider), Polygon)
@@ -638,7 +628,7 @@ class Closure(StretchMixin):
 
         for cur_shape in polygons:
             ring_points = [Point(coord) for coord in cur_shape.exterior.coords[:-1]]
-            ring_pivots = [first(lambda p: node.buffer(MATH_EPS).covers(p.shape), existed_pivots) or Pivot(node)
+            ring_pivots = [first(lambda p: node.buffer(MATH_MIDDLE_EPS).covers(p.shape), existed_pivots) or Pivot(node)
                            for node in ring_points]
             existed_pivots = list(set(existed_pivots + ring_pivots))
 
