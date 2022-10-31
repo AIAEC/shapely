@@ -256,7 +256,7 @@ class Angle:
         ccw_including = self.rotating_angle(angle)
         cw_including = self.rotating_angle(angle, direct='cw')
         including = min(ccw_including, cw_including)
-        return self._range[0] if including == self._range[1] else including
+        return Angle(self._range[0], self._range) if including == self._range[1] else including
 
     def parallel_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
         """

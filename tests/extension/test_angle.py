@@ -187,6 +187,11 @@ class AngleTest(TestCase):
         angle = Angle(180, (-90, 90))
         self.assertEqual(-90, angle.including_angle(Angle(90, (-90, 90))))
 
+        angle = Angle(angle_degree=73.90969753239641, range_=(0, 360))
+        angle2 = Angle(angle_degree=73.90969753239642, range_=(0, 360))
+        dif = angle.including_angle(angle2)
+        self.assertTrue(isinstance(dif, Angle))
+
     def test_is_close(self):
         angle0 = Angle(0)
         angle1 = Angle(0.001)
