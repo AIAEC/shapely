@@ -8,7 +8,7 @@ from weakref import ref, ReferenceType
 
 from functional import seq
 
-from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, MATH_MIDDLE_EPS
+from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.vector import Vector
@@ -593,12 +593,14 @@ class Closure(StretchMixin):
              if pivot is not next_pivot])
 
     # need more test
-    def divided_by(self, divider: Union[LineString, MultiLineString, Sequence[LineString]]) -> List['Closure']:
+    def divided_by(self, divider: Union[LineString, MultiLineString, Sequence[LineString]],
+                   dist_tol: float = MATH_EPS) -> List['Closure']:
         """
         用divider切分闭包，生成新的闭包
         Parameters
         ----------
         divider
+        dist_tol
 
         Returns
         -------
@@ -614,8 +616,8 @@ class Closure(StretchMixin):
             raise TypeError(f'Type of divider is error! The divider is {divider}')
 
         # make each polygon ccw thus keep the closure and direct edge relationship correct
-        polygons = (flatten(divide(self.shape, divider=divider), Polygon)
-                    .map(lambda p: p.simplify(MATH_MIDDLE_EPS).ext.ccw())
+        polygons = (flatten(divide(self.shape.simplify(dist_tol*10), divider=divider, dist_tol=dist_tol), Polygon)
+                    .map(ccw)
                     .to_list())
 
         if len(polygons) <= 1:
@@ -624,11 +626,11 @@ class Closure(StretchMixin):
         existed_pivots = self.stretch.pivots if self.stretch else []
         self_stretch = self.stretch
         self.delete()
-        closures: List['Closure'] = []
 
+        closures: List['Closure'] = []
         for cur_shape in polygons:
             ring_points = [Point(coord) for coord in cur_shape.exterior.coords[:-1]]
-            ring_pivots = [first(lambda p: node.buffer(MATH_MIDDLE_EPS).covers(p.shape), existed_pivots) or Pivot(node)
+            ring_pivots = [first(lambda p: node.buffer(dist_tol*10).covers(p.shape), existed_pivots) or Pivot(node)
                            for node in ring_points]
             existed_pivots = list(set(existed_pivots + ring_pivots))
 
