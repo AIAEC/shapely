@@ -615,7 +615,7 @@ class Closure(StretchMixin):
 
         # make each polygon ccw thus keep the closure and direct edge relationship correct
         polygons = (flatten(divide(self.shape, divider=divider), Polygon)
-                    .map(ccw)
+                    .map(lambda p: p.simplify(MATH_MIDDLE_EPS).ext.ccw())
                     .to_list())
 
         if len(polygons) <= 1:
