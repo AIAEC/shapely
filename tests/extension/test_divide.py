@@ -64,10 +64,10 @@ class DivideTest(TestCase):
 
     def test_divided_by_grid(self):
         poly = box(0, 0, 10, 10)
-        multi_line = loads('MULTILINESTRING ((0 7, 10 7),(0 4, 10 4),(5 0, 5 10))')
+        multi_line = loads('MULTILINESTRING ((0 7, 10 7),(0 5, 10 5),(5 0, 5 10))')
         result = divide(poly, multi_line)
         self.assertEqual(6, len(result))
-        self.assertTrue(result[0].centroid.almost_equals(Point((7.5, 2))))
+        self.assertTrue(result[0].centroid.almost_equals(Point((7.5, 2.5))))
 
         multi_line = loads('MULTILINESTRING ((0 5, 10 5), (5 0, 5 8))')
         result = divide(poly, multi_line)
