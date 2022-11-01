@@ -76,8 +76,8 @@ def _delete_segments(segments: List[LineString],
 def _split_polygon_boundary(poly: Polygon,
                             divider: List[LineString],
                             dist_tol: float = MATH_EPS) -> Polygon:
-    original_rings_of_poly = poly.exterior.ext.decompose(StraightSegment).to_list()
-    remained_divider = unary_union(lmap(lambda l: l.ext.prolong().from_ends(dist_tol).difference(poly), divider))
+    original_rings_of_poly = poly.simplify(dist_tol).exterior.ext.decompose(StraightSegment).to_list()
+    remained_divider = unary_union(lmap(lambda l: l.ext.prolong().from_ends(dist_tol).difference(poly.simplify(dist_tol)), divider))
 
     new_rings_of_poly: List[LineString] = []
     for seg in original_rings_of_poly:
@@ -101,7 +101,7 @@ def _divide_polygon_by_multilinestring(polygon: Polygon,
     if not divider:
         return [polygon]
 
-    divider_shape = unary_union(divider).buffer(dist_tol, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
+    divider_shape = unary_union(divider).buffer(dist_tol / 10, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre)
     divided_polys = polygon.difference(divider_shape).ext.flatten(Polygon).to_list()
     return lmap(lambda poly: _split_polygon_boundary(poly, divider, dist_tol*10), divided_polys)
 

@@ -636,8 +636,13 @@ class Closure(StretchMixin):
 
             ring_edges: List[DirectEdge] = []
             for pivots_pair in win_slice(ring_pivots, win_size=2, tail_cycling=True):
+                if pivots_pair[0] == pivots_pair[1]:
+                    continue
                 edge = DirectEdge(from_pivot=pivots_pair[0], to_pivot=pivots_pair[1])
                 ring_edges.append(edge)
+
+            if not ring_edges:
+                continue
 
             closure = Closure(edges=ring_edges)
             closure.stretch = self_stretch
