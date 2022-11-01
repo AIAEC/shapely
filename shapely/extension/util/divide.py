@@ -1,8 +1,9 @@
 from collections.abc import Sequence
+from queue import Queue
 from typing import Union, List, Dict
 
-from shapely.extension.constant import MATH_EPS
-from shapely.extension.util.func_util import lfilter, lconcat
+from shapely.extension.constant import MATH_EPS, SAFE_COUNT
+from shapely.extension.util.func_util import lconcat
 from shapely.extension.util.iter_util import win_slice
 from shapely.geometry import LineString, MultiLineString, Point, Polygon, MultiPolygon, MultiPoint
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
@@ -36,6 +37,39 @@ def _line_divided_by_points(line: Union[LineString, MultiLineString],
     return lconcat([divide_single_line(line, points) for line in lines])
 
 
+def _delete_segments(segments_: List[LineString],
+                     rings_of_poly_: BaseGeometry,
+                     dist_tol: float = MATH_EPS) -> List[LineString]:
+    end_to_lines: Dict[Point, List[LineString]] = {}
+    for seg in segments_:
+        for coord in seg.coords:
+            end_to_lines.setdefault(Point(coord), []).append(seg)
+
+    single_end_queue: Queue[Point] = Queue(maxsize=0)
+    for pt in end_to_lines.keys():
+        if len(end_to_lines.get(pt)) < 2 and pt.distance(rings_of_poly_) > dist_tol:
+            single_end_queue.put(pt)
+
+    safe_count = SAFE_COUNT
+    while not single_end_queue.empty():
+        safe_count -= 1
+        single_end = single_end_queue.get()
+        if not (seg := end_to_lines.get(single_end)):
+            continue
+        pts = [Point(coord) for coord in seg[0].coords]
+        for pt in pts:
+            try:
+                end_to_lines.get(pt).remove(seg)
+                if len(end_to_lines.get(pt)) == 0:
+                    end_to_lines.pop(single_end)
+                if len(end_to_lines.get(pt)) == 1:
+                    single_end_queue.put(pt)
+            except Exception:
+                continue
+
+    return list(set(lconcat(list(end_to_lines.values()))))
+
+
 def _divide_polygon_by_multilinestring(polygon: Polygon,
                                        divider: MultiLineString,
                                        dist_tol: float = MATH_EPS) -> List[Polygon]:
@@ -48,10 +82,8 @@ def _divide_polygon_by_multilinestring(polygon: Polygon,
 
     rings_of_poly = unary_union(polygon.ext.decompose(LineString).to_list())
     segments = _line_divided_by_points(divider, cross_points, dist_tol)
-    deleting_segments = lfilter(lambda seg: seg.distance(rings_of_poly) > dist_tol, segments)
-    divider = divider.difference(
-        unary_union(deleting_segments).buffer(dist_tol / 10, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre))
-    divider = divider.buffer(dist_tol, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre)
+    divider = _delete_segments(segments, rings_of_poly, dist_tol)
+    divider = unary_union(divider).buffer(dist_tol, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
     return polygon.difference(divider).ext.flatten(Polygon).to_list()
 
 
