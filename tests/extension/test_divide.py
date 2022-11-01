@@ -67,9 +67,11 @@ class DivideTest(TestCase):
         multi_line = loads('MULTILINESTRING ((0 7, 10 7),(0 5, 10 5),(5 0, 5 10))')
         result = divide(poly, multi_line)
         self.assertEqual(6, len(result))
-        self.assertTrue(result[0].centroid.almost_equals(Point((7.5, 2.5))))
 
-        multi_line = loads('MULTILINESTRING ((0 5, 10 5), (5 0, 5 8))')
+        multi_line = loads('MULTILINESTRING ((0 7, 10 7),(0 5, 10 5),(5 0, 5 8))')
         result = divide(poly, multi_line)
-        self.assertEqual(3, len(result))
-        self.assertTrue(result[0].centroid.almost_equals(Point((7.5, 2.5))))
+        self.assertEqual(5, len(result))
+
+        multi_line = loads('MULTILINESTRING ((5 0, 5 5),(5 5, 8 5),(8 5, 8 8))')
+        result = divide(poly, multi_line)
+        self.assertEqual(1, len(result))
