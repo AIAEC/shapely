@@ -226,8 +226,8 @@ class DirectEdge(StretchMixin):
         offset_segment = self.shape.ext.offset(dist=abs(dist), towards=towards)
         from_coord = min(offset_segment.coords, key=lambda c: self._from_pivot.shape.distance(Point(c)))
         to_coord = min(offset_segment.coords, key=lambda c: self._to_pivot.shape.distance(Point(c)))
-        self._from_pivot._origin = Point(from_coord)
-        self._to_pivot._origin = Point(to_coord)
+        self._from_pivot.move_to(from_coord)
+        self._to_pivot.move_to(to_coord)
 
     def is_reverse(self, other: 'DirectEdge') -> bool:
         return self._from_pivot == other._to_pivot and self._to_pivot == other._from_pivot
@@ -417,6 +417,9 @@ class Closure(StretchMixin):
         if not edges:
             raise ValueError('given empty edges')
 
+        edge_groups = group(lambda e0, e1: e0.shape.equals(e1.shape), edges)
+        edges = seq(edge_groups).filter(lambda grp: len(grp) == 1).flatten().to_list()
+
         next_pivot = {edge.from_pivot: edge.to_pivot for edge in edges}
         from_pivot_to_edge = {edge.from_pivot: edge for edge in edges}
 
@@ -470,11 +473,12 @@ class Closure(StretchMixin):
 
     @property
     def edges(self) -> List[DirectEdge]:
+        self._edges = self._normalize_edges(self._edges)
         return self._edges
 
     @property
     def shape(self) -> Polygon:
-        exterior_pts = [edge.from_pivot.shape for edge in self._edges]
+        exterior_pts = [edge.from_pivot.shape for edge in self.edges]
         exterior_pts.append(exterior_pts[0])
         return Polygon(shell=exterior_pts)
 
@@ -527,7 +531,7 @@ class Closure(StretchMixin):
         first_closure = Closure(first_closure_edges)
 
         # create second closure
-        second_closure_edges = closure_edges(self._edges[pivot_indices[1]:] + self._edges[:pivot_indices[0]], edge)
+        second_closure_edges = closure_edges(self.edges[pivot_indices[1]:] + self.edges[:pivot_indices[0]], edge)
         second_closure = Closure(second_closure_edges)
 
         # assign origin stretch to newborn closure
@@ -617,7 +621,7 @@ class Closure(StretchMixin):
             raise TypeError(f'Type of divider is error! The divider is {divider}')
 
         # make each polygon ccw thus keep the closure and direct edge relationship correct
-        polygons = (flatten(divide(self.shape.simplify(dist_tol*10), divider=divider, dist_tol=dist_tol), Polygon)
+        polygons = (flatten(divide(self.shape.simplify(dist_tol * 10), divider=divider, dist_tol=dist_tol), Polygon)
                     .map(ccw)
                     .to_list())
 
@@ -630,7 +634,7 @@ class Closure(StretchMixin):
         closures: List['Closure'] = []
         for cur_shape in polygons:
             ring_points = [Point(coord) for coord in cur_shape.exterior.coords[:-1]]
-            ring_pivots = [first(lambda p: node.buffer(dist_tol*10).covers(p.shape), existed_pivots) or Pivot(node)
+            ring_pivots = [first(lambda p: node.buffer(dist_tol * 10).covers(p.shape), existed_pivots) or Pivot(node)
                            for node in ring_points]
             existed_pivots = list(set(existed_pivots + ring_pivots))
 
@@ -675,10 +679,7 @@ class Closure(StretchMixin):
             return [self, other]
 
         edge_groups = group(lambda edge0, edge1: edge0.is_reverse(edge1), self.edges + other.edges)
-        edges = (seq(edge_groups)
-                 .filter(lambda grp: len(grp) == 1)
-                 .flatten()
-                 .to_list())
+        edges = seq(edge_groups).filter(lambda grp: len(grp) == 1).flatten().to_list()
 
         # CAUTION: delete must precede creating new closure, otherwise it'll cause bug
         self.delete()
@@ -688,6 +689,37 @@ class Closure(StretchMixin):
         self.stretch.append(new_closure)
 
         return [new_closure]
+
+    def offset_edge(self, edge: DirectEdge, dist: float = 0) -> None:
+        if not isinstance(dist, Num):
+            raise TypeError(f'offset only accepts number as its input, given {dist}')
+
+        towards = 'left' if dist > 0 else 'right'
+        offset_segment = edge.shape.ext.offset(dist=abs(dist), towards=towards)
+        offset_from_pt = Point(min(offset_segment.coords, key=lambda c: edge.from_pivot.shape.distance(Point(c))))
+        offset_to_pt = Point(min(offset_segment.coords, key=lambda c: edge.to_pivot.shape.distance(Point(c))))
+
+        reversed_edge = edge.reversed_edge()
+        reversed_closure = reversed_edge.closure if reversed_edge else None
+
+        related_edges = self.edges + reversed_closure.edges if reversed_closure else self.edges
+        related_edge_from: DirectEdge = first(lambda edge_: edge_.shape.contains(offset_from_pt), related_edges)
+        related_edge_to: DirectEdge = first(lambda edge_: edge_.shape.contains(offset_to_pt), related_edges)
+        if related_edge_from:
+            related_edge_from.expand(offset_from_pt)
+        if related_edge_to:
+            related_edge_to.expand(offset_to_pt)
+
+        expand_edges = edge.expand(offset_from_pt)
+        expand_edges[1].expand(offset_to_pt)
+
+        # insert breakpoint
+        related_edges = self.edges + reversed_closure.edges if reversed_closure else self.edges
+        endpoints = [pivot.shape for pivot in set(lconcat([edge_.pivots for edge_ in related_edges]))]
+        for edge in related_edges:
+            for endpoint in endpoints:
+                if edge.shape.contains(endpoint):
+                    edge.expand(endpoint)
 
 
 class Stretch:

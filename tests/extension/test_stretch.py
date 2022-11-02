@@ -543,6 +543,27 @@ class ClosureTest(TestCase):
         self.assertTrue(poly_0.equals(union_closure[0].shape))
         self.assertTrue(poly_1.equals(union_closure[1].shape))
 
+    # TODO: add more test_case
+    def test_offset_edge(self):
+        poly_0 = box(0, 0, 2, 2)
+        poly_1 = box(2, 0, 4, 2)
+        poly_2 = box(0, 2, 4, 4)
+
+        stretch = StretchFactory().create([poly_0, poly_1, poly_2])
+        closure = stretch.closures[0]
+        closure.offset_edge(closure.edges[1], 1)
+        self.assertTrue(closure.shape.equals(box(0, 0, 2, 1)))
+        self.assertTrue(
+            stretch.closures[1].shape.equals(Polygon([(2, 0), (4, 0), (4, 2), (2, 2), (2, 1)])))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(0, 1), (2, 1), (2, 2), (4, 2), (4, 4), (0, 4), (0, 1)])))
+
+        closure.offset_edge(closure.edges[1], -2)
+        self.assertTrue(closure.shape.equals(box(0, 0, 2, 3)))
+        self.assertTrue(stretch.closures[1].shape.equals(box(2, 0, 4, 2)))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(0, 3), (2, 3), (2, 2), (4, 2), (4, 4), (0, 4), (0, 3)])))
+
 
 class StretchTest(TestCase):
     def test_divided_with_simple_poly(self):
