@@ -473,7 +473,8 @@ class Closure(StretchMixin):
 
     @property
     def edges(self) -> List[DirectEdge]:
-        self._edges = self._normalize_edges(self._edges)
+        with suppress(Exception):
+            self._edges = self._normalize_edges(self._edges)
         return self._edges
 
     @property
