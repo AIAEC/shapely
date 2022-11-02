@@ -261,9 +261,10 @@ class DirectEdge(StretchMixin):
         -------
 
         """
-        new_pivot = Pivot(point)
-        with suppress(Exception):
+        try:
             new_pivot = self.stretch.query_pivots(point)[0]
+        except IndexError:
+            new_pivot = Pivot(point)
 
         def expand_single_edge(edge: DirectEdge) -> List[DirectEdge]:
             """
@@ -485,8 +486,8 @@ class Closure(StretchMixin):
         return pivots
 
     def delete(self) -> None:
-        for edge in self.edges:
-            edge.delete()
+        for _ in range(len(self.edges)):
+            self.edges[0].delete()
 
         with suppress(Exception):
             self.stretch.closures.remove(self)
@@ -624,7 +625,6 @@ class Closure(StretchMixin):
             return [self]
 
         existed_pivots = self.stretch.pivots if self.stretch else []
-        self_stretch = self.stretch
         self.delete()
 
         closures: List['Closure'] = []
@@ -645,10 +645,9 @@ class Closure(StretchMixin):
                 continue
 
             closure = Closure(edges=ring_edges)
-            closure.stretch = self_stretch
+            self.stretch.append(closure)
             closures.append(closure)
 
-        self_stretch.closures.extend(closures)
         return closures
 
     def union(self, other: 'Closure') -> List['Closure']:

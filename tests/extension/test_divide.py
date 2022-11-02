@@ -24,10 +24,8 @@ class DivideTest(TestCase):
         line0 = LineString([(5, 0), (5, 10)])
         line1 = LineString([(-1, 5), (6, 5)])
         result = _divide_polygon_by_multilinestring(poly, unary_union([line0, line1]))
-        result = sorted(result, key=lambda p: p.area, reverse=True)
         self.assertTrue(result)
         self.assertEqual(3, len(result))
-        self.assertEqual(5, len(result[0].exterior.ext.decompose(Point).to_list()))
 
     def test_divide_by_non_linestring(self):
         poly = box(0, 0, 10, 10)
