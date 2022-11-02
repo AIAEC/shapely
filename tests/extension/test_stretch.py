@@ -543,14 +543,13 @@ class ClosureTest(TestCase):
         self.assertTrue(poly_0.equals(union_closure[0].shape))
         self.assertTrue(poly_1.equals(union_closure[1].shape))
 
-    # TODO: add more test_case
-    def test_offset_edge(self):
+    def test_offset_edge_with_rectangle(self):
         poly_0 = box(0, 0, 2, 2)
         poly_1 = box(2, 0, 4, 2)
         poly_2 = box(0, 2, 4, 4)
-
         stretch = StretchFactory().create([poly_0, poly_1, poly_2])
         closure = stretch.closures[0]
+
         closure.offset_edge(closure.edges[1], 1)
         self.assertTrue(closure.shape.equals(box(0, 0, 2, 1)))
         self.assertTrue(
@@ -569,6 +568,25 @@ class ClosureTest(TestCase):
         self.assertTrue(stretch.closures[0].shape.equals(box(0, 0, 2, 3)))
         self.assertTrue(stretch.closures[1].shape.equals(box(2, 0, 4, 3)))
         self.assertTrue(stretch.closures[2].shape.equals(box(0, 3, 4, 4)))
+
+    def test_offset_edge_with_trapezoid(self):
+        poly_0 = Polygon([(0, 0), (5, 0), (5, 2), (2, 2), (0, 0)])
+        poly_1 = Polygon([(5, 0), (10, 0), (8, 2), (5, 2), (5, 0)])
+        poly_2 = Polygon([(2, 2), (8, 2), (6, 4), (4, 4), (2, 2)])
+        stretch = StretchFactory().create([poly_0, poly_1, poly_2])
+        closure = stretch.closures[0]
+
+        closure.offset_edge(closure.edges[2], 1)
+        self.assertTrue(closure.shape.equals(Polygon([(0, 0), (5, 0), (5, 1), (1, 1), (0, 0)])))
+        self.assertTrue(stretch.closures[1].shape.equals(Polygon([(5, 0), (10, 0), (8, 2), (5, 2), (5, 0)])))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(1, 1), (5, 1), (5, 2), (8, 2), (6, 4), (4, 4), (1, 1)])))
+
+        closure.offset_edge(closure.edges[2], -2)
+        self.assertTrue(closure.shape.equals(Polygon([(0, 0), (5, 0), (5, 3), (3, 3), (0, 0)])))
+        self.assertTrue(stretch.closures[1].shape.equals(Polygon([(5, 0), (10, 0), (8, 2), (5, 2), (5, 0)])))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(3, 3), (5, 3), (5, 2), (8, 2), (6, 4), (4, 4), (3, 3)])))
 
 
 class StretchTest(TestCase):

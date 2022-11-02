@@ -8,7 +8,7 @@ from weakref import ref, ReferenceType
 
 from functional import seq
 
-from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
+from shapely.extension.constant import MATH_EPS, ENOUGH_DISTANCE
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.vector import Vector
@@ -222,8 +222,7 @@ class DirectEdge(StretchMixin):
         if not isinstance(dist, Num):
             raise TypeError(f'offset only accepts number as its input, given {dist}')
 
-        towards = 'left' if dist > 0 else 'right'
-        offset_segment = self.shape.ext.offset(dist=abs(dist), towards=towards)
+        offset_segment = self.shape.ext.offset(dist=dist)
         from_coord = min(offset_segment.coords, key=lambda c: self._from_pivot.shape.distance(Point(c)))
         to_coord = min(offset_segment.coords, key=lambda c: self._to_pivot.shape.distance(Point(c)))
         self._from_pivot.move_to(from_coord)
@@ -322,7 +321,7 @@ class DirectEdge(StretchMixin):
         return self.expand(point=point, dist_tol=dist_tol)
 
     def expand_by_intersection(self, line: LineString, dist_tol: float = MATH_EPS) -> List['DirectEdge']:
-        point = self.shape.intersection(line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE))
+        point = self.shape.intersection(line.ext.prolong().from_ends(ENOUGH_DISTANCE))
         if not (point and isinstance(point, Point)):
             return [self]
         return self.expand(point, dist_tol=dist_tol)
@@ -700,13 +699,33 @@ class Closure(StretchMixin):
         if not isinstance(dist, Num):
             raise TypeError(f'offset only accepts number as its input, given {dist}')
 
-        towards = 'left' if dist > 0 else 'right'
-        offset_segment = edge.shape.ext.offset(dist=abs(dist), towards=towards)
-        offset_from_pt = Point(min(offset_segment.coords, key=lambda c: edge.from_pivot.shape.distance(Point(c))))
-        offset_to_pt = Point(min(offset_segment.coords, key=lambda c: edge.to_pivot.shape.distance(Point(c))))
+        if dist == 0:
+            return
 
         reversed_edge = edge.reversed_edge()
         reversed_closure = reversed_edge.closure if reversed_edge else None
+
+        # TODO: magic function! to optimize
+        def _prolong(seg: LineString, shape: Polygon) -> LineString:
+            with suppress(Exception):
+                head_pro_seg = seg.ext.prolong().from_head(ENOUGH_DISTANCE)
+                head_p = head_pro_seg.intersection(shape).ext.decompose(Point)[0]
+                if shape.boundary.covers(LineString([edge.from_pivot.shape, head_p])):
+                    seg = LineString([head_p, seg.coords[-1]])
+                tail_pro_seg = seg.ext.prolong().from_tail(ENOUGH_DISTANCE)
+                tail_p = tail_pro_seg.intersection(shape).ext.decompose(Point)[-1]
+                if shape.boundary.covers(LineString([tail_p, edge.to_pivot.shape])):
+                    seg = LineString([seg.coords[0], tail_p])
+            return seg
+
+        offset_segment = edge.shape.ext.offset(dist=dist)
+        if dist > 0:
+            offset_segment = _prolong(offset_segment, self.shape)
+        elif reversed_closure:
+            offset_segment = _prolong(offset_segment, reversed_closure.shape)
+
+        offset_from_pt = Point(offset_segment.coords[0])
+        offset_to_pt = Point(offset_segment.coords[-1])
 
         related_edges = self.edges + reversed_closure.edges if reversed_closure else self.edges
         related_edge_from: DirectEdge = first(lambda edge_: edge_.shape.contains(offset_from_pt), related_edges)
@@ -717,7 +736,7 @@ class Closure(StretchMixin):
             related_edge_to.expand(offset_to_pt)
 
         expand_edges = edge.expand(offset_from_pt)
-        expand_edges[1].expand(offset_to_pt)
+        expand_edges[-1].expand(offset_to_pt)
 
         # insert breakpoint
         related_edges = self.edges + reversed_closure.edges if reversed_closure else self.edges
