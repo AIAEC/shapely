@@ -710,11 +710,11 @@ class Closure(StretchMixin):
             with suppress(Exception):
                 head_pro_seg = seg.ext.prolong().from_head(ENOUGH_DISTANCE)
                 head_p = head_pro_seg.intersection(shape).ext.decompose(Point)[0]
-                if shape.boundary.covers(LineString([edge.from_pivot.shape, head_p])):
+                if shape.boundary.buffer(MATH_EPS).covers(LineString([edge.from_pivot.shape, head_p])):
                     seg = LineString([head_p, seg.coords[-1]])
                 tail_pro_seg = seg.ext.prolong().from_tail(ENOUGH_DISTANCE)
                 tail_p = tail_pro_seg.intersection(shape).ext.decompose(Point)[-1]
-                if shape.boundary.covers(LineString([tail_p, edge.to_pivot.shape])):
+                if shape.boundary.buffer(MATH_EPS).covers(LineString([tail_p, edge.to_pivot.shape])):
                     seg = LineString([seg.coords[0], tail_p])
             return seg
 
