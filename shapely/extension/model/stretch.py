@@ -263,7 +263,7 @@ class DirectEdge(StretchMixin):
         """
         try:
             new_pivot = self.stretch.query_pivots(point)[0]
-        except IndexError:
+        except Exception:
             new_pivot = Pivot(point)
 
         def expand_single_edge(edge: DirectEdge) -> List[DirectEdge]:
@@ -473,9 +473,14 @@ class Closure(StretchMixin):
 
     @property
     def edges(self) -> List[DirectEdge]:
-        with suppress(Exception):
-            self._edges = self._normalize_edges(self._edges)
         return self._edges
+
+    @edges.setter
+    def edges(self, edges: List[DirectEdge]):
+        if not isinstance(edges, list):
+            raise TypeError(f'should specify edges object, given {edges}')
+
+        self._edges = edges
 
     @property
     def shape(self) -> Polygon:
@@ -721,6 +726,10 @@ class Closure(StretchMixin):
             for endpoint in endpoints:
                 if edge.shape.contains(endpoint):
                     edge.expand(endpoint)
+
+        self.edges = self._normalize_edges(self.edges)
+        if reversed_closure:
+            reversed_closure.edges = self._normalize_edges(reversed_closure.edges)
 
 
 class Stretch:

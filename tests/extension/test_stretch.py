@@ -564,6 +564,12 @@ class ClosureTest(TestCase):
         self.assertTrue(
             stretch.closures[2].shape.equals(Polygon([(0, 3), (2, 3), (2, 2), (4, 2), (4, 4), (0, 4), (0, 3)])))
 
+        closure = stretch.closures[1]
+        closure.offset_edge(closure.edges[1], -1)
+        self.assertTrue(stretch.closures[0].shape.equals(box(0, 0, 2, 3)))
+        self.assertTrue(stretch.closures[1].shape.equals(box(2, 0, 4, 3)))
+        self.assertTrue(stretch.closures[2].shape.equals(box(0, 3, 4, 4)))
+
 
 class StretchTest(TestCase):
     def test_divided_with_simple_poly(self):
