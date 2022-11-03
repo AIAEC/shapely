@@ -75,7 +75,7 @@ class DirectEdge:
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, reverse_edge: Optional['DirectEdge'] = None):
         self.from_pivot = from_pivot
         self.to_pivot = to_pivot
-        self.reverse_edge = reverse_edge
+        # self.reverse_edge = reverse_edge
         self._stretch: Optional[ReferenceType['Stretch']] = None
         self.cargo = {}
 
@@ -114,14 +114,29 @@ class DirectEdge:
     def intersection(self, other: 'DirectEdge') -> Union[Pivot, 'DirectEdge', None]:
         pass
 
-    def expand(self, point: Point) -> List['DirectEdge']:
+    def is_reversed(self, other: 'DirectEdge', tol: float = MATH_EPS) -> bool:
+        pass
+
+    def reversed_edge(self, tol: float = MATH_EPS) -> 'DirectEdge':
+        pass
+
+    def expand(self, point: Point, tol: float = MATH_EPS) -> List['DirectEdge']:
         pass
 
     def interpolate(self, dist: float, absolute: bool = True):
         pass
 
+    def union(self, other: 'DirectEdge', tol: float = MATH_EPS) -> 'DirectEdge':
+        pass
+
 
 class Closure:
+    def __init__(self, pivots: List[Pivot]):
+        self._pivots = pivots
+
+    def __hash__(self):
+        pass
+
     @property
     def stretch(self):
         pass
@@ -132,6 +147,15 @@ class Closure:
 
     @property
     def pivots(self) -> List[Pivot]:
+        pass
+
+    def divided_by(self, lines: List[LineString], tol: float = MATH_EPS) -> List['Closure']:
+        pass
+
+    def union(self, other: 'Closure', tol: float = MATH_EPS) -> 'Closure':
+        pass
+
+    def offset_edge(self, edge: DirectEdge, tol: float = MATH_EPS) -> 'Closure':
         pass
 
 
@@ -154,7 +178,7 @@ class ClosureSnapshot:
 class Stretch:
     def __init__(self, pivots: List[Pivot], edges: List[DirectEdge]):
         self.pivots = pivots
-        self.edges = edges
+        # self.edges = edges
         self.id = uuid4()
 
     def closure_snapshot(self):
