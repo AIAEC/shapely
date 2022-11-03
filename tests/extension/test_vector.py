@@ -233,8 +233,8 @@ class TestVector(TestCase):
         origin = (0, 0)
         vector = Vector(0, -1)
         line = vector.ray(origin)
-        self.assertEqual(1e16, line.length)
-        self.assertEqual(LineString([(0, 0), (0, -1e16)]), line)
+        self.assertEqual(1e9, line.length)
+        self.assertEqual(LineString([(0, 0), (0, -1e9)]), line)
 
     def test_from_angle(self):
         vector = Vector.from_angle()

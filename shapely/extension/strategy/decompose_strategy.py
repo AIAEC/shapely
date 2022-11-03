@@ -3,31 +3,39 @@ from operator import truth
 from typing import Union, Sequence, Callable, List
 
 import numpy as np
+from shapely.extension.geometry.straight_segment import StraightSegment
 
 from shapely.extension.model.coord import Coord
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat
 from shapely.extension.util.iter_util import win_slice, first
-from shapely.geometry import MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon, GeometryCollection, Point
+from shapely.geometry import MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon, GeometryCollection, Point, \
+    LinearRing
 from shapely.geometry.base import BaseGeometry
 
 
 class BaseDecomposeStrategy(ABC):
     def handler(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> Callable:
         return {MultiPoint: self.multipoint_to_point,
-                LineString: self.linestring_to_multipoint,
+                StraightSegment: self.segment_to_multipoint,
+                LinearRing: self.linestring_to_segment,
+                LineString: self.linestring_to_segment,
                 MultiLineString: self.multilinestring_to_linestring,
                 Polygon: self.polygon_to_multilinestring,
                 MultiPolygon: self.multipolygon_to_polygons}.get(self.type_of(geom_or_geoms), self.empty_handler)
 
     @staticmethod
     def decompose_order() -> List[type]:
-        return [GeometryCollection, MultiPolygon, Polygon, MultiLineString, LineString, MultiPoint, Point]
+        types = [GeometryCollection, MultiPolygon, Polygon, MultiLineString, LineString, LinearRing, StraightSegment,
+                 MultiPoint, Point]
+        type_dict = {type_: i for i, type_ in enumerate(types)}
+        type_dict[LinearRing] = type_dict[LineString]
+        return type_dict
 
     @classmethod
     def decomposing_index(cls, type_) -> int:
         try:
-            return cls.decompose_order().index(type_)
+            return cls.decompose_order()[type_]
         except:
             return len(cls.decompose_order())
 
@@ -65,7 +73,11 @@ class BaseDecomposeStrategy(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def linestring_to_multipoint(self, line_or_lines: Union[LineString, Sequence[LineString]]) -> List[MultiPoint]:
+    def linestring_to_segment(self, line_or_lines: Union[LineString, Sequence[LineString]]) -> List[StraightSegment]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def segment_to_multipoint(self, seg_or_segs: Union[StraightSegment, Sequence[StraightSegment]]) -> List[MultiPoint]:
         raise NotImplementedError
 
     @abstractmethod
@@ -99,8 +111,19 @@ class DefaultDecomposeStrategy(BaseDecomposeStrategy):
         multi_lines = multi_line_or_lines if isinstance(multi_line_or_lines, Sequence) else [multi_line_or_lines]
         return lconcat(multi_line.geoms for multi_line in multi_lines)
 
-    def linestring_to_multipoint(self, line_or_lines: Union[LineString, Sequence[LineString]]) -> List[MultiPoint]:
+    def linestring_to_segment(self, line_or_lines: Union[LineString, Sequence[LineString]]) -> List[StraightSegment]:
         lines = line_or_lines if isinstance(line_or_lines, Sequence) else [line_or_lines]
+        straight_segments: List[StraightSegment] = []
+        for line in lines:
+            straight_segments.extend([StraightSegment(coords) for coords in win_slice(line.coords,
+                                                                                      win_size=2,
+                                                                                      tail_cycling=False,
+                                                                                      head_cycling=False)])
+
+        return straight_segments
+
+    def segment_to_multipoint(self, seg_or_segs: Union[StraightSegment, Sequence[StraightSegment]]) -> List[MultiPoint]:
+        lines = seg_or_segs if isinstance(seg_or_segs, Sequence) else [seg_or_segs]
         multi_points: List[MultiPoint] = []
         for line in lines:
             multi_points.append(MultiPoint([Point(coord) for coord in line.coords]))
@@ -108,26 +131,8 @@ class DefaultDecomposeStrategy(BaseDecomposeStrategy):
 
     def multipoint_to_point(self, multi_point_or_points: Union[MultiPoint, Sequence[MultiPoint]]) -> List[Point]:
         multi_points = multi_point_or_points if isinstance(multi_point_or_points, Sequence) else [multi_point_or_points]
-        return lconcat([multi_point.geoms for multi_point in multi_points])
-
-
-class StraightSegmentDecomposeStrategy(DefaultDecomposeStrategy):
-    """
-    decompose strategy that cut multi-linestring into straight segments
-    """
-
-    def multilinestring_to_linestring(
-            self, multi_line_or_lines: Union[MultiLineString, Sequence[MultiLineString]]) -> List[LineString]:
-        multi_lines = multi_line_or_lines if isinstance(multi_line_or_lines, Sequence) else [multi_line_or_lines]
-
-        straight_segments: List[LineString] = []
-        for line in lconcat(multi_line.geoms for multi_line in multi_lines):
-            straight_segments.extend([LineString(coords) for coords in win_slice(line.coords,
-                                                                                 win_size=2,
-                                                                                 tail_cycling=False,
-                                                                                 head_cycling=False)])
-
-        return straight_segments
+        points = lconcat([multi_point.geoms for multi_point in multi_points])
+        return sorted(list(set(points)), key=points.index)
 
 
 class CurveDecomposeStrategy(DefaultDecomposeStrategy):

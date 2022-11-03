@@ -84,13 +84,10 @@ class Angle:
         """
         # denote angle_degree as angle, range as (lower, upper)
         # special case: for conveniency in angle or side predication case, sometimes we want to return upper directly.
-        # we return upper directly, iff angle != lower and angle can be exactly divided by upper. In this case upper
-        # shouldn't be 0 apparently. but if angle == 0, 0 can always be divided exactly by any number, so angle should
-        # be 0 neither. In some rare case, both upper == 0 and angle == 0, we should return upper directly as well.
-        if (self._angle_degree == self._range[1]) or (self._angle_degree != self._range[0]
-                                                      and self._angle_degree != 0
-                                                      and self._range[1] != 0
-                                                      and (self._angle_degree / self._range[1]).is_integer()):
+        # we return upper directly, iff angle != lower and angle mod range === upper.
+        if (self._angle_degree == self._range[1]) or (
+                self._angle_degree != self._range[0]
+                and ((self._angle_degree - self._range[1]) / (self._range[1] - self._range[0])).is_integer()):
             return self._range[1]
 
         # normal case: in most case, we calculate the value modulo
@@ -257,7 +254,9 @@ class Angle:
         Angle instance
         """
         ccw_including = self.rotating_angle(angle)
-        return min(ccw_including, ccw_including.complementary())
+        cw_including = self.rotating_angle(angle, direct='cw')
+        including = min(ccw_including, cw_including)
+        return Angle(self._range[0], self._range) if including == self._range[1] else including
 
     def parallel_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
         """
@@ -378,7 +377,7 @@ class Angle:
         -------
         bool
         """
-        return self.including_angle(Angle(other, self._range)) <= angle_tol
+        return abs(self.including_angle(Angle(other, self._range))) <= angle_tol
 
     def __lt__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)
@@ -397,4 +396,4 @@ class Angle:
         return self.degree >= other_angle
 
     def __abs__(self):
-        return self.degree
+        return abs(self.degree)

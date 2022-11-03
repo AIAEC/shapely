@@ -1,8 +1,9 @@
 from math import isclose, sqrt
 from unittest import TestCase
 
+from shapely.extension.geometry.straight_segment import StraightSegment
+
 from shapely.extension.model import Vector, Angle, AlignLineString
-from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
 from shapely.geometry import Polygon, LineString, MultiLineString, box, Point
 
 
@@ -11,7 +12,7 @@ class BaseGeomExtensionTest(TestCase):
         polygon = Polygon([(0, 0), (-1, 1), (0, 2), (1, 1)])
 
         # decompose
-        edges = polygon.ext.decompose(LineString, StraightSegmentDecomposeStrategy())
+        edges = polygon.ext.decompose(StraightSegment)
         self.assertEqual(4, len(edges.to_list()))
         self.assertTrue(edges.map(lambda l: isclose(l.length, sqrt(2))).all())
 

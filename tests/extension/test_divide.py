@@ -5,6 +5,7 @@ from unittest import TestCase
 from shapely.extension.util.divide import _line_divided_by_points, _divide_polygon_by_multilinestring, divide
 from shapely.geometry import LineString, Point, box, Polygon
 from shapely.ops import unary_union
+from shapely.wkt import loads
 
 
 class DivideTest(TestCase):
@@ -24,6 +25,7 @@ class DivideTest(TestCase):
         line1 = LineString([(-1, 5), (6, 5)])
         result = _divide_polygon_by_multilinestring(poly, unary_union([line0, line1]))
         self.assertTrue(result)
+        self.assertEqual(3, len(result))
 
     def test_divide_by_non_linestring(self):
         poly = box(0, 0, 10, 10)
@@ -60,3 +62,19 @@ class DivideTest(TestCase):
         result = divide(poly, line)
         self.assertEqual(1, len(result))
         self.assertTrue(result[0].equals(poly))
+
+    def test_divided_by_grid(self):
+        poly = box(0, 0, 10, 10)
+        multi_line = loads('MULTILINESTRING ((0 7, 10 7),(0 5, 10 5),(5 0, 5 10))')
+        result = divide(poly, multi_line)
+        self.assertEqual(6, len(result))
+
+        multi_line = loads('MULTILINESTRING ((0 7, 10 7),(0 5, 10 5),(5 0, 5 8))')
+        result = divide(poly, multi_line)
+        result = sorted(result, key=lambda p: p.area, reverse=True)
+        self.assertEqual(5, len(result))
+        self.assertEqual(5, len(result[0].exterior.ext.decompose(Point).to_list()))
+
+        multi_line = loads('MULTILINESTRING ((5 0, 5 5),(5 5, 8 5),(8 5, 8 8))')
+        result = divide(poly, multi_line)
+        self.assertEqual(1, len(result))

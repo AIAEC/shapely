@@ -376,7 +376,7 @@ class ClosureTest(TestCase):
     def test_split_to_halves_when_edge_extrude_outside_of_closure(self):
         # cut by linestring that extrude the closure, which will return the origin closure
         poly = loads('POLYGON ((1 0, 0 0, 0 2, 1 2, 1 1.5, 0.5 1.5, 0.5 0.5, 1 0.5, 1 0))')
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         self.assertEqual(Point(1, 1.5), pivots[4].shape)
@@ -388,7 +388,7 @@ class ClosureTest(TestCase):
 
     def test_split_by(self):
         poly = loads('POLYGON ((0.5 1.5, 1 1.5, 1 2, 0.5 2, -0.5 2, -0.5 0.5, -0.5 0, 0 0, 0 1, 0 1.5, 0.5 1.5))')
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         self.assertEqual(Point(0.5, 2), pivots[3].shape)
@@ -413,7 +413,7 @@ class ClosureTest(TestCase):
 
     def test_map_to_edge(self):
         poly = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
 
@@ -426,7 +426,7 @@ class ClosureTest(TestCase):
 
     def test_divided_by_lines(self):
         poly = Polygon([(0, 0), (100, 0), (100, 10), (0, 10)])
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         _ = Stretch([closure])
@@ -436,14 +436,15 @@ class ClosureTest(TestCase):
 
         self.assertEqual(10, len(result))
         self.assertTrue(all(isinstance(item, Closure) for item in result))
+        self.assertEqual(22, len(result[0].stretch.pivots))
 
         result.sort(key=lambda cls: cls.shape.centroid.x)
         for i, closure in enumerate(result):
-            self.assertTrue(closure.shape.equals(box(i * 10, 0, i * 10 + 10, 10)))
+            self.assertTrue(closure.shape.centroid.almost_equals(box(i * 10, 0, i * 10 + 10, 10).centroid))
 
     def test_divided_by_nothing(self):
         poly = box(0, 0, 1, 1)
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         _ = Stretch([closure])
@@ -462,7 +463,7 @@ class ClosureTest(TestCase):
 
     def test_divided_by_divider_cross_pivot(self):
         poly = box(0, 0, 4, 4)
-        pivots = poly.ext.decompose(Point).drop_right(1).map(Pivot).to_list()
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
         valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
         closure = Closure(valid_edges)
         _ = Stretch([closure])
@@ -476,6 +477,21 @@ class ClosureTest(TestCase):
         self.assertEqual(len(result[0].edges), 3)
         self.assertEqual(len(result[0].stretch.pivots), 4)
         self.assertEqual(len(result[0].stretch.edges), 6)
+
+    def test_divided_by_multi_line(self):
+        poly = box(0, 0, 4, 4)
+        pivots = poly.ext.decompose(Point).map(Pivot).to_list()
+        valid_edges = [DirectEdge(p, np) for p, np in win_slice(pivots, win_size=2, tail_cycling=True)]
+        closure = Closure(valid_edges)
+        _ = Stretch([closure])
+
+        divider = loads('MULTILINESTRING((2 0, 2 4),(2 2, 4 2))')
+        result = closure.divided_by(divider)
+        result = sorted(result, key=lambda c: c.shape.area, reverse=True)
+
+        self.assertEqual(3, len(result))
+        self.assertEqual(8, len(result[0].stretch.pivots))
+        self.assertEqual(13, len(result[0].stretch.edges))
 
     def test_union_simple_closure(self):
         poly_0 = box(0, 0, 2, 2)
@@ -526,6 +542,51 @@ class ClosureTest(TestCase):
         union_closure = sorted(union_closure, key=lambda c: c.shape.area)
         self.assertTrue(poly_0.equals(union_closure[0].shape))
         self.assertTrue(poly_1.equals(union_closure[1].shape))
+
+    def test_offset_edge_with_rectangle(self):
+        poly_0 = box(0, 0, 2, 2)
+        poly_1 = box(2, 0, 4, 2)
+        poly_2 = box(0, 2, 4, 4)
+        stretch = StretchFactory().create([poly_0, poly_1, poly_2])
+        closure = stretch.closures[0]
+
+        closure.offset_edge(closure.edges[1], 1)
+        self.assertTrue(closure.shape.equals(box(0, 0, 2, 1)))
+        self.assertTrue(
+            stretch.closures[1].shape.equals(Polygon([(2, 0), (4, 0), (4, 2), (2, 2), (2, 1)])))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(0, 1), (2, 1), (2, 2), (4, 2), (4, 4), (0, 4), (0, 1)])))
+
+        closure.offset_edge(closure.edges[1], -2)
+        self.assertTrue(closure.shape.equals(box(0, 0, 2, 3)))
+        self.assertTrue(stretch.closures[1].shape.equals(box(2, 0, 4, 2)))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(0, 3), (2, 3), (2, 2), (4, 2), (4, 4), (0, 4), (0, 3)])))
+
+        closure = stretch.closures[1]
+        closure.offset_edge(closure.edges[1], -1)
+        self.assertTrue(stretch.closures[0].shape.equals(box(0, 0, 2, 3)))
+        self.assertTrue(stretch.closures[1].shape.equals(box(2, 0, 4, 3)))
+        self.assertTrue(stretch.closures[2].shape.equals(box(0, 3, 4, 4)))
+
+    def test_offset_edge_with_trapezoid(self):
+        poly_0 = Polygon([(0, 0), (5, 0), (5, 2), (2, 2), (0, 0)])
+        poly_1 = Polygon([(5, 0), (10, 0), (8, 2), (5, 2), (5, 0)])
+        poly_2 = Polygon([(2, 2), (8, 2), (6, 4), (4, 4), (2, 2)])
+        stretch = StretchFactory().create([poly_0, poly_1, poly_2])
+        closure = stretch.closures[0]
+
+        closure.offset_edge(closure.edges[2], 1)
+        self.assertTrue(closure.shape.equals(Polygon([(0, 0), (5, 0), (5, 1), (1, 1), (0, 0)])))
+        self.assertTrue(stretch.closures[1].shape.equals(Polygon([(5, 0), (10, 0), (8, 2), (5, 2), (5, 0)])))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(1, 1), (5, 1), (5, 2), (8, 2), (6, 4), (4, 4), (1, 1)])))
+
+        closure.offset_edge(closure.edges[2], -2)
+        self.assertTrue(closure.shape.equals(Polygon([(0, 0), (5, 0), (5, 3), (3, 3), (0, 0)])))
+        self.assertTrue(stretch.closures[1].shape.equals(Polygon([(5, 0), (10, 0), (8, 2), (5, 2), (5, 0)])))
+        self.assertTrue(
+            stretch.closures[2].shape.equals(Polygon([(3, 3), (5, 3), (5, 2), (8, 2), (6, 4), (4, 4), (3, 3)])))
 
 
 class StretchTest(TestCase):
@@ -762,6 +823,14 @@ class StretchFactorTest(TestCase):
 
         stretch = StretchFactory(dist_tol=1e-6).create(result)
         self.assertEqual(4, len(stretch.closures))
+
+    def test_stretch_created_by_ring_poly(self):
+        poly = loads(
+            'POLYGON ((-15.710620343313154 -96.58693177452993, 76.30270360424134 -97.8238753672021, 80.60712140892431 -94.37106091607248, 87.5772490299512 -78.45154623130102, 71.85295316350522 92.37851309193593, 59.089689695234256 106.37276841432842, -19.05973634555972 109.10478522444, -45.39229668809067 113.1713766565302, -59.438551946854886 106.10935311536565, -81.10303263673396 -9.543302710703516, -82.11560752604987 -14.358566386946592, -91.7436589292029 -55.59935115496319, -97.35077583839575 -72.21625365322095, -107.72394429086773 -95.34998818185775, -15.710620343313176 -96.58693177452989, -15.60241322849774 -88.53765906078091, -95.36625147048902 -87.46538643073144, -90.00541639855139 -75.50991342610106, -89.84705799590215 -75.15675023743293, -89.72331173392158 -74.79002352151879, -84.1161948247287 -58.17312102326109, -83.99244856274883 -57.80639430734904, -83.90445604167215 -57.42948723955645, -74.27640463851917 -16.188702471539813, -74.25619273814345 -16.1021268397485, -74.2378978053479 -16.01512594107001, -73.22532291603183 -11.199862264826933, -73.20702798326886 -11.11286136630342, -73.19065894260828 -11.025477641171934, -52.260296883426065 100.70819343992058, -44.076509231433505 104.82274924050435, -20.288349959336102 101.14909489687922, -19.81731319406802 101.07635172079145, -19.34098356411782 101.05969976796074, 55.42396596240494 98.44600048363102, 64.08448818198526 88.95018779690292, 79.37096918415503 -77.12341437443189, 74.02658116201964 -89.32979971274887, 73.52051121108515 -89.7357467465229, -15.602413228497719 -88.53765906078097, -15.710620343313154 -96.58693177452993))')
+
+        stretch = StretchFactory(dist_tol=1e-6).create(poly)
+        self.assertEqual(1, len(stretch.closures))
+        self.assertAlmostEqual(stretch.closures[0].shape.area, poly.area)
 
     def test_stretch_created_by_dividing_polys(self):
         pass

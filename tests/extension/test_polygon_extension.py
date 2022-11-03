@@ -1,15 +1,13 @@
 from unittest import TestCase
 
 from shapely.extension.model.vector import Vector
-from shapely.extension.strategy.decompose_strategy import StraightSegmentDecomposeStrategy
 from shapely.geometry import box, LineString, Polygon
 
 
 class PolygonExtensionTest(TestCase):
     def test_edge_pair_with(self):
         polygon = box(0, 0, 1, 1)
-        self.assertEqual(4, len(list(polygon.ext.edge_pair_with(LineString([(0, 0), (1, 0)]),
-                                                                StraightSegmentDecomposeStrategy()))))
+        self.assertEqual(4, len(list(polygon.ext.edge_pair_with(LineString([(0, 0), (1, 0)])))))
 
     def test_has_edge_parallel_to(self):
         polygon = box(0, 0, 1, 1)
