@@ -42,6 +42,8 @@ class EnvelopeTest(TestCase):
         self.assertEqual(0, envelope.shorter_edges[1].length)
         self.assertEqual(0, envelope.longer_mid_line.length)
         self.assertEqual(0, envelope.shorter_mid_line.length)
+        self.assertEqual(0, envelope.width)
+        self.assertEqual(0, envelope.depth)
 
     def test_create_envelope_by_points(self):
         points = [Point(0, 0), Point(1, 0), Point(1, 1), Point(0, 1)]
@@ -58,6 +60,8 @@ class EnvelopeTest(TestCase):
         self.assertTupleEqual((0, 1), envelope.coord(PointPosition.LEFT_TOP))
         self.assertTupleEqual((0.5, 1), envelope.coord(PointPosition.MID_TOP))
         self.assertTupleEqual((1, 1), envelope.coord(PointPosition.RIGHT_TOP))
+        self.assertEqual(1, envelope.width)
+        self.assertEqual(1, envelope.depth)
 
     def test_create_envelope_by_points1(self):
         points = [Point(0.5, 0), Point(1, 0.5), Point(0.5, 1), Point(0, 0.3)]
@@ -74,6 +78,8 @@ class EnvelopeTest(TestCase):
         self.assertTupleEqual((0, 1), envelope.coord(PointPosition.LEFT_TOP))
         self.assertTupleEqual((0.5, 1), envelope.coord(PointPosition.MID_TOP))
         self.assertTupleEqual((1, 1), envelope.coord(PointPosition.RIGHT_TOP))
+        self.assertEqual(1, envelope.width)
+        self.assertEqual(1, envelope.depth)
 
     def test_create_envelope_by_points2(self):
         """
@@ -92,12 +98,16 @@ class EnvelopeCreatorTest(TestCase):
         self.assertTrue(envelope.point(PointPosition.RIGHT_BOTTOM).equals(Point(1, 0)))
         self.assertTrue(envelope.point(PointPosition.RIGHT_TOP).equals(Point(1, 1)))
         self.assertTrue(envelope.point(PointPosition.LEFT_TOP).equals(Point(0, 1)))
+        self.assertEqual(1, envelope.width)
+        self.assertEqual(1, envelope.depth)
 
         envelope1 = EnvelopeCreator(line).of_angle()
         self.assertTrue(envelope1.point(PointPosition.LEFT_BOTTOM).equals(Point(0, 0)))
         self.assertTrue(envelope1.point(PointPosition.RIGHT_BOTTOM).equals(Point(1, 0)))
         self.assertTrue(envelope1.point(PointPosition.RIGHT_TOP).equals(Point(1, 1)))
         self.assertTrue(envelope1.point(PointPosition.LEFT_TOP).equals(Point(0, 1)))
+        self.assertEqual(1, envelope.width)
+        self.assertEqual(1, envelope.depth)
 
     def test_create_tighten(self):
         line = LineString([(0, 0), (1, 1)])
@@ -107,6 +117,8 @@ class EnvelopeCreatorTest(TestCase):
         poly = Polygon([(0, 0), (1, 1), (0, 2), (-1, 1)])
         envelope = EnvelopeCreator(poly).tightened()
         self.assertTrue(envelope.shape.almost_equals(poly))
+        self.assertAlmostEqual(1.4, envelope.width, delta=0.2)
+        self.assertAlmostEqual(1.4, envelope.depth, delta=0.2)
 
     def test_create_by_geometry_obj(self):
         from dataclasses import dataclass
@@ -128,3 +140,5 @@ class EnvelopeCreatorTest(TestCase):
         rectangle = Polygon([(0, 0), (1, 0), (1, 3), (0, 3)])
         envelope = EnvelopeCreator(rectangle).of_angle(90)
         self.assertTrue(LineString([envelope.left_top, envelope.right_top]).equals(envelope.edge(EdgePosition.TOP)))
+        self.assertEqual(3, envelope.width)
+        self.assertEqual(1, envelope.depth)

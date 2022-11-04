@@ -200,6 +200,16 @@ class Envelope:
             return self.edge(EdgePosition.MID)
         return self.edge(EdgePosition.HORIZON)
 
+    @property
+    def width(self) -> float:
+        """length of top edge"""
+        return self.edge(EdgePosition.TOP).length
+
+    @property
+    def depth(self) -> float:
+        """length of left edge"""
+        return self.edge(EdgePosition.LEFT).length
+
 
 class EnvelopeCreator:
     def __init__(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry], object, Sequence[object]],
