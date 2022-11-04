@@ -1,5 +1,5 @@
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
-from typing import Union, Sequence, Tuple
+from typing import Union, Sequence, Tuple, Literal
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.typing import Num
@@ -223,7 +223,7 @@ class Angle:
         """
         return Angle(self._range[1] - self.degree, range_=self._range)
 
-    def rotating_angle(self, angle: Union['Angle', float], direct: str = 'ccw') -> 'Angle':
+    def rotating_angle(self, angle: Union['Angle', float], direct: Literal['ccw', 'cw'] = 'ccw') -> 'Angle':
         """
         calculate the angle that cost by current angle to the given angle
 
