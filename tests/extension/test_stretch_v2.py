@@ -2,8 +2,27 @@ import pytest
 from pytest import fixture
 
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView
+from shapely.extension.model import Vector
+from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, Along, \
+    OffsetStrategy, ClosureView
 from shapely.geometry import Point, box, LineString
+from shapely.wkt import loads
+
+
+@fixture(scope='function')
+def stretch_of_single_box() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_2_0 = Pivot(Point(2, 0), stretch)
+    pivot_2_2 = Pivot(Point(2, 2), stretch)
+    pivot_0_2 = Pivot(Point(0, 2), stretch)
+    edges = [DirectEdge(pivot_0_0, pivot_2_0, stretch),
+             DirectEdge(pivot_2_0, pivot_2_2, stretch),
+             DirectEdge(pivot_2_2, pivot_0_2, stretch),
+             DirectEdge(pivot_0_2, pivot_0_0, stretch)]
+    stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2]
+    stretch.edges = edges
+    return stretch
 
 
 @fixture(scope='function')
@@ -26,6 +45,47 @@ def stretch_of_two_box() -> Stretch:
              DirectEdge(pivot_3_1, pivot_2_1, stretch),
              DirectEdge(pivot_2_1, pivot_2_0, stretch)]
     stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2, pivot_3_0, pivot_3_1, pivot_2_1]
+    stretch.edges = edges
+    return stretch
+
+
+@fixture(scope='function')
+def stretch_of_single_box_with_glitch() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_2_0 = Pivot(Point(2, 0), stretch)
+    pivot_1_1 = Pivot(Point(1, 1), stretch)
+    pivot_0_1 = Pivot(Point(0, 1), stretch)
+    edges = [DirectEdge(pivot_0_0, pivot_1_0, stretch),
+             DirectEdge(pivot_1_0, pivot_2_0, stretch),
+             DirectEdge(pivot_2_0, pivot_1_0, stretch),
+             DirectEdge(pivot_1_0, pivot_1_1, stretch),
+             DirectEdge(pivot_1_1, pivot_0_1, stretch),
+             DirectEdge(pivot_0_1, pivot_0_0, stretch)]
+    stretch.pivots = [pivot_0_0, pivot_1_0, pivot_2_0, pivot_1_1, pivot_0_1]
+    stretch.edges = edges
+    return stretch
+
+
+@fixture(scope='function')
+def stretch_of_box_and_triangle() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_1_1 = Pivot(Point(1, 1), stretch)
+    pivot_0_1 = Pivot(Point(0, 1), stretch)
+    pivot_2_1 = Pivot(Point(2, 1), stretch)
+
+    edges = [DirectEdge(pivot_0_0, pivot_1_0, stretch),
+             DirectEdge(pivot_1_0, pivot_1_1, stretch),
+             DirectEdge(pivot_1_1, pivot_0_1, stretch),
+             DirectEdge(pivot_0_1, pivot_0_0, stretch),
+             DirectEdge(pivot_1_0, pivot_2_1, stretch),
+             DirectEdge(pivot_2_1, pivot_1_1, stretch),
+             DirectEdge(pivot_1_1, pivot_1_0, stretch)]
+
+    stretch.pivots = [pivot_0_0, pivot_1_0, pivot_1_1, pivot_0_1, pivot_2_1]
     stretch.edges = edges
     return stretch
 
@@ -85,6 +145,59 @@ class TestDirectEdge:
         pivot = stretch.query_pivots(Point(2, 1))[0]
         assert len(pivot.out_edges) == 2
         assert len(pivot.in_edges) == 2
+
+    def test_next(self, stretch_of_box_and_triangle):
+        stretch = stretch_of_box_and_triangle
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (1, 0)]))
+        assert edge.next.shape.equals(LineString([(1, 0), (1, 1)]))
+
+        edge = stretch.edges[-1]
+        assert edge.shape.equals(LineString([(1, 1), (1, 0)]))
+        assert edge.next.shape.equals(LineString([(1, 0), (2, 1)]))
+
+    def test_next_for_2_box(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = DirectEdge(stretch.query_pivots(Point(2, 2))[0],
+                          stretch.query_pivots(Point(0, 2))[0],
+                          stretch)
+        result = edge.next
+        assert result.shape.equals(LineString([(0, 2), (0, 0)]))
+
+        result = result.next
+        assert result.shape.equals(LineString([(0, 0), (2, 0)]))
+
+        result = result.next
+        assert result.shape.equals(LineString([(2, 0), (2, 1)]))
+
+        result = result.next
+        assert result.shape.equals(LineString([(2, 1), (2, 2)]))
+
+        result = result.next
+        assert result.shape.equals(LineString([(2, 2), (0, 2)]))
+
+        edge = DirectEdge(stretch.query_pivots(Point(2, 0))[0],
+                          stretch.query_pivots(Point(3, 0))[0],
+                          stretch)
+
+        result = edge.next
+        assert result.shape.equals(LineString([(3, 0), (3, 1)]))
+
+        result = result.next
+        assert result.shape.equals(LineString([(3, 1), (2, 1)]))
+
+        result = result.next
+        assert result.shape.equals(LineString([(2, 1), (2, 0)]))
+
+    def test_previous(self, stretch_of_box_and_triangle):
+        stretch = stretch_of_box_and_triangle
+        edge = stretch.edges[-1]
+        assert edge.shape.equals(LineString([(1, 1), (1, 0)]))
+        assert edge.previous.shape.equals(LineString([(2, 1), (1, 1)]))
+
+        edge = stretch.edges[-3]
+        assert edge.shape.equals(LineString([(1, 0), (2, 1)]))
+        assert edge.previous.shape.equals(LineString([(1, 1), (1, 0)]))
 
 
 class TestStretch:
@@ -201,41 +314,15 @@ class TestStretch:
         assert len(stretch.pivots) == origin_num_pivots + 1
         assert len(stretch.edges) == origin_num_edges + 3
 
+    def test_remove_dangling_edges(self, stretch_of_single_box_with_glitch):
+        stretch = stretch_of_single_box_with_glitch
+        assert len(stretch.pivots) == 5
+        assert len(stretch.edges) == 6
+        stretch.remove_dangling_edges()
+        assert len(stretch.edges) == 4
+
 
 class TestClosureSnapshot:
-    def test_next_edge(self, stretch_of_two_box):
-        stretch = stretch_of_two_box
-        edge = DirectEdge(stretch.query_pivots(Point(2, 2))[0],
-                          stretch.query_pivots(Point(0, 2))[0],
-                          stretch)
-        result = ClosureSnapshot.next_edge(edge)
-        assert result.shape.equals(LineString([(0, 2), (0, 0)]))
-
-        result = ClosureSnapshot.next_edge(result)
-        assert result.shape.equals(LineString([(0, 0), (2, 0)]))
-
-        result = ClosureSnapshot.next_edge(result)
-        assert result.shape.equals(LineString([(2, 0), (2, 1)]))
-
-        result = ClosureSnapshot.next_edge(result)
-        assert result.shape.equals(LineString([(2, 1), (2, 2)]))
-
-        result = ClosureSnapshot.next_edge(result)
-        assert result.shape.equals(LineString([(2, 2), (0, 2)]))
-
-        edge = DirectEdge(stretch.query_pivots(Point(2, 0))[0],
-                          stretch.query_pivots(Point(3, 0))[0],
-                          stretch)
-
-        result = ClosureSnapshot.next_edge(edge)
-        assert result.shape.equals(LineString([(3, 0), (3, 1)]))
-
-        result = ClosureSnapshot.next_edge(result)
-        assert result.shape.equals(LineString([(3, 1), (2, 1)]))
-
-        result = ClosureSnapshot.next_edge(result)
-        assert result.shape.equals(LineString([(2, 1), (2, 0)]))
-
     def test_create_closure_snapshot_from_stretch(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         closure_snapshot = ClosureSnapshot.create_from(stretch)
@@ -243,3 +330,152 @@ class TestClosureSnapshot:
         closures = sorted(closure_snapshot.closures, key=lambda closure: closure.shape.area)
         assert closures[0].shape.equals(box(2, 0, 3, 1))
         assert closures[1].shape.equals(box(0, 0, 2, 2))
+
+
+class TestAlong:
+    def test_move_point_along_linestring(self):
+        point = Point(1, 0)
+        line = LineString([(0, 0), (100, 100)])
+
+        result = Along(line).move(point, Vector(49, 0))
+        assert result.almost_equals(Point(50, 50))
+
+        result = Along(line).move(point, Vector(150, 0))
+        assert result.almost_equals(Point(151, 151))
+
+
+class TestOffsetStrategy:
+    def test_shrinking_closure(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+
+        closure = OffsetStrategy(edge, Vector(-1, 0)).shrinking_closure
+        assert isinstance(closure, ClosureView)
+        assert closure.shape.equals(box(0, 0, 2, 2))
+
+        closure = OffsetStrategy(edge, Vector(1, 0)).shrinking_closure
+        assert isinstance(closure, ClosureView)
+        assert closure.shape.equals(box(2, 0, 3, 1))
+
+        edge = stretch.query_edges(Point(2.5, 1))[0]
+        assert edge.shape.equals(LineString([(3, 1), (2, 1)]))
+
+        closure = OffsetStrategy(edge, Vector(0, 1)).shrinking_closure
+        assert closure is None
+
+        closure = OffsetStrategy(edge, Vector(0, -1)).shrinking_closure
+        assert isinstance(closure, ClosureView)
+        assert closure.shape.equals(box(2, 0, 3, 1))
+
+    def test_does_from_pivot_use_perpendicular_mode_case0(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert not OffsetStrategy.does_from_pivot_use_perpendicular_mode(edge, Vector(0, 1))
+        assert OffsetStrategy.does_from_pivot_use_perpendicular_mode(edge, Vector(0, -1))
+
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+        assert not OffsetStrategy.does_from_pivot_use_perpendicular_mode(edge, Vector(0.2, 0))
+        assert not OffsetStrategy.does_from_pivot_use_perpendicular_mode(edge, Vector(-0.2, 0))
+
+    def test_does_from_pivot_use_perpendicular_mode_case1(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert not OffsetStrategy.does_from_pivot_use_perpendicular_mode(edge, Vector(0, 0.5))
+
+    def test_does_to_pivot_use_perpendicular_mode(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert not OffsetStrategy.does_to_pivot_use_perpendicular_mode(edge, Vector(0, 1))
+        assert OffsetStrategy.does_to_pivot_use_perpendicular_mode(edge, Vector(0, -1))
+
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+        assert not OffsetStrategy.does_to_pivot_use_perpendicular_mode(edge, Vector(0.2, 0))
+        assert OffsetStrategy.does_to_pivot_use_perpendicular_mode(edge, Vector(-0.2, 0))
+
+    def test_offset_from_pivot_case0(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert len(stretch.pivots) == 4
+
+        pivot = (OffsetStrategy(edge, Vector(0, -1))
+                 .offset_from_pivot(edge, Vector(0, -1), stretch.closure_snapshot().closures[0]))
+        assert pivot.shape.equals(Point(0, -1))
+        assert len(stretch.pivots) == 5
+
+    def test_offset_from_pivot_case1(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert len(stretch.pivots) == 4
+
+        pivot = (OffsetStrategy(edge, Vector(0, 0.5))
+                 .offset_from_pivot(edge, Vector(0, 0.5), stretch.closure_snapshot().closures[0]))
+        assert pivot.shape.equals(Point(0, 0.5))
+        assert len(stretch.pivots) == 5
+
+    def test_offset_to_pivot_case0(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+
+        closures = sorted(stretch.closure_snapshot().closures, key=lambda closure: closure.shape.area)
+        closure = closures[1]
+
+        origin_num_pivots = len(stretch.pivots)
+        origin_num_edges = len(stretch.edges)
+
+        pivot = (OffsetStrategy(edge, Vector(-0.5, 0))
+                 .offset_to_pivot(edge, Vector(-0.5, 0), closure))
+
+        assert pivot.shape.equals(Point(1.5, 1))
+        assert len(stretch.pivots) == origin_num_pivots + 1
+        assert len(stretch.edges) == origin_num_edges + 2  # add edge and its reverse
+
+    def test_do_offset_case0(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+
+        origin_num_pivots = len(stretch.pivots)
+
+        OffsetStrategy(edge, Vector(0, -1)).do()
+        assert len(stretch.pivots) == origin_num_pivots + 2
+        assert len(stretch.edges) == 11
+
+        closures = sorted(stretch.closure_snapshot().closures, key=lambda closure: closure.shape.area)
+        assert len(closures) == 2
+        assert closures[1].shape.equals(box(0, -1, 2, 2))
+        assert closures[0].shape.equals(box(2, 0, 3, 1))
+
+    def test_do_offset_case1(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+
+        origin_num_pivots = len(stretch.pivots)
+
+        OffsetStrategy(edge, Vector(-1, 0)).do()
+        assert len(stretch.pivots) == origin_num_pivots + 2
+        assert len(stretch.edges) == 12
+
+        closures = sorted(stretch.closure_snapshot().closures, key=lambda closure: closure.shape.area)
+        assert len(closures) == 2
+        assert closures[1].shape.equals(loads('POLYGON ((1 0, 1 1, 2 1, 2 2, 0 2, 0 0, 1 0))'))
+        assert closures[0].shape.equals(loads('POLYGON ((3 0, 3 1, 2 1, 1 1, 1 0, 2 0, 3 0))'))
+
+    def test_offset_corner_case(self, stretch_of_single_box):
+        stretch0 = stretch_of_single_box
+        edge = stretch0.edges[0]
+        with pytest.raises(ValueError):
+            OffsetStrategy(edge, Vector(0, 3)).do()
+
+        edge = stretch0.edges[0]
+        with pytest.raises(ValueError):
+            OffsetStrategy(edge, Vector(1, 0)).do()

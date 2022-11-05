@@ -112,3 +112,13 @@ class ShortestStraightPathTest(TestCase):
         self.assertFalse(result)
         self.assertTrue(result.is_empty)
         self.assertEqual(0, result.length)
+
+    def test_point_to_linear_ring_shortest_path(self):
+        ring = Polygon([(0, 0), (10, 0), (10, 10)]).exterior
+        point = Point(0, 5)
+        path: LineString = ShortestStraightPath(Vector(-1, 0)).of(point, ring)
+        self.assertTrue(path.ext.end().equals(Point(5, 5)))
+
+        point = Point(0, 20)
+        path: LineString = ShortestStraightPath(Vector(-1, 0)).of(point, ring)
+        self.assertFalse(path)

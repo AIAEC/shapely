@@ -37,6 +37,9 @@ class Angle:
             self._angle_degree = angle_degree
             self._range = range_
 
+    def __repr__(self):
+        return f'{self.degree}%{self._range}'
+
     @classmethod
     def from_radian(cls, radian: float, range_: Tuple[float, float] = (0, 360)):
         return cls(angle_degree=degrees(radian), range_=range_)
@@ -285,8 +288,8 @@ class Angle:
         -------
         bool
         """
-        return (isclose(self.including_angle(angle), 90, abs_tol=angle_tol)
-                or isclose(self.including_angle(angle), 270, abs_tol=angle_tol))
+        return (isclose(self.including_angle(angle).degree, 90, abs_tol=angle_tol)
+                or isclose(self.including_angle(angle).degree, 270, abs_tol=angle_tol))
 
     def __float__(self):
         return float(self._angle_degree)
