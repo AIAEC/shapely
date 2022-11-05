@@ -260,12 +260,7 @@ class DirectEdge(StretchMixin):
         -------
 
         """
-        try:
-            new_pivot = self.stretch.query_pivots(point)[0]
-        except Exception:
-            new_pivot = Pivot(point)
-
-        def expand_single_edge(edge: DirectEdge) -> List[DirectEdge]:
+        def _expand_single_edge(edge: DirectEdge) -> List[DirectEdge]:
             """
             对于单条有向边，插入一个点，生成新的有向边:
             1. 插入点位于原有向边from_p和to_p之间
@@ -284,6 +279,8 @@ class DirectEdge(StretchMixin):
 
             new_direct_edge_0 = DirectEdge(from_pivot=edge.from_pivot, to_pivot=new_pivot)
             new_direct_edge_1 = DirectEdge(from_pivot=new_pivot, to_pivot=edge._to_pivot)
+            new_direct_edge_0.cargo = edge.cargo
+            new_direct_edge_1.cargo = edge.cargo
 
             if edge.closure:
                 try:
@@ -291,16 +288,18 @@ class DirectEdge(StretchMixin):
                     edge.closure.edges[idx:idx + 1] = [new_direct_edge_0, new_direct_edge_1]
                     new_direct_edge_0.closure = edge.closure
                     new_direct_edge_1.closure = edge.closure
-
                 except ValueError:
                     pass
-
             return [new_direct_edge_0, new_direct_edge_1]
 
-        expanded_edges = expand_single_edge(self)
+        try:
+            new_pivot = self.stretch.query_pivots(point)[0]
+        except Exception:
+            new_pivot = Pivot(point)
 
+        expanded_edges = _expand_single_edge(self)
         if reversed_edge := self.reversed_edge():
-            expand_single_edge(reversed_edge)
+            _expand_single_edge(reversed_edge)
 
         return expanded_edges
 
