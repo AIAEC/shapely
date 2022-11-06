@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from functools import partial, cached_property
 from itertools import combinations
 from operator import truth, attrgetter
-from typing import Union, List, Optional, Set, Sequence, Literal
+from typing import Union, List, Optional, Set, Sequence, Literal, Iterable
 from uuid import uuid4
 from weakref import ref, ReferenceType
 
@@ -454,7 +454,7 @@ class StretchFactory:
     def __init__(self, dist_tol: float = MATH_EPS):
         self._dist_tol = dist_tol
 
-    def create(self, geom_or_geoms: Union[BaseGeometry]) -> Stretch:
+    def create(self, geom_or_geoms:  Union[BaseGeometry, Iterable[BaseGeometry]]) -> Stretch:
         stretch = Stretch([], [])
 
         polys = (flatten(geom_or_geoms)
