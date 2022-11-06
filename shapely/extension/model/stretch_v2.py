@@ -63,6 +63,10 @@ class Pivot:
     def dangling(self) -> bool:
         return len(self.in_edges) + len(self.out_edges) == 0
 
+    def distance(self, point: Union[Point, 'Pivot']) -> float:
+        point = point.shape if isinstance(point, Pivot) else point
+        return self.shape.distance(point)
+
     def move_to(self, target: Union[Point, Coord]) -> None:
         try:
             target = Point(target)
@@ -152,8 +156,8 @@ class DirectEdge:
 
     def expand(self, point: Point, endpoint_dist_tol: float = MATH_EPS) -> Pivot:
         reverse_existed = bool(self.reverse)
-        closest_end_pivot = min([self.from_pivot, self.to_pivot], key=lambda pivot: pivot.shape.distance(point))
-        if closest_end_pivot.shape.distance(point) <= endpoint_dist_tol:
+        closest_end_pivot = min([self.from_pivot, self.to_pivot], key=lambda pivot: pivot.distance(point))
+        if closest_end_pivot.distance(point) <= endpoint_dist_tol:
             # don't expand if given point is too close to the end pivots
             return closest_end_pivot
 
@@ -231,8 +235,8 @@ class ClosureSnapshot:
         ring_edges: List[DirectEdge] = [edge]
         seen = set(ring_edges)
         while (next_edge := edge.next) and (next_edge not in seen):
+            seen.add(next_edge)  # sanity guard
             ring_edges.append(next_edge)
-            seen.add(next_edge)
             edge = next_edge
 
         return ring_edges
@@ -371,16 +375,21 @@ class Stretch:
                             attach_to_nearest_edge=attach_to_nearest_edge,
                             dist_tol=dist_tol)
 
-        pivots: List[Pivot] = (polygon.exterior
-                               .ext.ccw()
-                               .ext.decompose(Point)
-                               .map(lambda pt: add_pivot(point=pt))
-                               .to_list())
+        (polygon.exterior
+         .ext.ccw()
+         .ext.decompose(Point)  # already dropped tail duplicate point
+         .map(lambda pt: add_pivot(point=pt))
+         .to_list())
 
+        pivots: List[Pivot] = self.query_pivots(polygon.exterior, buffer=dist_tol)
+        pivots.sort(key=lambda pivot: polygon.exterior.project(pivot.shape))
+
+        new_edges: Set[DirectEdge] = set()
         for from_pivot, to_pivot in win_slice(pivots, win_size=2, tail_cycling=True):
-            edge = DirectEdge(from_pivot, to_pivot, stretch=self)
-            if edge not in self.edges:
-                self.edges.append(edge)
+            new_edges.add(DirectEdge(from_pivot, to_pivot, stretch=self))
+
+        new_edges.difference_update(set(self.edges))
+        self.edges.extend(new_edges)
 
         return pivots
 
@@ -417,11 +426,18 @@ class Stretch:
                 continue  # just ignore this invalid line
 
             # add pivots without duplicate
-            new_pivots: List[Pivot] = lmap(add_pivot, line_inside.ext.decompose(Point).to_list())
+            lmap(add_pivot, line_inside.ext.decompose(Point).to_list())
 
             # add edges
             new_edges: Set[DirectEdge] = set()
-            for _from_pivot, _to_pivot in win_slice(new_pivots, win_size=2):
+
+            # since points of splitter have already been added to stretch, the query below will fetch out the pivots of
+            # splitter points as well as the already existed pivots.
+            # after sorting, each 2-pair pivot might create a new DirectEdge
+            pivots_on_line_inside: List[Pivot] = self.query_pivots(line_inside, buffer=dist_tol)
+            pivots_on_line_inside.sort(key=lambda pivot: line_inside.project(pivot.shape))
+
+            for _from_pivot, _to_pivot in win_slice(pivots_on_line_inside, win_size=2):
                 new_edges.add(DirectEdge(_from_pivot, _to_pivot, stretch=self))
                 new_edges.add(DirectEdge(_to_pivot, _from_pivot, stretch=self))
 
@@ -527,7 +543,7 @@ class BaseOffsetStrategy(ABC):
         if perpendicular_mode:
             target_point = offset_vector.apply(edge.from_pivot.shape)
             try:
-                if shrinking_closure and not shrinking_closure.shape.contains(target_point):
+                if shrinking_closure and not shrinking_closure.shape.covers(target_point):
                     # if perpendicular mode failed, try attaching mode instead
                     raise RuntimeError
 
