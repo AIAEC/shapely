@@ -251,17 +251,26 @@ class TestStretch:
         with pytest.raises(ValueError):
             stretch.add_pivot(1)
 
-    def test_add_closure(self, stretch_of_two_box):
+    def test_add_closure_case0(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         origin_num_pivots: int = len(stretch.pivots)
 
         result = stretch.add_closure(box(0, 0, 2, 2), reuse_existing=True, dist_tol=MATH_EPS)
-        assert len(result) == 4
+        assert len(result) == 5
         assert origin_num_pivots == len(stretch.pivots)
 
         result = stretch.add_closure(box(2, 1, 3, 2), reuse_existing=True, dist_tol=MATH_EPS)
         assert len(result) == 4
         assert origin_num_pivots + 1 == len(stretch.pivots)
+
+    def test_add_closure_case1(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        origin_num_pivots: int = len(stretch.pivots)
+        origin_num_edges: int = len(stretch.edges)
+
+        stretch.add_closure(box(2, 0, 3, 4), reuse_existing=True, dist_tol=MATH_EPS)
+        assert len(stretch.pivots) == origin_num_pivots + 3
+        assert len(stretch.edges) == origin_num_edges + 5
 
     def test_remove_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box

@@ -235,8 +235,8 @@ class ClosureSnapshot:
         ring_edges: List[DirectEdge] = [edge]
         seen = set(ring_edges)
         while (next_edge := edge.next) and (next_edge not in seen):
+            seen.add(next_edge)  # sanity guard
             ring_edges.append(next_edge)
-            seen.add(next_edge)
             edge = next_edge
 
         return ring_edges
@@ -375,16 +375,21 @@ class Stretch:
                             attach_to_nearest_edge=attach_to_nearest_edge,
                             dist_tol=dist_tol)
 
-        pivots: List[Pivot] = (polygon.exterior
-                               .ext.ccw()
-                               .ext.decompose(Point)
-                               .map(lambda pt: add_pivot(point=pt))
-                               .to_list())
+        (polygon.exterior
+         .ext.ccw()
+         .ext.decompose(Point)  # already dropped tail duplicate point
+         .map(lambda pt: add_pivot(point=pt))
+         .to_list())
 
+        pivots: List[Pivot] = self.query_pivots(polygon.exterior, buffer=dist_tol)
+        pivots.sort(key=lambda pivot: polygon.exterior.project(pivot.shape))
+
+        new_edges: Set[DirectEdge] = set()
         for from_pivot, to_pivot in win_slice(pivots, win_size=2, tail_cycling=True):
-            edge = DirectEdge(from_pivot, to_pivot, stretch=self)
-            if edge not in self.edges:
-                self.edges.append(edge)
+            new_edges.add(DirectEdge(from_pivot, to_pivot, stretch=self))
+
+        new_edges.difference_update(set(self.edges))
+        self.edges.extend(new_edges)
 
         return pivots
 
