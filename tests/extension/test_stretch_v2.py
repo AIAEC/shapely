@@ -69,6 +69,24 @@ def stretch_of_single_box_with_glitch() -> Stretch:
 
 
 @fixture(scope='function')
+def stretch_of_single_concave_box() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_2_0 = Pivot(Point(2, 0), stretch)
+    pivot_2_2 = Pivot(Point(2, 2), stretch)
+    pivot_1_1 = Pivot(Point(1, 1), stretch)
+    pivot_0_2 = Pivot(Point(0, 2), stretch)
+    edges = [DirectEdge(pivot_0_0, pivot_2_0, stretch),
+             DirectEdge(pivot_2_0, pivot_2_2, stretch),
+             DirectEdge(pivot_2_2, pivot_1_1, stretch),
+             DirectEdge(pivot_1_1, pivot_0_2, stretch),
+             DirectEdge(pivot_0_2, pivot_0_0, stretch)]
+    stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_1_1, pivot_0_2]
+    stretch.edges = edges
+    return stretch
+
+
+@fixture(scope='function')
 def stretch_of_box_and_triangle() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
@@ -314,6 +332,14 @@ class TestStretch:
         assert len(stretch.pivots) == origin_num_pivots + 1
         assert len(stretch.edges) == origin_num_edges + 3
 
+    def test_split_by_spliter_crosing_pivot(self, stretch_of_single_concave_box):
+        stretch = stretch_of_single_concave_box
+        assert stretch.split_by(LineString([(0, 1 - MATH_EPS / 10), (2, 1 - MATH_EPS / 10)]))
+        assert len(stretch.pivots) == 7
+        assert len(stretch.edges) == 11
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+
     def test_remove_dangling_edges(self, stretch_of_single_box_with_glitch):
         stretch = stretch_of_single_box_with_glitch
         assert len(stretch.pivots) == 5
@@ -404,8 +430,9 @@ class TestOffsetStrategy:
         assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
         assert len(stretch.pivots) == 4
 
+        # since vector is pointing downward, not on the left of edge's direction, thus shrinking closure should be None
         pivot = (OffsetStrategy(edge, Vector(0, -1))
-                 .offset_from_pivot(edge, Vector(0, -1), stretch.closure_snapshot().closures[0]))
+                 .offset_from_pivot(edge, Vector(0, -1), None))
         assert pivot.shape.equals(Point(0, -1))
         assert len(stretch.pivots) == 5
 
@@ -415,6 +442,8 @@ class TestOffsetStrategy:
         assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
         assert len(stretch.pivots) == 4
 
+        # since vector is pointing upward, on the left of edge's direction, thus thrinking closure should be the one
+        # related to current edge
         pivot = (OffsetStrategy(edge, Vector(0, 0.5))
                  .offset_from_pivot(edge, Vector(0, 0.5), stretch.closure_snapshot().closures[0]))
         assert pivot.shape.equals(Point(0, 0.5))
