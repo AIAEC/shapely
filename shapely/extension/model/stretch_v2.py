@@ -197,10 +197,7 @@ class DirectEdgeView(DirectEdge):
     """
 
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
-        self.from_pivot = deepcopy(from_pivot)
-        self.to_pivot = deepcopy(to_pivot)
-        self._stretch: ReferenceType['Stretch'] = ref(stretch)
-        self.cargo = {}
+        super().__init__(deepcopy(from_pivot), deepcopy(to_pivot), stretch)
 
     @property
     def reverse(self) -> 'DirectEdgeView':
@@ -466,7 +463,7 @@ class StretchFactory:
                  .to_list())
 
         for poly in polys:
-            stretch.add_closure(poly)
+            stretch.add_closure(poly, dist_tol=self._dist_tol)
 
         return stretch
 
