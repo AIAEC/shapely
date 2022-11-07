@@ -364,33 +364,10 @@ class Stretch:
         return new_pivot
 
     def add_closure(self, polygon: Polygon,
-                    reuse_existing: bool = True,
-                    attach_to_nearest_edge: bool = True,
-                    dist_tol: float = MATH_EPS) -> List[Pivot]:
-        add_pivot = partial(self.add_pivot,
-                            reuse_existing=reuse_existing,
-                            attach_to_nearest_edge=attach_to_nearest_edge,
-                            dist_tol=dist_tol)
-
-        (polygon.exterior
-         .ext.ccw()
-         .ext.decompose(Point)  # already dropped tail duplicate point
-         .map(lambda pt: add_pivot(point=pt))
-         .to_list())
-
-        pivots: List[Pivot] = self.query_pivots(polygon.exterior, buffer=dist_tol)
-        pivots.sort(key=lambda pivot: polygon.exterior.project(pivot.shape))
-
-        new_edges: Set[DirectEdge] = set()
-        for from_pivot, to_pivot in win_slice(pivots, win_size=2, tail_cycling=True):
-            new_edges.add(DirectEdge(from_pivot, to_pivot, stretch=self))
-            new_edges.add(DirectEdge(to_pivot, from_pivot, stretch=self))
-
-        new_edges.difference_update(set(self.edges))
-        self.edges.extend(new_edges)
+                    dist_tol: float = MATH_EPS) -> bool:
+        changed = self._add_edge(polygon.exterior.ext.ccw(), dist_tol=dist_tol)
         self.remove_dangling_edges()
-
-        return pivots
+        return changed
 
     def split_by(self, line: LineString,
                  dist_tol: float = MATH_EPS) -> bool:
@@ -408,11 +385,6 @@ class Stretch:
                        key=lambda edge: edge.shape.distance(point),
                        default=None)
 
-        add_pivot = partial(self.add_pivot,
-                            reuse_existing=True,
-                            attach_to_nearest_edge=True,
-                            dist_tol=dist_tol)
-
         changed: bool = False
 
         for line_inside in lines_inside:
@@ -425,39 +397,59 @@ class Stretch:
             if not (start_inserting_edge and end_inserting_edge):
                 continue  # just ignore this invalid line
 
-            # add pivots without duplicate
-            lmap(add_pivot, line_inside.ext.decompose(Point).to_list())
-
-            # add edges
-            new_edges: Set[DirectEdge] = set()
-
-            # since points of splitter have already been added to stretch, the query below will fetch out the pivots of
-            # splitter points as well as the already existed pivots.
-            # after sorting, each 2-pair pivot might create a new DirectEdge
-            pivots_on_line_inside: List[Pivot] = self.query_pivots(line_inside, buffer=dist_tol)
-            pivots_on_line_inside.sort(key=lambda pivot: line_inside.project(pivot.shape))
-
-            for _from_pivot, _to_pivot in win_slice(pivots_on_line_inside, win_size=2):
-                new_edges.add(DirectEdge(_from_pivot, _to_pivot, stretch=self))
-                new_edges.add(DirectEdge(_to_pivot, _from_pivot, stretch=self))
-
-            # remove possible duplicated edges
-            new_edges.difference_update(set(self.edges))
-            self.edges.extend(new_edges)
-
-            changed |= bool(new_edges)
+            changed |= self._add_edge(line_inside, dist_tol=dist_tol)
 
         # when splitter exactly touches the closure boundary, it will create dangling edges, clean these edges here
         self.remove_dangling_edges()
 
         return changed
 
+    def _add_edge(self, line: LineString, dist_tol: float = MATH_EPS) -> bool:
+        """
+        Add edge by linestring, attaching pivots and edges to each other if possible.
+        NOTICE: It might introduce dangling edges!
+        Parameters
+        ----------
+        line
+        dist_tol
+
+        Returns
+        -------
+
+        """
+        add_pivot = partial(self.add_pivot,
+                            reuse_existing=True,
+                            attach_to_nearest_edge=True,
+                            dist_tol=dist_tol)
+
+        # add pivots without duplicate
+        lmap(add_pivot, line.ext.decompose(Point).to_list())
+
+        # add edges
+        new_edges: Set[DirectEdge] = set()
+
+        # since points of splitter have already been added to stretch, the query below will fetch out the pivots of
+        # splitter points as well as the already existed pivots.
+        # after sorting, each 2-pair pivot might create a new DirectEdge
+        pivots_on_line_inside: List[Pivot] = self.query_pivots(line, buffer=dist_tol)
+        pivots_on_line_inside.sort(key=lambda pivot: line.project(pivot.shape))
+
+        for _from_pivot, _to_pivot in win_slice(pivots_on_line_inside, win_size=2, tail_cycling=line.is_ring):
+            new_edges.add(DirectEdge(_from_pivot, _to_pivot, stretch=self))
+            new_edges.add(DirectEdge(_to_pivot, _from_pivot, stretch=self))
+
+        # remove possible duplicated edges
+        new_edges.difference_update(set(self.edges))
+        self.edges.extend(new_edges)
+
+        return bool(self.edges)
+
 
 class StretchFactory:
     def __init__(self, dist_tol: float = MATH_EPS):
         self._dist_tol = dist_tol
 
-    def create(self, geom_or_geoms:  Union[BaseGeometry, Iterable[BaseGeometry]]) -> Stretch:
+    def create(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]]) -> Stretch:
         stretch = Stretch([], [])
 
         polys = (flatten(geom_or_geoms)

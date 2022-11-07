@@ -9,7 +9,7 @@ from shapely.geometry import Point, box, LineString
 from shapely.wkt import loads
 
 
-@fixture(scope='function')
+@fixture
 def stretch_of_single_box() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
@@ -25,7 +25,7 @@ def stretch_of_single_box() -> Stretch:
     return stretch
 
 
-@fixture(scope='function')
+@fixture
 def stretch_of_two_box() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
@@ -49,7 +49,7 @@ def stretch_of_two_box() -> Stretch:
     return stretch
 
 
-@fixture(scope='function')
+@fixture
 def stretch_of_single_box_with_glitch() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
@@ -68,7 +68,7 @@ def stretch_of_single_box_with_glitch() -> Stretch:
     return stretch
 
 
-@fixture(scope='function')
+@fixture
 def stretch_of_single_concave_box() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
@@ -86,7 +86,7 @@ def stretch_of_single_concave_box() -> Stretch:
     return stretch
 
 
-@fixture(scope='function')
+@fixture
 def stretch_of_box_and_triangle() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
@@ -255,12 +255,12 @@ class TestStretch:
         stretch = stretch_of_two_box
         origin_num_pivots: int = len(stretch.pivots)
 
-        result = stretch.add_closure(box(0, 0, 2, 2), reuse_existing=True, dist_tol=MATH_EPS)
-        assert len(result) == 5
+        result = stretch.add_closure(box(0, 0, 2, 2), dist_tol=MATH_EPS)
+        assert result
         assert origin_num_pivots == len(stretch.pivots)
 
-        result = stretch.add_closure(box(2, 1, 3, 2), reuse_existing=True, dist_tol=MATH_EPS)
-        assert len(result) == 4
+        result = stretch.add_closure(box(2, 1, 3, 2), dist_tol=MATH_EPS)
+        assert result
         assert origin_num_pivots + 1 == len(stretch.pivots)
 
     def test_add_closure_case1(self, stretch_of_single_box):
@@ -268,13 +268,13 @@ class TestStretch:
         origin_num_pivots: int = len(stretch.pivots)
         origin_num_edges: int = len(stretch.edges)
 
-        stretch.add_closure(box(2, 0, 3, 4), reuse_existing=True, dist_tol=MATH_EPS)
+        stretch.add_closure(box(2, 0, 3, 4), dist_tol=MATH_EPS)
         assert len(stretch.pivots) == origin_num_pivots + 3
         assert len(stretch.edges) == origin_num_edges + 5
 
     def test_add_closure_case2(self, stretch_of_two_box):
         stretch = stretch_of_two_box
-        stretch.add_closure(box(0, 0, 1, 1), reuse_existing=True, dist_tol=MATH_EPS)
+        stretch.add_closure(box(0, 0, 1, 1), dist_tol=MATH_EPS)
         assert len(stretch.pivots) == 10
         assert len(stretch.edges) == 15
         closures = stretch.closure_snapshot().closures
