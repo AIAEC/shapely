@@ -378,6 +378,9 @@ class Stretch:
 
     def add_closure(self, polygon: Polygon,
                     dist_tol: float = MATH_EPS) -> bool:
+        if not (isinstance(polygon, Polygon) and polygon.is_valid and not polygon.is_empty):
+            raise ValueError('expect a non-empty, valid polygon')
+
         add_reverse = unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures)).covers(polygon)
         changed = self._add_edge(polygon.exterior.ext.ccw(), add_reverse=add_reverse, dist_tol=dist_tol)
         self.remove_dangling_edges()
