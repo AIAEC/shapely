@@ -131,11 +131,7 @@ class DirectEdge:
         def other_ccw_rotating_angle_to_inversion_of_given_edge(other_edge: DirectEdge):
             return other_edge.shape.ext.angle().rotating_angle(invert_edge_angle, direct='ccw')
 
-        next_edge = min(out_edges, key=other_ccw_rotating_angle_to_inversion_of_given_edge, default=None)
-        if next_edge and self.is_reversed(next_edge):
-            return None
-
-        return next_edge
+        return min(out_edges, key=other_ccw_rotating_angle_to_inversion_of_given_edge, default=None)
 
     @property
     def previous(self) -> Optional['DirectEdge']:
