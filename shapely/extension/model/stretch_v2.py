@@ -323,34 +323,35 @@ class Stretch:
         deleting_edges = lfilter(lambda edge: edge not in valid_edges, self.edges)
         self._remove_edges(deleting_edges, delete_reverse=False)
 
-    def simplify_edges(self) -> None:
-        for pivot in self.pivots:
-            if len(pivot.in_edges) > 2:
-                continue
+    def simplify_edges(self, angle_tol: float = ANGLE_AROUND_EPS) -> None:
+        def removable_pivot(pivot: Pivot) -> bool:
+            if len(pivot.in_edges) > 2 or len(pivot.out_edges) > 2:
+                return False
+            edges = [*pivot.in_edges, *pivot.out_edges]
 
-            edge_pairs: List[Tuple[DirectEdge, DirectEdge]] = []
-            for in_edge in pivot.in_edges:
-                if not (collinear_edge := first(
-                        lambda e_: in_edge.shape.ext.angle()
-                                .almost_equal(e_.shape.ext.angle(), angle_tol=ANGLE_AROUND_EPS),
-                        pivot.out_edges)):
-                    break
-                edge_pairs.append((in_edge, collinear_edge))
-            if len(edge_pairs) != len(pivot.in_edges) or len(edge_pairs) == 0:
-                continue
+            def parallel(edge0: DirectEdge, edge1: DirectEdge):
+                return edge0.shape.ext.angle().parallel_to(edge1.shape.ext.angle(), angle_tol=angle_tol)
 
-            for edge_pair in edge_pairs:
-                new_edge = DirectEdge(from_pivot=edge_pair[0].from_pivot,
-                                      to_pivot=edge_pair[1].to_pivot,
-                                      stretch=self)
-                self.edges.append(new_edge)
-                for edge_ in edge_pair:
-                    edge_.from_pivot.out_edges.remove(edge_)
-                    edge_.to_pivot.in_edges.remove(edge_)
-                    self.edges.remove(edge_)
-            self.remove_dangling_pivots()
+            return all([parallel(edge0, edge1) for edge0, edge1 in combinations(edges, 2)])
 
-    def _remove_edges(self, edges: Sequence[DirectEdge], delete_reverse: bool = False) -> None:
+        for pivot in filter(removable_pivot, self.pivots):
+            in_edge: DirectEdge = pivot.in_edges[0]
+            previous_pivot: Pivot = in_edge.from_pivot
+            next_pivot: Pivot = in_edge.next.to_pivot
+
+            # if current in-edge-degree larger than 1, meaning edges around pivot has reverse edge
+            add_reverse: bool = len(pivot.in_edges) > 1
+
+            self._remove_edges([*pivot.in_edges, *pivot.out_edges], delete_reverse=True, clean_dangling=False)
+            self.edges.append(DirectEdge(from_pivot=previous_pivot, to_pivot=next_pivot, stretch=self))
+            if add_reverse:
+                self.edges.append(DirectEdge(from_pivot=next_pivot, to_pivot=previous_pivot, stretch=self))
+
+        self.remove_dangling_pivots()
+
+    def _remove_edges(self, edges: Sequence[DirectEdge],
+                      delete_reverse: bool = False,
+                      clean_dangling: bool = True) -> None:
         # only used as internal method, don't use it publicly
         if delete_reverse:
             deleting_edge_views: Set[DirectEdge] = set(concat([(e, e.reverse) for e in edges]))
@@ -363,7 +364,8 @@ class Stretch:
             deleting_edge.from_pivot.out_edges.remove(deleting_edge)
             deleting_edge.to_pivot.in_edges.remove(deleting_edge)
 
-        self.remove_dangling_pivots()
+        if clean_dangling:
+            self.remove_dangling_pivots()
 
     def remove_closure(self, closure_copy: ClosureView) -> None:
         self._remove_edges(closure_copy.edges, delete_reverse=False)
