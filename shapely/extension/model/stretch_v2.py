@@ -4,14 +4,14 @@ from dataclasses import dataclass, field
 from functools import partial, cached_property
 from itertools import combinations
 from operator import truth, attrgetter
-from typing import Union, List, Optional, Set, Sequence, Literal, Iterable
+from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Tuple
 from uuid import uuid4
 from weakref import ref, ReferenceType
 
 from functional import seq
 from toolz import concat
 
-from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
+from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS
 from shapely.extension.geometry import StraightSegment
 from shapely.extension.model import Coord, Vector, Angle
 from shapely.extension.util.flatten import flatten
@@ -299,7 +299,7 @@ class ClosureSnapshot:
 
 class Stretch:
     def __init__(self, pivots: List[Pivot], edges: List[DirectEdge]):
-        self.pivots: List[pivots] = pivots
+        self.pivots: List[Pivot] = pivots
         self.edges: List[DirectEdge] = edges
         self.id = uuid4()
 
@@ -323,6 +323,33 @@ class Stretch:
         valid_edges: Set[DirectEdgeView] = set(concat(closure.edges for closure in self.closure_snapshot().closures))
         deleting_edges = lfilter(lambda edge: edge not in valid_edges, self.edges)
         self._remove_edges(deleting_edges, delete_reverse=False)
+
+    def simplify_edges(self) -> None:
+        for pivot in self.pivots:
+            if len(pivot.in_edges) > 2:
+                continue
+
+            edge_pairs: List[Tuple[DirectEdge, DirectEdge]] = []
+            for in_edge in pivot.in_edges:
+                if not (collinear_edge := first(
+                        lambda e_: in_edge.shape.ext.angle()
+                                .almost_equal(e_.shape.ext.angle(), angle_tol=ANGLE_AROUND_EPS),
+                        pivot.out_edges)):
+                    break
+                edge_pairs.append((in_edge, collinear_edge))
+            if len(edge_pairs) != len(pivot.in_edges) or len(edge_pairs) == 0:
+                continue
+
+            for edge_pair in edge_pairs:
+                new_edge = DirectEdge(from_pivot=edge_pair[0].from_pivot,
+                                      to_pivot=edge_pair[1].to_pivot,
+                                      stretch=self)
+                self.edges.append(new_edge)
+                for edge_ in edge_pair:
+                    edge_.from_pivot.out_edges.remove(edge_)
+                    edge_.to_pivot.in_edges.remove(edge_)
+                    self.edges.remove(edge_)
+            self.remove_dangling_pivots()
 
     def _remove_edges(self, edges: Sequence[DirectEdge], delete_reverse: bool = False) -> None:
         # only used as internal method, don't use it publicly
@@ -348,6 +375,7 @@ class Stretch:
 
         for closure_copy0, closure_copy1 in combinations(closure_copies, 2):
             self._remove_edges(closure_copy0.shared_edges(closure_copy1), delete_reverse=True)
+        self.simplify_edges()
 
     def _query_attachable_pivot(self, point: Point, dist_tol: float = MATH_EPS) -> Pivot:
         pivots = self.query_pivots(geom=point, buffer=dist_tol)
