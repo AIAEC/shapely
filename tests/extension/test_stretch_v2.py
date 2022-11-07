@@ -272,6 +272,14 @@ class TestStretch:
         assert len(stretch.pivots) == origin_num_pivots + 3
         assert len(stretch.edges) == origin_num_edges + 5
 
+    def test_add_closure_case2(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        stretch.add_closure(box(0, 0, 1, 1), reuse_existing=True, dist_tol=MATH_EPS)
+        assert len(stretch.pivots) == 10
+        assert len(stretch.edges) == 15
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+
     def test_remove_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         closures = sorted(stretch.closure_snapshot().closures,

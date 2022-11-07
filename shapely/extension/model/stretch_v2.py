@@ -384,13 +384,16 @@ class Stretch:
         new_edges: Set[DirectEdge] = set()
         for from_pivot, to_pivot in win_slice(pivots, win_size=2, tail_cycling=True):
             new_edges.add(DirectEdge(from_pivot, to_pivot, stretch=self))
+            new_edges.add(DirectEdge(to_pivot, from_pivot, stretch=self))
 
         new_edges.difference_update(set(self.edges))
         self.edges.extend(new_edges)
+        self.remove_dangling_edges()
 
         return pivots
 
-    def split_by(self, line: LineString, dist_tol: float = MATH_EPS) -> bool:
+    def split_by(self, line: LineString,
+                 dist_tol: float = MATH_EPS) -> bool:
         from shapely.extension.util.offset import self_intersection
 
         lines_inside: List[LineString] = (self.closure_snapshot().occupation
