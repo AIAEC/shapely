@@ -20,6 +20,7 @@ from shapely.extension.util.iter_util import win_slice, first
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.geometry import Point, Polygon, MultiPolygon, LineString, LinearRing
 from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
 
 
 class Pivot:
@@ -130,7 +131,11 @@ class DirectEdge:
         def other_ccw_rotating_angle_to_inversion_of_given_edge(other_edge: DirectEdge):
             return other_edge.shape.ext.angle().rotating_angle(invert_edge_angle, direct='ccw')
 
-        return min(out_edges, key=other_ccw_rotating_angle_to_inversion_of_given_edge, default=None)
+        next_edge = min(out_edges, key=other_ccw_rotating_angle_to_inversion_of_given_edge, default=None)
+        if next_edge and self.is_reversed(next_edge):
+            return None
+
+        return next_edge
 
     @property
     def previous(self) -> Optional['DirectEdge']:
@@ -239,7 +244,16 @@ class ClosureSnapshot:
         return ring_edges
 
     @staticmethod
-    def ring_edge_to_closure(ring_edges: List[DirectEdge]) -> Optional[ClosureView]:
+    def valid_ring_edges(ring_edges: List[DirectEdge]) -> bool:
+        if not ring_edges:
+            return False
+        if ring_edges[0].from_pivot != ring_edges[-1].to_pivot:
+            return False
+        return all(pre.to_pivot == next_.from_pivot
+                   for pre, next_ in win_slice(ring_edges, win_size=2, tail_cycling=True))
+
+    @staticmethod
+    def ring_edges_to_closure(ring_edges: List[DirectEdge]) -> Optional[ClosureView]:
         if not ring_edges:
             return None
 
@@ -265,12 +279,15 @@ class ClosureSnapshot:
             starting_edge = edge_set.pop()
 
             edges = cls.find_edge_ring(starting_edge)
+            if not cls.valid_ring_edges(edges):
+                continue  # starting_edge is invalid edge, just ignore it
+
             ring_edge_groups.append(edges)
 
             edge_set.difference_update(set(edges))
 
         closures: List[ClosureView] = (seq(ring_edge_groups)
-                                       .map(cls.ring_edge_to_closure)
+                                       .map(cls.ring_edges_to_closure)
                                        .filter(truth)
                                        .to_list())
 
@@ -365,7 +382,8 @@ class Stretch:
 
     def add_closure(self, polygon: Polygon,
                     dist_tol: float = MATH_EPS) -> bool:
-        changed = self._add_edge(polygon.exterior.ext.ccw(), dist_tol=dist_tol)
+        add_reverse = unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures)).covers(polygon)
+        changed = self._add_edge(polygon.exterior.ext.ccw(), add_reverse=add_reverse, dist_tol=dist_tol)
         self.remove_dangling_edges()
         return changed
 
@@ -397,20 +415,21 @@ class Stretch:
             if not (start_inserting_edge and end_inserting_edge):
                 continue  # just ignore this invalid line
 
-            changed |= self._add_edge(line_inside, dist_tol=dist_tol)
+            changed |= self._add_edge(line=line_inside, add_reverse=True, dist_tol=dist_tol)
 
         # when splitter exactly touches the closure boundary, it will create dangling edges, clean these edges here
         self.remove_dangling_edges()
 
         return changed
 
-    def _add_edge(self, line: LineString, dist_tol: float = MATH_EPS) -> bool:
+    def _add_edge(self, line: LineString, add_reverse: bool = False, dist_tol: float = MATH_EPS) -> bool:
         """
         Add edge by linestring, attaching pivots and edges to each other if possible.
         NOTICE: It might introduce dangling edges!
         Parameters
         ----------
         line
+        add_reverse
         dist_tol
 
         Returns
@@ -436,7 +455,8 @@ class Stretch:
 
         for _from_pivot, _to_pivot in win_slice(pivots_on_line_inside, win_size=2, tail_cycling=line.is_ring):
             new_edges.add(DirectEdge(_from_pivot, _to_pivot, stretch=self))
-            new_edges.add(DirectEdge(_to_pivot, _from_pivot, stretch=self))
+            if add_reverse:
+                new_edges.add(DirectEdge(_to_pivot, _from_pivot, stretch=self))
 
         # remove possible duplicated edges
         new_edges.difference_update(set(self.edges))
@@ -523,7 +543,7 @@ class BaseOffsetStrategy(ABC):
             return None
 
         edge_ring: List[DirectEdge] = ClosureSnapshot.find_edge_ring(edge)
-        return ClosureSnapshot.ring_edge_to_closure(edge_ring)
+        return ClosureSnapshot.ring_edges_to_closure(edge_ring)
 
     def offset_from_pivot(self, edge: DirectEdge,
                           offset_vector: Vector,
