@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from operator import truth
-from typing import Union, Sequence, Callable, List
+from typing import Union, Sequence, Callable, List, Dict
 
 import numpy as np
 from shapely.extension.geometry.straight_segment import StraightSegment
@@ -25,7 +25,7 @@ class BaseDecomposeStrategy(ABC):
                 MultiPolygon: self.multipolygon_to_polygons}.get(self.type_of(geom_or_geoms), self.empty_handler)
 
     @staticmethod
-    def decompose_order() -> List[type]:
+    def decompose_order() -> Dict[type, int]:
         types = [GeometryCollection, MultiPolygon, Polygon, MultiLineString, LineString, LinearRing, StraightSegment,
                  MultiPoint, Point]
         type_dict = {type_: i for i, type_ in enumerate(types)}

@@ -1,5 +1,5 @@
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
-from typing import Union, Sequence, Tuple
+from typing import Union, Sequence, Tuple, Literal
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.typing import Num
@@ -36,6 +36,9 @@ class Angle:
         else:
             self._angle_degree = angle_degree
             self._range = range_
+
+    def __repr__(self):
+        return f'{self.degree}%{self._range}'
 
     @classmethod
     def from_radian(cls, radian: float, range_: Tuple[float, float] = (0, 360)):
@@ -223,7 +226,7 @@ class Angle:
         """
         return Angle(self._range[1] - self.degree, range_=self._range)
 
-    def rotating_angle(self, angle: Union['Angle', float], direct: str = 'ccw') -> 'Angle':
+    def rotating_angle(self, angle: Union['Angle', float], direct: Literal['ccw', 'cw'] = 'ccw') -> 'Angle':
         """
         calculate the angle that cost by current angle to the given angle
 
@@ -285,8 +288,8 @@ class Angle:
         -------
         bool
         """
-        return (isclose(self.including_angle(angle), 90, abs_tol=angle_tol)
-                or isclose(self.including_angle(angle), 270, abs_tol=angle_tol))
+        return (isclose(self.including_angle(angle).degree, 90, abs_tol=angle_tol)
+                or isclose(self.including_angle(angle).degree, 270, abs_tol=angle_tol))
 
     def __float__(self):
         return float(self._angle_degree)

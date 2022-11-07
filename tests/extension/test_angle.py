@@ -166,6 +166,8 @@ class AngleTest(TestCase):
 
         angle = Angle(90, (-90, 90))
         self.assertEqual(0, angle.rotating_angle(90))
+        self.assertEqual(-4, angle.rotating_angle(86, direct='ccw'))
+        self.assertTrue(angle.rotating_angle(86, direct='ccw') < 0)
 
         # here we calculate including angle to be 180, but in modulo space of (-90, 90), the
         # degree here will be 90
@@ -186,6 +188,11 @@ class AngleTest(TestCase):
 
         angle = Angle(180, (-90, 90))
         self.assertEqual(-90, angle.including_angle(Angle(90, (-90, 90))))
+
+        angle = Angle(angle_degree=73.90969753239641, range_=(0, 360))
+        angle2 = Angle(angle_degree=73.90969753239642, range_=(0, 360))
+        dif = angle.including_angle(angle2)
+        self.assertTrue(isinstance(dif, Angle))
 
     def test_is_close(self):
         angle0 = Angle(0)
@@ -240,3 +247,6 @@ class AngleTest(TestCase):
         self.assertTrue(angle.perpendicular_to(91))
         self.assertTrue(angle.perpendicular_to(271))
         self.assertTrue(angle.perpendicular_to(271.5, angle_tol=2))
+
+        self.assertTrue(Angle(0).perpendicular_to(Angle(270)))
+        self.assertTrue(Angle(270).perpendicular_to(Angle(0)))

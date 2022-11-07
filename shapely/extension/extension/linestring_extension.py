@@ -162,8 +162,7 @@ class LineStringExtension(BaseGeomExtension):
         -------
         bool
         """
-        angle = self.angle(angle_strategy) - other.ext.angle(angle_strategy)
-        return angle.almost_equal(180, angle_tol=angle_tol) or angle.almost_equal(0, angle_tol=angle_tol)
+        return self.angle(angle_strategy).parallel_to(other.ext.angle(angle_strategy), angle_tol=angle_tol)
 
     def is_perpendicular_to(self, other: LineString,
                             angle_tol: float = MATH_EPS,
