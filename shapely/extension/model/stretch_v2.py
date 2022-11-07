@@ -11,13 +11,12 @@ from weakref import ref, ReferenceType
 from functional import seq
 from toolz import concat
 
-from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS
+from shapely.extension.constant import MATH_EPS, ANGLE_AROUND_EPS
 from shapely.extension.geometry import StraightSegment
 from shapely.extension.model import Coord, Vector, Angle
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap, separate
 from shapely.extension.util.iter_util import win_slice, first
-from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.geometry import Point, Polygon, MultiPolygon, LineString, LinearRing
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
@@ -375,7 +374,6 @@ class Stretch:
 
         for closure_copy0, closure_copy1 in combinations(closure_copies, 2):
             self._remove_edges(closure_copy0.shared_edges(closure_copy1), delete_reverse=True)
-        self.simplify_edges()
 
     def _query_attachable_pivot(self, point: Point, dist_tol: float = MATH_EPS) -> Pivot:
         pivots = self.query_pivots(geom=point, buffer=dist_tol)
@@ -510,21 +508,38 @@ class StretchFactory:
         return stretch
 
 
-class Along:
-    def __init__(self, line: Union[LineString, LinearRing]):
-        self._line = line
+class AttachingOffset:
+    def __init__(self, ring: LinearRing, dist_tol: float = MATH_EPS):
+        self._ring = ring
+        self._ring_points_aggregation = self._ring.ext.decompose(Point)
+        self._dist_tol = dist_tol
 
-    def move(self, point: Point, vector: Vector) -> Optional[Point]:
-        moved = vector.apply(point)
+    def _find_attachable_point(self, point: Point,
+                               offset_vector: Vector,
+                               direction: Literal['back', 'forward'] = 'back') -> Optional[Point]:
+        moved_point = offset_vector.apply(point)
+        if direction == 'back':
+            ray = offset_vector.cw_perpendicular.ray(moved_point, length=self._ring.length)
+        else:
+            ray = offset_vector.ccw_perpendicular.ray(moved_point, length=self._ring.length)
 
-        line = self._line
-        if isinstance(self._line, LineString):
-            line = self._line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE)
+        points = []
+        points.extend(ray.intersection(self._ring).ext.decompose(Point).to_list())
 
-        if path := ShortestStraightPath(vector.cw_perpendicular).of(moved, line):
-            return min([path.ext.start(), path.ext.end()], key=self._line.distance)
+        query_region = ray.buffer(self._dist_tol)
+        points.extend(self._ring_points_aggregation.filter(lambda pt: query_region.covers(pt)).to_list())
 
-        return None
+        return min(points, key=moved_point.distance, default=None)
+
+    def for_from_pivot(self, from_pivot: Pivot, offset_vector: Vector) -> Optional[Point]:
+        if point := self._find_attachable_point(from_pivot.shape, offset_vector, direction='back'):
+            return point
+        return self._find_attachable_point(from_pivot.shape, offset_vector, direction='forward')
+
+    def for_to_pivot(self, to_pivot: Pivot, offset_vector: Vector) -> Optional[Point]:
+        if point := self._find_attachable_point(to_pivot.shape, offset_vector, direction='forward'):
+            return point
+        return self._find_attachable_point(to_pivot.shape, offset_vector, direction='back')
 
 
 class BaseOffsetStrategy(ABC):
@@ -611,7 +626,8 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = Along(shrinking_closure.shape.exterior).move(edge.from_pivot.shape, offset_vector)
+        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=MATH_EPS)
+                        .for_to_pivot(edge.from_pivot, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
         return self.stretch.add_pivot(target_point)
@@ -654,7 +670,8 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = Along(shrinking_closure.shape.exterior).move(edge.to_pivot.shape, offset_vector)
+        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=MATH_EPS)
+                        .for_to_pivot(edge.to_pivot, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
         return self.stretch.add_pivot(target_point)

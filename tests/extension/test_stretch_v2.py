@@ -3,7 +3,7 @@ from pytest import fixture
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model import Vector
-from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, Along, \
+from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
     OffsetStrategy, ClosureView, StretchFactory
 from shapely.geometry import Point, box, LineString
 from shapely.wkt import loads
@@ -147,6 +147,34 @@ def stretch_of_box_and_triangle() -> Stretch:
              DirectEdge(pivot_1_1, pivot_1_0, stretch)]
 
     stretch.pivots = [pivot_0_0, pivot_1_0, pivot_1_1, pivot_0_1, pivot_2_1]
+    stretch.edges = edges
+    return stretch
+
+
+@fixture
+def stretch_for_offset() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_1_1 = Pivot(Point(1, 1), stretch)
+    pivot_1_n1 = Pivot(Point(1, -1), stretch)
+    pivot_10_n1 = Pivot(Point(10, -1), stretch)
+    pivot_10_n10 = Pivot(Point(10, -10), stretch)
+    pivot_0_n10 = Pivot(Point(0, -10), stretch)
+
+    edges = [
+        DirectEdge(pivot_0_0, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_1_1, stretch),
+        DirectEdge(pivot_1_1, pivot_0_0, stretch),
+        DirectEdge(pivot_1_0, pivot_0_0, stretch),
+        DirectEdge(pivot_0_0, pivot_0_n10, stretch),
+        DirectEdge(pivot_0_n10, pivot_10_n10, stretch),
+        DirectEdge(pivot_10_n10, pivot_10_n1, stretch),
+        DirectEdge(pivot_10_n1, pivot_1_n1, stretch),
+        DirectEdge(pivot_1_n1, pivot_1_0, stretch)
+    ]
+
+    stretch.pivots = [pivot_0_0, pivot_1_0, pivot_1_1, pivot_1_n1, pivot_10_n1, pivot_10_n10, pivot_0_n10]
     stretch.edges = edges
     return stretch
 
@@ -445,18 +473,6 @@ class TestClosureSnapshot:
         assert closures[1].shape.equals(box(0, 0, 2, 2))
 
 
-class TestAlong:
-    def test_move_point_along_linestring(self):
-        point = Point(1, 0)
-        line = LineString([(0, 0), (100, 100)])
-
-        result = Along(line).move(point, Vector(49, 0))
-        assert result.almost_equals(Point(50, 50))
-
-        result = Along(line).move(point, Vector(150, 0))
-        assert result.almost_equals(Point(151, 151))
-
-
 class TestOffsetStrategy:
     def test_shrinking_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -595,3 +611,10 @@ class TestOffsetStrategy:
         edge = stretch0.edges[0]
         with pytest.raises(ValueError):
             OffsetStrategy(edge, Vector(1, 0)).do()
+
+    def test_offset_for_pivot_attaching_mode_in_hard_case(self, stretch_for_offset):
+        stretch = stretch_for_offset
+        edge = stretch.edges[0]
+        OffsetStrategy(edge, Vector(0, -1 - MATH_EPS)).do()
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2
