@@ -5,7 +5,7 @@ from shapely.extension.constant import MATH_EPS
 from shapely.extension.model import Vector
 from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
     OffsetStrategy, ClosureView, StretchFactory
-from shapely.geometry import Point, box, LineString, MultiPolygon
+from shapely.geometry import Point, box, LineString
 from shapely.wkt import loads
 
 

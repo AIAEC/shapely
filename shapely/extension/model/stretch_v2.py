@@ -4,7 +4,7 @@ from contextlib import suppress
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, cached_property
-from itertools import combinations
+from itertools import combinations, product
 from operator import truth, attrgetter
 from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Dict, Tuple
 from uuid import uuid4
@@ -63,7 +63,7 @@ class Pivot:
 
     @property
     def dangling(self) -> bool:
-        return len(self.in_edges) + len(self.out_edges) == 0
+        return len(self.in_edges) + len(self.out_edges) < 2
 
     def distance(self, point: Union[Point, 'Pivot']) -> float:
         point = point.shape if isinstance(point, Pivot) else point
@@ -391,14 +391,23 @@ class Stretch:
 
     def simplify_edges(self, angle_tol: float = ANGLE_AROUND_EPS) -> None:
         def removable_pivot(pivot: Pivot) -> bool:
-            if len(pivot.in_edges) > 2 or len(pivot.out_edges) > 2:
+            # pivot that satisfies conditions below should be considered a removable pivot
+            # 1. has (1 in-edge and 1 out-edge) or (2 in-edges and 2-out-edges)
+            # 2. this pivot only has 2 neighbor pivots
+            # 3. each pair of in-edge, out-edge are parallel to each other
+            # Notice: the filtering condition should not be weaker than these
+            if not (len(pivot.in_edges) == len(pivot.out_edges) == 1
+                    or len(pivot.in_edges) == len(pivot.out_edges) == 2):
                 return False
-            edges = [*pivot.in_edges, *pivot.out_edges]
+
+            # pivot has exactly 2 neighbors
+            if len(set(concat([(edge.from_pivot, edge.to_pivot) for edge in pivot.in_edges + pivot.out_edges]))) != 3:
+                return False
 
             def parallel(edge0: DirectEdge, edge1: DirectEdge):
                 return edge0.shape.ext.angle().parallel_to(edge1.shape.ext.angle(), angle_tol=angle_tol)
 
-            return all([parallel(edge0, edge1) for edge0, edge1 in combinations(edges, 2)])
+            return all([parallel(edge0, edge1) for edge0, edge1 in product(pivot.in_edges, pivot.out_edges)])
 
         for pivot in filter(removable_pivot, self.pivots):
             in_edge: DirectEdge = pivot.in_edges[0]
@@ -413,6 +422,7 @@ class Stretch:
             if add_reverse:
                 self.edges.append(DirectEdge(from_pivot=next_pivot, to_pivot=previous_pivot, stretch=self))
 
+        self.remove_dangling_edges()
         self.remove_dangling_pivots()
 
     def _force_remove_edges(self, edges: Sequence[DirectEdge],
@@ -602,27 +612,27 @@ class AttachingOffset:
     def for_from_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
         offset_to_left: bool = edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
         direction = ['cw', 'ccw'][offset_to_left]
-        if point := self._find_attachable_point(edge.from_pivot.shape,
-                                                offset_vector,
+        if point := self._find_attachable_point(point=edge.from_pivot.shape,
+                                                offset_vector=offset_vector,
                                                 rotating_direct_from_offset_vec=direction):
             return point
 
         other_direction = ['cw', 'ccw'][offset_to_left - 1]
-        return self._find_attachable_point(edge.from_pivot.shape,
-                                           offset_vector,
+        return self._find_attachable_point(point=edge.from_pivot.shape,
+                                           offset_vector=offset_vector,
                                            rotating_direct_from_offset_vec=other_direction)
 
     def for_to_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
         offset_to_left: bool = edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
         direction = ['ccw', 'cw'][offset_to_left]
-        if point := self._find_attachable_point(edge.to_pivot.shape,
-                                                offset_vector,
+        if point := self._find_attachable_point(point=edge.to_pivot.shape,
+                                                offset_vector=offset_vector,
                                                 rotating_direct_from_offset_vec=direction):
             return point
 
         other_direction = ['ccw', 'cw'][offset_to_left - 1]
-        return self._find_attachable_point(edge.to_pivot.shape,
-                                           offset_vector,
+        return self._find_attachable_point(point=edge.to_pivot.shape,
+                                           offset_vector=offset_vector,
                                            rotating_direct_from_offset_vec=other_direction)
 
 
@@ -714,7 +724,7 @@ class BaseOffsetStrategy(ABC):
                         .for_from_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
-        return self.stretch.add_pivot(target_point)
+        return self.stretch.add_pivot(target_point, dist_tol=MATH_EPS)
 
     def offset_to_pivot(self, edge: DirectEdge,
                         offset_vector: Vector,
@@ -758,7 +768,7 @@ class BaseOffsetStrategy(ABC):
                         .for_to_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
-        return self.stretch.add_pivot(target_point)
+        return self.stretch.add_pivot(target_point, dist_tol=MATH_EPS)
 
     def do(self) -> DirectEdge:
         new_from_pivot = self.offset_from_pivot(edge=self._edge,
@@ -776,6 +786,7 @@ class BaseOffsetStrategy(ABC):
         self.stretch.edges.extend(new_edges)
         self.stretch._force_remove_edges([self._edge], delete_reverse=True)
         self.stretch.remove_dangling_edges()
+        self.stretch.remove_dangling_pivots()
 
         return new_edges[0]
 
@@ -795,8 +806,7 @@ class OffsetStrategy(BaseOffsetStrategy):
         previous_inversion_angle = edge.previous.shape.ext.inverse().ext.angle()
         # policy here: can be modified or inherit to a new policy
         # TODO: draw diagram here
-        perpendicular_mode: bool = (
-                offset_vector.angle.rotating_angle(previous_inversion_angle, direct='ccw').degree > 89)
+        perpendicular_mode: bool = offset_vector.angle.including_angle(previous_inversion_angle).degree > 89
 
         return perpendicular_mode
 
@@ -813,7 +823,6 @@ class OffsetStrategy(BaseOffsetStrategy):
 
         # policy here: can be modified or inherit to a new policy
         # TODO: draw diagram here
-        perpendicular_mode: bool = (
-                offset_vector.angle.rotating_angle(edge.next.shape.ext.angle(), direct='ccw').degree > 89)
+        perpendicular_mode: bool = offset_vector.angle.including_angle(edge.next.shape.ext.angle()).degree > 89
 
         return perpendicular_mode
