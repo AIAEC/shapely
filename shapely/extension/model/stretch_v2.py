@@ -199,7 +199,7 @@ class DirectEdgeView(DirectEdge):
     """
 
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
-        super().__init__(deepcopy(from_pivot), deepcopy(to_pivot), stretch)
+        super().__init__(from_pivot, to_pivot, stretch)
 
     @property
     def reverse(self) -> 'DirectEdgeView':
@@ -481,13 +481,15 @@ class Stretch:
         return new_pivot
 
     def add_closure(self, polygon: Polygon,
-                    dist_tol: float = MATH_EPS) -> bool:
+                    dist_tol: float = MATH_EPS,
+                    remove_dangling: bool = False) -> bool:
         if not (isinstance(polygon, Polygon) and polygon.is_valid and not polygon.is_empty):
             raise ValueError('expect a non-empty, valid polygon')
 
         add_reverse = unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures)).covers(polygon)
         changed = self._add_edge(polygon.exterior.ext.ccw(), add_reverse=add_reverse, dist_tol=dist_tol)
-        self.remove_dangling_edges()
+        if remove_dangling:
+            self.remove_dangling_edges()
         return changed
 
     def split_by(self, line: LineString,
@@ -581,8 +583,10 @@ class StretchFactory:
                  .to_list())
 
         for poly in polys:
-            stretch.add_closure(poly, dist_tol=self._dist_tol)
+            stretch.add_closure(poly, dist_tol=self._dist_tol, remove_dangling=False)
 
+        stretch.remove_dangling_edges()
+        stretch.remove_dangling_pivots()
         return stretch
 
 
