@@ -5,7 +5,7 @@ from shapely.extension.constant import MATH_EPS
 from shapely.extension.model import Vector
 from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
     OffsetStrategy, ClosureView, StretchFactory
-from shapely.geometry import Point, box, LineString
+from shapely.geometry import Point, box, LineString, MultiPolygon
 from shapely.wkt import loads
 
 
@@ -198,6 +198,34 @@ def stretch_for_offset() -> Stretch:
     ]
 
     stretch.pivots = [pivot_0_0, pivot_1_0, pivot_1_1, pivot_1_n1, pivot_10_n1, pivot_10_n10, pivot_0_n10]
+    stretch.edges = edges
+    return stretch
+
+
+@fixture
+def stretch_of_3box_for_offset() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_2_0 = Pivot(Point(2, 0), stretch)
+    pivot_2_2 = Pivot(Point(2, 2), stretch)
+    pivot_0_2 = Pivot(Point(0, 2), stretch)
+    pivot_n1_0 = Pivot(Point(-1, 0), stretch)
+    pivot_n1_n2 = Pivot(Point(-1, -2), stretch)
+    pivot_1_n2 = Pivot(Point(1, -2), stretch)
+    edges = [
+        DirectEdge(pivot_0_0, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_2_0, stretch),
+        DirectEdge(pivot_2_0, pivot_2_2, stretch),
+        DirectEdge(pivot_2_2, pivot_0_2, stretch),
+        DirectEdge(pivot_0_2, pivot_0_0, stretch),
+        DirectEdge(pivot_0_0, pivot_n1_0, stretch),
+        DirectEdge(pivot_n1_0, pivot_n1_n2, stretch),
+        DirectEdge(pivot_n1_n2, pivot_1_n2, stretch),
+        DirectEdge(pivot_1_n2, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_0_0, stretch),
+    ]
+    stretch.pivots = [pivot_0_0, pivot_1_0, pivot_2_0, pivot_2_2, pivot_0_2, pivot_n1_0, pivot_n1_n2, pivot_1_n2]
     stretch.edges = edges
     return stretch
 
@@ -666,3 +694,17 @@ class TestOffsetStrategy:
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 10
         assert sum([c.shape.area for c in closures]) == pytest.approx(origin_area)
+
+    def test_offset_colinear_segment(self, stretch_of_3box_for_offset):
+        stretch = stretch_of_3box_for_offset
+        edge = stretch.query_edges(Point(1.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 - 1e-4)).do()
+
+        edge = stretch.query_edges(Point(-0.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 + 1e-4)).do()
+
+        edge = stretch.query_edges(Point(0.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 - 1e-4)).do()
+
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2

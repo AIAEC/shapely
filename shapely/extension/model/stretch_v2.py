@@ -333,7 +333,8 @@ class Stretch:
 
     def _remove_back_turning_edge(self) -> None:
         def removable_pivot(pivot: Pivot) -> bool:
-            return len(pivot.in_edges) == len(pivot.out_edges) == 1 and pivot.in_edges[0].is_reversed(pivot.out_edges[0])
+            return len(pivot.in_edges) == len(pivot.out_edges) == 1 and pivot.in_edges[0].is_reversed(
+                pivot.out_edges[0])
 
         def recursive_removable_candidate(pivot: Pivot) -> Optional[Pivot]:
             if len(pivot.in_edges) != 1:
@@ -559,9 +560,9 @@ class AttachingOffset:
 
     def _find_attachable_point(self, point: Point,
                                offset_vector: Vector,
-                               direction: Literal['back', 'forward'] = 'back') -> Optional[Point]:
+                               rotating_direct_from_offset_vec: str) -> Optional[Point]:
         moved_point = offset_vector.apply(point)
-        if direction == 'back':
+        if rotating_direct_from_offset_vec == 'cw':
             ray = offset_vector.cw_perpendicular.ray(moved_point, length=self._ring.length)
         else:
             ray = offset_vector.ccw_perpendicular.ray(moved_point, length=self._ring.length)
@@ -574,15 +575,31 @@ class AttachingOffset:
 
         return min(points, key=moved_point.distance, default=None)
 
-    def for_from_pivot(self, from_pivot: Pivot, offset_vector: Vector) -> Optional[Point]:
-        if point := self._find_attachable_point(from_pivot.shape, offset_vector, direction='back'):
+    def for_from_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
+        offset_to_left: bool = edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
+        direction = ['cw', 'ccw'][offset_to_left]
+        if point := self._find_attachable_point(edge.from_pivot.shape,
+                                                offset_vector,
+                                                rotating_direct_from_offset_vec=direction):
             return point
-        return self._find_attachable_point(from_pivot.shape, offset_vector, direction='forward')
 
-    def for_to_pivot(self, to_pivot: Pivot, offset_vector: Vector) -> Optional[Point]:
-        if point := self._find_attachable_point(to_pivot.shape, offset_vector, direction='forward'):
+        other_direction = ['cw', 'ccw'][offset_to_left - 1]
+        return self._find_attachable_point(edge.from_pivot.shape,
+                                           offset_vector,
+                                           rotating_direct_from_offset_vec=other_direction)
+
+    def for_to_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
+        offset_to_left: bool = edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
+        direction = ['ccw', 'cw'][offset_to_left]
+        if point := self._find_attachable_point(edge.to_pivot.shape,
+                                                offset_vector,
+                                                rotating_direct_from_offset_vec=direction):
             return point
-        return self._find_attachable_point(to_pivot.shape, offset_vector, direction='back')
+
+        other_direction = ['ccw', 'cw'][offset_to_left - 1]
+        return self._find_attachable_point(edge.to_pivot.shape,
+                                           offset_vector,
+                                           rotating_direct_from_offset_vec=other_direction)
 
 
 class BaseOffsetStrategy(ABC):
@@ -670,7 +687,7 @@ class BaseOffsetStrategy(ABC):
             raise ValueError('probably because perpendicular mode failed')
 
         target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=MATH_EPS)
-                        .for_to_pivot(edge.from_pivot, offset_vector))
+                        .for_from_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
         return self.stretch.add_pivot(target_point)
@@ -714,7 +731,7 @@ class BaseOffsetStrategy(ABC):
             raise ValueError('probably because perpendicular mode failed')
 
         target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=MATH_EPS)
-                        .for_to_pivot(edge.to_pivot, offset_vector))
+                        .for_to_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
         return self.stretch.add_pivot(target_point)
