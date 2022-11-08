@@ -273,6 +273,7 @@ class ClosureSnapshot:
 
     @classmethod
     def create_from(cls, stretch):
+        stretch = deepcopy(stretch)
         edge_set: Set[DirectEdge] = set(stretch.edges)
 
         ring_edge_groups: List[List[DirectEdge]] = []
@@ -481,15 +482,13 @@ class Stretch:
         return new_pivot
 
     def add_closure(self, polygon: Polygon,
-                    dist_tol: float = MATH_EPS,
-                    remove_dangling: bool = False) -> bool:
+                    dist_tol: float = MATH_EPS) -> bool:
         if not (isinstance(polygon, Polygon) and polygon.is_valid and not polygon.is_empty):
             raise ValueError('expect a non-empty, valid polygon')
 
         add_reverse = unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures)).covers(polygon)
         changed = self._add_edge(polygon.exterior.ext.ccw(), add_reverse=add_reverse, dist_tol=dist_tol)
-        if remove_dangling:
-            self.remove_dangling_edges()
+        self.remove_dangling_edges()
         return changed
 
     def split_by(self, line: LineString,
@@ -583,7 +582,7 @@ class StretchFactory:
                  .to_list())
 
         for poly in polys:
-            stretch.add_closure(poly, dist_tol=self._dist_tol, remove_dangling=False)
+            stretch.add_closure(poly, dist_tol=self._dist_tol)
 
         stretch.remove_dangling_edges()
         stretch.remove_dangling_pivots()

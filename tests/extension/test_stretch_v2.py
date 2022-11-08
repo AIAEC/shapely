@@ -404,7 +404,7 @@ class TestStretch:
         stretch = stretch_of_two_box
         assert len(stretch.pivots) == 7
         assert len(stretch.edges) == 9
-        stretch.add_closure(box(0, 0, 1, 1), dist_tol=MATH_EPS, remove_dangling=True)
+        stretch.add_closure(box(0, 0, 1, 1), dist_tol=MATH_EPS)
         assert len(stretch.pivots) == 10
         assert len(stretch.edges) == 15
         closures = stretch.closure_snapshot().closures
