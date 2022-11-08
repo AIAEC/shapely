@@ -1,3 +1,4 @@
+import pickle
 from abc import ABC, abstractmethod
 from contextlib import suppress
 from copy import deepcopy
@@ -5,7 +6,7 @@ from dataclasses import dataclass, field
 from functools import partial, cached_property
 from itertools import combinations
 from operator import truth, attrgetter
-from typing import Union, List, Optional, Set, Sequence, Literal, Iterable
+from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Dict, Tuple
 from uuid import uuid4
 from weakref import ref, ReferenceType
 
@@ -308,6 +309,29 @@ class Stretch:
         self.pivots: List[Pivot] = pivots
         self.edges: List[DirectEdge] = edges
         self.id = uuid4()
+
+    def dump(self, fp):
+        data = {'pivots': {pivot.id: pivot.shape for pivot in self.pivots},
+                'edges': [(edge.from_pivot.id, edge.to_pivot.id) for edge in self.edges]}
+        pickle.dump(data, fp)
+
+    @classmethod
+    def load(cls, fp):
+        data = pickle.load(fp)
+        point_dict: Dict[str, Point] = data['pivots']
+        edges: List[Tuple[str, str]] = data['edges']
+
+        stretch = cls([], [])
+        pivot_dict: Dict[str, Pivot] = {id_: Pivot(point, stretch) for id_, point in point_dict.items()}
+        for edge in edges:
+            from_pivot_id, to_pivot_id = edge
+            from_pivot = pivot_dict[from_pivot_id]
+            to_pivot = pivot_dict[to_pivot_id]
+            stretch.edges.append(DirectEdge(from_pivot, to_pivot, stretch))
+
+        stretch.pivots = list(pivot_dict.values())
+
+        return stretch
 
     def closure_snapshot(self) -> ClosureSnapshot:
         return ClosureSnapshot.create_from(self)
