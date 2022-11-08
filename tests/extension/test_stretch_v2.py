@@ -130,6 +130,29 @@ def stretch_of_single_box_collinear_edge() -> Stretch:
 
 
 @fixture
+def stretch_of_single_box_with_crack() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_1_1 = Pivot(Point(1, 1), stretch)
+    pivot_2_0 = Pivot(Point(2, 0), stretch)
+    pivot_2_2 = Pivot(Point(2, 2), stretch)
+    pivot_0_2 = Pivot(Point(0, 2), stretch)
+    edges = [
+        DirectEdge(pivot_0_0, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_1_1, stretch),
+        DirectEdge(pivot_1_1, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_2_0, stretch),
+        DirectEdge(pivot_2_0, pivot_2_2, stretch),
+        DirectEdge(pivot_2_2, pivot_0_2, stretch),
+        DirectEdge(pivot_0_2, pivot_0_0, stretch)
+    ]
+    stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2, pivot_1_0, pivot_1_1]
+    stretch.edges = edges
+    return stretch
+
+
+@fixture
 def stretch_of_box_and_triangle() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
@@ -177,6 +200,12 @@ def stretch_for_offset() -> Stretch:
     stretch.pivots = [pivot_0_0, pivot_1_0, pivot_1_1, pivot_1_n1, pivot_10_n1, pivot_10_n10, pivot_0_n10]
     stretch.edges = edges
     return stretch
+
+
+@fixture
+def stretch_for_real_offset_case() -> Stretch:
+    return StretchFactory().create(loads(
+        'MULTIPOLYGON (((54.01233317240863 -10.212092290648151, 22.712333170585225 -10.21209228064815, 22.712333172566055 34.587907793803176, -18.93766680067012 34.58790779184874, -27.087666806184124 34.587907793803176, -27.087666806184124 16.237896621901427, -27.087666806184124 -20.412093727098295, -27.087666826184126 -45.56209221839969, -27.087666826184126 -95.01209220619683, 3.0011820026950033 -95.01209220619683, 24.746451140575914 -93.4634721588551, 56.66367611144763 -83.41471062464564, 74.17985788639731 -71.02158696273534, 85.51222717358746 -55.51209228151168, 54.01233317125937 -55.51209227246633, 54.01233317240863 -10.212092290648151)), ((-18.9376668096101 92.33790779380305, -18.93766680067012 34.58790779184874, 22.712333172566055 34.587907793803176, 22.712333172566055 44.03790778418159, 48.36562994233339 44.03790778418159, 8.774687355679777 92.3379077854364, -18.9376668096101 92.33790779380305)), ((-17.783212025386398 124.73790779380306, -39.45873254462499 124.73790779380306, -62.83766677696752 92.37471221102714, -62.83766677696752 92.33790780380306, -18.9376668096101 92.33790779380305, 8.774687355679777 92.3379077854364, -17.783212025386398 124.73790779380306)), ((-53.05822597367154 -95.01209220619683, -27.087666826184126 -95.01209220619683, -27.087666826184126 -45.56209221839969, -64.93766677696748 -45.56209221839969, -64.93766677696746 -73.71209220612593, -61.88766677696752 -73.71209220612593, -61.887666776967436 -86.77312703550751, -53.05822597367154 -95.01209220619683)), ((-64.93766677696749 -20.412093717098294, -64.93766677696748 -45.56209221839969, -27.087666826184126 -45.56209221839969, -27.087666806184124 -20.412093727098295, -64.93766677696749 -20.412093717098294)), ((54.01233317240863 -10.212092290648151, 54.01233317125937 -55.51209227246633, 85.51222717358746 -55.51209228151168, 100.26061454987092 -35.32743100086873, 100.01517397290434 -18.973296641710476, 92.83371769042324 -10.212092290648151, 54.01233317240863 -10.212092290648151)), ((48.36562994233339 44.03790778418159, 22.712333172566055 44.03790778418159, 22.712333172566055 34.587907793803176, 22.712333170585225 -10.21209228064815, 54.01233317240863 -10.212092290648151, 92.83371769042324 -10.212092290648151, 48.36562994233339 44.03790778418159)), ((-27.087666806184124 34.587907793803176, -27.087666806184124 44.03790778418159, -62.83766677696752 44.03790780418159, -64.93766677696752 44.0379077938029, -64.9376667769675 16.237896631901428, -27.087666806184124 16.237896621901427, -27.087666806184124 34.587907793803176)), ((-18.9376668096101 92.33790779380305, -62.83766677696752 92.33790780380306, -62.83766677696752 44.03790780418159, -27.087666806184124 44.03790778418159, -27.087666806184124 34.587907793803176, -18.93766680067012 34.58790779184874, -18.9376668096101 92.33790779380305)), ((-64.93766677696749 -20.412093717098294, -27.087666806184124 -20.412093727098295, -27.087666806184124 16.237896621901427, -64.9376667769675 16.237896631901428, -64.93766677696749 -20.412093717098294)))'))
 
 
 class TestPivot:
@@ -472,6 +501,15 @@ class TestClosureSnapshot:
         assert closures[0].shape.equals(box(2, 0, 3, 1))
         assert closures[1].shape.equals(box(0, 0, 2, 2))
 
+    def test_create_closure_snapshot_from_stretch_with_crack(self, stretch_of_single_box_with_crack):
+        stretch = stretch_of_single_box_with_crack
+        closure_snapshot = ClosureSnapshot.create_from(stretch)
+        assert len(closure_snapshot.closures) == 0
+
+        stretch.remove_dangling_edges()
+        closure_snapshot = ClosureSnapshot.create_from(stretch)
+        assert len(closure_snapshot.closures) == 1
+
 
 class TestOffsetStrategy:
     def test_shrinking_closure(self, stretch_of_two_box):
@@ -602,7 +640,7 @@ class TestOffsetStrategy:
         assert closures[1].shape.equals(loads('POLYGON ((1 0, 1 1, 2 1, 2 2, 0 2, 0 0, 1 0))'))
         assert closures[0].shape.equals(loads('POLYGON ((3 0, 3 1, 2 1, 1 1, 1 0, 2 0, 3 0))'))
 
-    def test_offset_corner_case(self, stretch_of_single_box):
+    def test_offset_corner_case0(self, stretch_of_single_box):
         stretch0 = stretch_of_single_box
         edge = stretch0.edges[0]
         with pytest.raises(ValueError):
@@ -618,3 +656,13 @@ class TestOffsetStrategy:
         OffsetStrategy(edge, Vector(0, -1 - MATH_EPS)).do()
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 2
+
+    def test_offset_not_to_create_dangling_edges(self, stretch_for_real_offset_case):
+        stretch = stretch_for_real_offset_case
+        origin_area = sum([c.shape.area for c in stretch.closure_snapshot().closures])
+        line = loads('LINESTRING (-27.087666826184126 44.03790780418159, -62.83766677696752 44.03790780418159)')
+        edge = stretch.query_edges(line.centroid, buffer=1e-6)[0]
+        OffsetStrategy(edge, Vector(0, -7.3)).do()
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 10
+        assert sum([c.shape.area for c in closures]) == pytest.approx(origin_area)
