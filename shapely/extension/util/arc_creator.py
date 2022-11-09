@@ -54,7 +54,7 @@ class FixedRadiusArcCreator:
         self._geoms.append(geom)
 
         if isinstance(geom, Point):
-            constraint = Circle(center=geom, radius=self._radius)
+            constraint = Circle(center=geom, radius=self._radius, angle_step=0.1)
 
         elif isinstance(geom, Circle):
             # order matters, because Circle is child type of LineString, thus cannot modify order of if condition

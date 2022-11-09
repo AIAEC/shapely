@@ -7,7 +7,7 @@ from shapely.geometry import Point, LineString, Polygon
 
 class ArcTest(TestCase):
     def test_arc(self):
-        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=90, resolution=3)
+        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=90, angle_step=3)
         self.assertAlmostEqual(pi / 2, arc.length)
         self.assertTrue(arc.centroid.equals(Point(0, 0)))
         self.assertTrue(arc.is_ccw)
@@ -19,7 +19,7 @@ class ArcTest(TestCase):
         self.assertTrue(arc.interpolate(0).equals(Point(1, 0)))
 
     def test_complementary_arc(self):
-        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=91, resolution=3).complementary
+        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=91, angle_step=3).complementary
         self.assertAlmostEqual((360 - 91) * pi / 180, arc.length)
         self.assertTrue(arc.centroid.equals(Point(0, 0)))
         self.assertFalse(arc.is_cw)
@@ -29,8 +29,8 @@ class ArcTest(TestCase):
         self.assertFalse(arc.is_half_circle)
 
     def test_minor_arc_and_prior_arc(self):
-        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=91, resolution=3)
-        complementary_arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=91, resolution=3).complementary
+        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=91, angle_step=3)
+        complementary_arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=91, angle_step=3).complementary
         self.assertTrue(arc.get_minor_arc() is arc)
         self.assertTrue(complementary_arc.get_prior_arc() is complementary_arc)
 

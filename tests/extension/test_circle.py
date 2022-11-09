@@ -7,19 +7,19 @@ from shapely.geometry import LineString, Point
 
 class CircleTest(TestCase):
     def test_intersects(self):
-        circle = Circle((0, 0), 1, resolution=1)
+        circle = Circle((0, 0), 1, angle_step=1)
         self.assertTrue(circle.intersects(LineString([(0, 0.99999), (1, 0.99999)])))
 
     def test_length(self):
-        circle = Circle((0, 0), 1, resolution=1)
+        circle = Circle((0, 0), 1, angle_step=1)
         self.assertAlmostEqual(2 * pi, circle.length)
 
     def test_concentric(self):
-        circle = Circle((0, 0), 1, resolution=1)
-        self.assertTrue(circle.concentric(2).almost_equals(Circle((0, 0), 2, resolution=1)))
+        circle = Circle((0, 0), 1, angle_step=1)
+        self.assertTrue(circle.concentric(2).almost_equals(Circle((0, 0), 2, angle_step=1)))
 
     def test_arc(self):
-        circle = Circle((0, 0), 10, resolution=1)
+        circle = Circle((0, 0), 10, angle_step=1)
         arcs = circle.arc(Point(9, 0))
         self.assertEqual(1, len(arcs))
 
