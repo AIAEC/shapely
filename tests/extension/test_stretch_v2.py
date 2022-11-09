@@ -1,3 +1,6 @@
+import os
+from copy import deepcopy
+
 import pytest
 from pytest import fixture
 
@@ -403,6 +406,17 @@ class TestDirectEdge:
 
 
 class TestStretch:
+    def test_deep_copy_stretch(self):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/stretch_for_deepcopy.pkl'),
+                  'rb') as fp:
+            stretch = Stretch.load(fp)
+        stretch = deepcopy(stretch)
+        assert isinstance(stretch, Stretch)
+
+    def test_deep_copy_other(self, stretch_of_two_box):
+        stretch = deepcopy(stretch_of_two_box)
+        assert isinstance(stretch, Stretch)
+
     def test_query_pivot(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         result = stretch.query_pivots(Point(0, 0))
@@ -478,7 +492,6 @@ class TestStretch:
         assert stretch.add_closure(polys[0], dist_tol=MATH_EPS)
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 2
-
 
     def test_remove_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box

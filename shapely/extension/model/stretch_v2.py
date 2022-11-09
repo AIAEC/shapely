@@ -85,15 +85,27 @@ class Pivot:
 
 class DirectEdge:
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
-        self.from_pivot = from_pivot
-        self.to_pivot = to_pivot
+        self._from_pivot = ref(from_pivot)
+        self._to_pivot = ref(to_pivot)
         self._stretch: ReferenceType['Stretch'] = ref(stretch)
         self.cargo = {}
 
-        if self not in self.from_pivot.out_edges:
-            self.from_pivot.out_edges.append(self)
-        if self not in self.to_pivot.in_edges:
-            self.to_pivot.in_edges.append(self)
+        if self not in from_pivot.out_edges:
+            from_pivot.out_edges.append(self)
+        if self not in to_pivot.in_edges:
+            to_pivot.in_edges.append(self)
+
+    @property
+    def from_pivot(self):
+        # pivot owns edges, thus edge weak ref to pivot to prevent recursive ref
+        # especially when we use deepcopy
+        return self._from_pivot()
+
+    @property
+    def to_pivot(self):
+        # pivot owns edges, thus edge weak ref to pivot to prevent recursive ref
+        # especially when we use deepcopy
+        return self._to_pivot()
 
     def __hash__(self):
         return hash((hash(self.from_pivot), hash(self.to_pivot)))
