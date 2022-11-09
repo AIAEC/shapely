@@ -292,6 +292,9 @@ class DirectEdgeView(DirectEdge):
 class ClosureView:
     pivots: List[Pivot] = field(default_factory=list)  # no duplicated tail pivot
 
+    def __bool__(self):
+        return self.shape.is_valid
+
     @cached_property
     def edges(self) -> List[DirectEdgeView]:
         return [DirectEdgeView(from_pivot, to_pivot, from_pivot.stretch)
