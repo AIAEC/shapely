@@ -222,7 +222,7 @@ def stretch_for_offset() -> Stretch:
 
 
 @fixture
-def stretch_of_3box_for_offset() -> Stretch:
+def stretch_of_2box_for_offset() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
     pivot_1_0 = Pivot(Point(1, 0), stretch)
@@ -770,8 +770,8 @@ class TestOffsetStrategy:
         assert len(closures) == 10
         assert sum([c.shape.area for c in closures]) == pytest.approx(origin_area)
 
-    def test_offset_colinear_segment(self, stretch_of_3box_for_offset):
-        stretch = stretch_of_3box_for_offset
+    def test_offset_colinear_segment(self, stretch_of_2box_for_offset):
+        stretch = stretch_of_2box_for_offset
         edge = stretch.query_edges(Point(1.5, 0))[0]
         OffsetStrategy(edge, Vector(0, -0.5 - 1e-4)).do()
 
@@ -784,9 +784,19 @@ class TestOffsetStrategy:
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 2
 
-    def test_offset_for_attaching(self, stretch_of_two_box):
+    def test_offset_for_attaching_case1(self, stretch_of_2box_for_offset):
+        stretch = stretch_of_2box_for_offset
+        edge = stretch.query_edges(Point(0.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -2)).do()
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2
+
+    def test_offset_for_attaching_case0(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         edge = stretch.query_edges(Point(2, 0.5))[0]
         OffsetStrategy(edge, Vector(-2, 0)).do()
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 2
+        closures.sort(key=lambda closure: closure.shape.centroid.y)
+        assert closures[0].shape.equals(box(0, 0, 3, 1))
+        assert closures[1].shape.equals(box(0, 1, 2, 2))
