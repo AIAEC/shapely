@@ -5,7 +5,7 @@ from shapely.extension.constant import MATH_EPS
 from shapely.extension.model import Vector
 from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
     OffsetStrategy, ClosureView, StretchFactory
-from shapely.geometry import Point, box, LineString
+from shapely.geometry import Point, box, LineString, CAP_STYLE, JOIN_STYLE, Polygon
 from shapely.wkt import loads
 
 
@@ -21,6 +21,24 @@ def stretch_of_single_box() -> Stretch:
              DirectEdge(pivot_2_2, pivot_0_2, stretch),
              DirectEdge(pivot_0_2, pivot_0_0, stretch)]
     stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2]
+    stretch.edges = edges
+    return stretch
+
+
+@fixture
+def stretch_of_single_box_with_duplicate_points() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_2_0_a = Pivot(Point(2, 0), stretch)
+    pivot_2_0_b = Pivot(Point(2, 0), stretch)
+    pivot_2_2 = Pivot(Point(2, 2), stretch)
+    pivot_0_2 = Pivot(Point(0, 2), stretch)
+    edges = [DirectEdge(pivot_0_0, pivot_2_0_a, stretch),
+             DirectEdge(pivot_2_0_a, pivot_2_0_b, stretch),
+             DirectEdge(pivot_2_0_b, pivot_2_2, stretch),
+             DirectEdge(pivot_2_2, pivot_0_2, stretch),
+             DirectEdge(pivot_0_2, pivot_0_0, stretch)]
+    stretch.pivots = [pivot_0_0, pivot_2_0_a, pivot_2_0_b, pivot_2_2, pivot_0_2]
     stretch.edges = edges
     return stretch
 
@@ -133,21 +151,22 @@ def stretch_of_single_box_collinear_edge() -> Stretch:
 def stretch_of_single_box_with_crack() -> Stretch:
     stretch = Stretch([], [])
     pivot_0_0 = Pivot(Point(0, 0), stretch)
-    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_1_0_a = Pivot(Point(1, 0), stretch)
     pivot_1_1 = Pivot(Point(1, 1), stretch)
+    pivot_1_0_b = Pivot(Point(1, 0), stretch)
     pivot_2_0 = Pivot(Point(2, 0), stretch)
     pivot_2_2 = Pivot(Point(2, 2), stretch)
     pivot_0_2 = Pivot(Point(0, 2), stretch)
     edges = [
-        DirectEdge(pivot_0_0, pivot_1_0, stretch),
-        DirectEdge(pivot_1_0, pivot_1_1, stretch),
-        DirectEdge(pivot_1_1, pivot_1_0, stretch),
-        DirectEdge(pivot_1_0, pivot_2_0, stretch),
+        DirectEdge(pivot_0_0, pivot_1_0_a, stretch),
+        DirectEdge(pivot_1_0_a, pivot_1_1, stretch),
+        DirectEdge(pivot_1_1, pivot_1_0_b, stretch),
+        DirectEdge(pivot_1_0_b, pivot_2_0, stretch),
         DirectEdge(pivot_2_0, pivot_2_2, stretch),
         DirectEdge(pivot_2_2, pivot_0_2, stretch),
         DirectEdge(pivot_0_2, pivot_0_0, stretch)
     ]
-    stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2, pivot_1_0, pivot_1_1]
+    stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2, pivot_1_0_a, pivot_1_0_b, pivot_1_1]
     stretch.edges = edges
     return stretch
 
@@ -292,6 +311,43 @@ class TestDirectEdge:
         assert len(pivot.out_edges) == 2
         assert len(pivot.in_edges) == 2
 
+    def test_sub_edge_without_touching_pivot(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert len(stretch.pivots) == 4
+        assert len(stretch.edges) == 4
+
+        sub_edge = edge.sub_edge(box(1, 0, 1.5, 1))
+        assert sub_edge.shape.equals(LineString([(1, 0), (1.5, 0)]))
+        assert len(stretch.pivots) == 6
+        assert len(stretch.edges) == 6
+        assert len(stretch.closure_snapshot().closures) == 1
+
+    def test_sub_edge_touching_pivot(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert len(stretch.pivots) == 4
+        assert len(stretch.edges) == 4
+
+        sub_edge = edge.sub_edge(box(0, 0, 1, 0.5))
+        assert sub_edge.shape.equals(LineString([(0, 0), (1, 0)]))
+        assert len(stretch.pivots) == 5
+        assert len(stretch.edges) == 5
+        assert len(stretch.closure_snapshot().closures) == 1
+
+    def test_related_closure(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert isinstance(edge.closure, ClosureView)
+        assert edge.closure.shape.equals(box(0, 0, 2, 2))
+
+        edge = stretch.query_edges(Point(3, 1))[0]
+        assert isinstance(edge.closure, ClosureView)
+        assert edge.closure.shape.equals(box(2, 0, 3, 1))
+
     def test_next(self, stretch_of_box_and_triangle):
         stretch = stretch_of_box_and_triangle
         edge = stretch.edges[0]
@@ -409,6 +465,20 @@ class TestStretch:
         assert len(stretch.edges) == 15
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 3
+
+    def test_add_very_small_closure(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        polys = (stretch.closure_snapshot().occupation
+                 .intersection(LineString([(0.5, -0.5), (1.5, 0.5)])
+                               .buffer(2 * MATH_EPS, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre))
+                 .simplify(0)
+                 .ext.flatten(Polygon)
+                 .to_list())
+        assert len(polys) == 1
+        assert stretch.add_closure(polys[0], dist_tol=MATH_EPS)
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2
+
 
     def test_remove_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -532,11 +602,16 @@ class TestClosureSnapshot:
     def test_create_closure_snapshot_from_stretch_with_crack(self, stretch_of_single_box_with_crack):
         stretch = stretch_of_single_box_with_crack
         closure_snapshot = ClosureSnapshot.create_from(stretch)
-        assert len(closure_snapshot.closures) == 0
+        assert len(closure_snapshot.closures) == 1
 
         stretch.remove_dangling_edges()
         closure_snapshot = ClosureSnapshot.create_from(stretch)
         assert len(closure_snapshot.closures) == 1
+
+    def test_create_closure_with_duplicate_pivots(self, stretch_of_single_box_with_duplicate_points):
+        stretch = stretch_of_single_box_with_duplicate_points
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 0  # should not support stretch with duplicate pivots
 
 
 class TestOffsetStrategy:

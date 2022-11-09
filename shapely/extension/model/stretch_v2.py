@@ -123,8 +123,11 @@ class DirectEdge:
 
     @property
     def next(self) -> Optional['DirectEdge']:
+        if not self.shape.is_valid:
+            return None
+
         def candidate_edge(other_edge: 'DirectEdge') -> bool:
-            return not (self == other_edge or self.is_reversed(other_edge))
+            return not (self == other_edge or self.is_reversed(other_edge) or not other_edge.shape.is_valid)
 
         out_edges = lfilter(candidate_edge, self.to_pivot.out_edges)
         invert_edge_angle: Angle = self.shape.ext.inverse().ext.angle()
@@ -136,8 +139,11 @@ class DirectEdge:
 
     @property
     def previous(self) -> Optional['DirectEdge']:
+        if not self.shape.is_valid:
+            return None
+
         def candidate_edge(other_edge: 'DirectEdge') -> bool:
-            return not (self == other_edge or self.is_reversed(other_edge))
+            return not (self == other_edge or self.is_reversed(other_edge) or not other_edge.shape.is_valid)
 
         in_edges = lfilter(candidate_edge, self.from_pivot.in_edges)
         self_angle: Angle = self.shape.ext.angle()
@@ -147,7 +153,11 @@ class DirectEdge:
 
         return min(in_edges, key=self_ccw_rotating_angle_to_inversion_of_other_edge, default=None)
 
-    def offset(self, dist: float, side: Literal['left', 'right'], edge_offset_strategy_clz: type) -> None:
+    @property
+    def closure(self) -> Optional['ClosureView']:
+        return ClosureSnapshot.ring_edges_to_closure(ClosureSnapshot.find_edge_ring(self))
+
+    def offset(self, dist: float, side: Literal['left', 'right'], edge_offset_strategy_clz: type) -> 'DirectEdge':
         edge_vec = Vector.from_endpoints_of(self.shape)
         if side == 'left':
             offset_vec = edge_vec.ccw_perpendicular.unit(dist)
@@ -192,6 +202,66 @@ class DirectEdge:
 
         return insert_pivot
 
+    def sub_edge(self, overlapping_geom: BaseGeometry,
+                 buffer: float = 0,
+                 endpoint_dist_tol: float = MATH_EPS) -> Optional['DirectEdge']:
+        overlapping_segments: List[LineString] = (overlapping_geom.buffer(buffer)
+                                                  .intersection(self.shape)
+                                                  .ext.decompose(LineString)
+                                                  .to_list())
+        segment = max(overlapping_segments, key=attrgetter('length'), default=None)
+        if not segment:
+            return None
+
+        return self._sub_edge_by_points(start_point=segment.ext.start(),
+                                        end_point=segment.ext.end(),
+                                        endpoint_dist_tol=endpoint_dist_tol)
+
+    def _sub_edge_by_points(self, start_point: Point,
+                            end_point: Point,
+                            endpoint_dist_tol: float = MATH_EPS) -> 'DirectEdge':
+        def add_pivot(point) -> Pivot:
+            if pivot := first(lambda pivot: pivot.distance(point) < endpoint_dist_tol,
+                              [self.from_pivot, self.to_pivot]):
+                return pivot
+            assert not self.stretch.query_pivots(point, buffer=endpoint_dist_tol), \
+                'new pivot should not overlap with existed'
+            pivot = Pivot(point, stretch=self.stretch)
+            self.stretch.pivots.append(pivot)
+            return pivot
+
+        reverse_existed = bool(self.reverse)
+        new_pivots = [add_pivot(start_point), add_pivot(end_point)]
+        new_pivots.sort(key=lambda pivot: self.shape.project(pivot.shape))
+
+        # delete edge ref in pivot
+        self.from_pivot.out_edges.remove(self)
+        self.to_pivot.in_edges.remove(self)
+
+        pivots_on_line = [self.from_pivot, new_pivots[0], new_pivots[1], self.to_pivot]
+        # delete edge record in stretch and add 3 new edges
+        for from_pivot, to_pivot in win_slice(pivots_on_line, win_size=2):
+            if from_pivot != to_pivot:
+                self.stretch.edges.append(DirectEdge(from_pivot, to_pivot, self.stretch))
+
+        self.stretch.edges.remove(self)
+
+        if reverse_existed:
+            # delete reverse edge ref in pivot
+            reverse_edge = self.reverse
+            self.from_pivot.in_edges.remove(reverse_edge)
+            self.to_pivot.out_edges.remove(reverse_edge)
+
+            # delete edge record in stretch and add 3 new edges
+            for to_pivot, from_pivot in win_slice(pivots_on_line, win_size=2):
+                if from_pivot != to_pivot:
+                    self.stretch.edges.append(DirectEdge(from_pivot, to_pivot, self.stretch))
+
+            self.stretch.edges.remove(reverse_edge)
+
+        return first(lambda edge: edge.from_pivot == new_pivots[0] and edge.to_pivot == new_pivots[1],
+                     self.stretch.edges)
+
 
 class DirectEdgeView(DirectEdge):
     """
@@ -222,12 +292,6 @@ class ClosureView:
     def shared_edges(self, closure: 'ClosureView') -> List[DirectEdgeView]:
         edge_set: Set[DirectEdgeView] = set(self.edges)
         return lfilter(lambda edge: edge.reverse in edge_set, closure.edges)
-
-    def __bool__(self):
-        try:
-            return self.shape.is_valid
-        except:  # pivots cannot form valid polygon
-            return False
 
 
 @dataclass(frozen=True)
@@ -445,7 +509,7 @@ class Stretch:
             self.remove_dangling_pivots()
 
     def remove_closure(self, closure_copy: ClosureView) -> None:
-        self._force_remove_edges(closure_copy.edges, delete_reverse=False)
+        self._force_remove_edges(closure_copy.edges, delete_reverse=False, clean_dangling=True)
 
     def union_closures(self, closure_copies: List[ClosureView]) -> None:
         if len(closure_copies) < 2:
@@ -453,6 +517,9 @@ class Stretch:
 
         for closure_copy0, closure_copy1 in combinations(closure_copies, 2):
             self._force_remove_edges(closure_copy0.shared_edges(closure_copy1), delete_reverse=True)
+
+        self.remove_dangling_edges()
+        self.remove_dangling_pivots()
 
     def _query_attachable_pivot(self, point: Point, dist_tol: float = MATH_EPS) -> Pivot:
         pivots = self.query_pivots(geom=point, buffer=dist_tol)
