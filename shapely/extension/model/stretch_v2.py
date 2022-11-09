@@ -139,7 +139,10 @@ class DirectEdge:
             return None
 
         def candidate_edge(other_edge: 'DirectEdge') -> bool:
-            return not (self == other_edge or self.is_reversed(other_edge) or not other_edge.shape.is_valid)
+            try:
+                return not (self == other_edge or self.is_reversed(other_edge) or not other_edge.shape.is_valid)
+            except AttributeError:
+                return False
 
         out_edges = lfilter(candidate_edge, self.to_pivot.out_edges)
         invert_edge_angle: Angle = self.shape.ext.inverse().ext.angle()
@@ -293,7 +296,10 @@ class ClosureView:
     pivots: List[Pivot] = field(default_factory=list)  # no duplicated tail pivot
 
     def __bool__(self):
-        return self.shape.is_valid
+        try:
+            return self.shape.is_valid
+        except ValueError:
+            return False
 
     @cached_property
     def edges(self) -> List[DirectEdgeView]:
@@ -520,8 +526,10 @@ class Stretch:
         deleting_edges, self.edges = separate(lambda edge: edge in deleting_edge_views, self.edges)
 
         for deleting_edge in deleting_edges:
-            deleting_edge.from_pivot.out_edges.remove(deleting_edge)
-            deleting_edge.to_pivot.in_edges.remove(deleting_edge)
+            with suppress(Exception):
+                deleting_edge.from_pivot.out_edges.remove(deleting_edge)
+            with suppress(Exception):
+                deleting_edge.to_pivot.in_edges.remove(deleting_edge)
 
         if clean_dangling:
             self.remove_dangling_pivots()
