@@ -783,3 +783,10 @@ class TestOffsetStrategy:
 
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 2
+
+    def test_offset_for_attaching(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        OffsetStrategy(edge, Vector(-2, 0)).do()
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2

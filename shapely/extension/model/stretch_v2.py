@@ -490,10 +490,13 @@ class Stretch:
         self.remove_dangling_edges()
         self.remove_dangling_pivots()
 
-    def _force_remove_edges(self, edges: Sequence[DirectEdge],
+    def _force_remove_edges(self, edges: Union[Sequence[DirectEdge], DirectEdge],
                             delete_reverse: bool = False,
                             clean_dangling: bool = True) -> None:
         # only used as internal method, don't use it publicly
+        if not isinstance(edges, Sequence):
+            edges = [edges]
+
         if delete_reverse:
             deleting_edge_views: Set[DirectEdge] = set(concat([(e, e.reverse) for e in edges]))
         else:
@@ -707,9 +710,10 @@ class AttachingOffset:
 
 
 class BaseOffsetStrategy(ABC):
-    def __init__(self, edge: DirectEdge, offset_vector: Vector):
+    def __init__(self, edge: DirectEdge, offset_vector: Vector, dist_tol: float = MATH_EPS):
         self._edge = edge
         self._offset_vector = offset_vector
+        self._dist_tol = dist_tol
         if not self._edge.shape.ext.angle().perpendicular_to(offset_vector.angle):
             raise ValueError(f'expect offset vector perpendicular to edge, given {edge} and {offset_vector}')
 
@@ -761,7 +765,7 @@ class BaseOffsetStrategy(ABC):
         if perpendicular_mode:
             target_point = offset_vector.apply(edge.from_pivot.shape)
             try:
-                if shrinking_closure and not shrinking_closure.shape.covers(target_point):
+                if shrinking_closure and not shrinking_closure.shape.buffer(self._dist_tol).covers(target_point):
                     # if perpendicular mode failed, try attaching mode instead
                     raise RuntimeError
 
@@ -769,7 +773,7 @@ class BaseOffsetStrategy(ABC):
                 # 1. create dangling pivot
                 # 2. connect origin from_pivot to this dangling pivot
                 # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point)
+                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
                 new_edge = DirectEdge(from_pivot=edge.from_pivot, to_pivot=dangling_pivot, stretch=self.stretch)
                 self.stretch.edges.append(new_edge)
 
@@ -790,11 +794,11 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=MATH_EPS)
+        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._dist_tol)
                         .for_from_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
-        return self.stretch.add_pivot(target_point, dist_tol=MATH_EPS)
+        return self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
 
     def offset_to_pivot(self, edge: DirectEdge,
                         offset_vector: Vector,
@@ -806,7 +810,7 @@ class BaseOffsetStrategy(ABC):
         if perpendicular_mode:
             target_point = offset_vector.apply(edge.to_pivot.shape)
             try:
-                if shrinking_closure and not shrinking_closure.shape.contains(target_point):
+                if shrinking_closure and not shrinking_closure.shape.buffer(self._dist_tol).covers(target_point):
                     # if perpendicular mode failed, try attaching mode instead
                     raise RuntimeError
 
@@ -814,7 +818,7 @@ class BaseOffsetStrategy(ABC):
                 # 1. create dangling pivot
                 # 2. connect origin from_pivot to this dangling pivot
                 # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point)
+                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
                 new_edge = DirectEdge(from_pivot=dangling_pivot, to_pivot=edge.to_pivot, stretch=self.stretch)
                 self.stretch.edges.append(new_edge)
 
@@ -834,11 +838,15 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=MATH_EPS)
+        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._dist_tol)
                         .for_to_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
-        return self.stretch.add_pivot(target_point, dist_tol=MATH_EPS)
+        return self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
+
+    @abstractmethod
+    def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
+        raise NotImplementedError
 
     def do(self) -> DirectEdge:
         new_from_pivot = self.offset_from_pivot(edge=self._edge,
@@ -849,19 +857,23 @@ class BaseOffsetStrategy(ABC):
                                             offset_vector=self._offset_vector,
                                             shrinking_closure=self.shrinking_closure)
 
-        new_edges = [DirectEdge(from_pivot=new_from_pivot, to_pivot=new_to_pivot, stretch=self.stretch)]
-        if self._edge.reverse:
-            new_edges.append(DirectEdge(from_pivot=new_to_pivot, to_pivot=new_from_pivot, stretch=self.stretch))
+        new_edge = self.create_new_edge(new_from_pivot, new_to_pivot)
 
-        self.stretch.edges.extend(new_edges)
         self.stretch._force_remove_edges([self._edge], delete_reverse=True)
         self.stretch.remove_dangling_edges()
         self.stretch.remove_dangling_pivots()
 
-        return new_edges[0]
+        return new_edge
 
 
 class OffsetStrategy(BaseOffsetStrategy):
+    def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
+        new_edges = [DirectEdge(from_pivot=new_from_pivot, to_pivot=new_to_pivot, stretch=self.stretch)]
+        if self._edge.reverse:
+            new_edges.append(DirectEdge(from_pivot=new_to_pivot, to_pivot=new_from_pivot, stretch=self.stretch))
+        self.stretch.edges.extend(new_edges)
+        return new_edges[0]
+
     @staticmethod
     def does_from_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
         if not edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').almost_equal(90, angle_tol=1):
