@@ -646,7 +646,7 @@ class Stretch:
         lmap(add_pivot, line.ext.decompose(Point).to_list())
 
         # add edges
-        new_edges: Set[DirectEdge] = set()
+        new_edges: Set[DirectEdge] = OrderedSet()
 
         # since points of splitter have already been added to stretch, the query below will fetch out the pivots of
         # splitter points as well as the already existed pivots.
