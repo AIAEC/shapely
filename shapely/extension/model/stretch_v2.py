@@ -34,8 +34,8 @@ class Pivot:
         if not self._origin.is_valid or self._origin.is_empty:
             raise ValueError(f'origin is invalid point, given {origin}')
 
-        self.in_edges = []
-        self.out_edges = []
+        self.in_edges: List[DirectEdge] = []
+        self.out_edges: List[DirectEdge] = []
         self._stretch: ReferenceType['Stretch'] = ref(stretch)
         self.cargo = {}
         self.id = uuid4()
@@ -133,18 +133,21 @@ class DirectEdge:
     def shape(self) -> StraightSegment:
         return StraightSegment([self.from_pivot.shape, self.to_pivot.shape])
 
+    def _is_valid_neighbor(self, other_edge: 'DirectEdge') -> bool:
+        try:
+            return not (self == other_edge
+                        or self.is_reversed(other_edge)
+                        or not other_edge.shape.is_valid
+                        or isinstance(other_edge, DirectEdgeView))
+        except AttributeError:
+            return False
+
     @property
     def next(self) -> Optional['DirectEdge']:
         if not self.shape.is_valid:
             return None
 
-        def candidate_edge(other_edge: 'DirectEdge') -> bool:
-            try:
-                return not (self == other_edge or self.is_reversed(other_edge) or not other_edge.shape.is_valid)
-            except AttributeError:
-                return False
-
-        out_edges = lfilter(candidate_edge, self.to_pivot.out_edges)
+        out_edges = lfilter(self._is_valid_neighbor, self.to_pivot.out_edges)
         invert_edge_angle: Angle = self.shape.ext.inverse().ext.angle()
 
         def other_ccw_rotating_angle_to_inversion_of_given_edge(other_edge: DirectEdge):
@@ -157,10 +160,7 @@ class DirectEdge:
         if not self.shape.is_valid:
             return None
 
-        def candidate_edge(other_edge: 'DirectEdge') -> bool:
-            return not (self == other_edge or self.is_reversed(other_edge) or not other_edge.shape.is_valid)
-
-        in_edges = lfilter(candidate_edge, self.from_pivot.in_edges)
+        in_edges = lfilter(self._is_valid_neighbor, self.from_pivot.in_edges)
         self_angle: Angle = self.shape.ext.angle()
 
         def self_ccw_rotating_angle_to_inversion_of_other_edge(other_edge: DirectEdge):
@@ -284,7 +284,10 @@ class DirectEdgeView(DirectEdge):
     """
 
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
-        super().__init__(from_pivot, to_pivot, stretch)
+        self._from_pivot = ref(from_pivot)
+        self._to_pivot = ref(to_pivot)
+        self._stretch: ReferenceType['Stretch'] = ref(stretch)
+        self.cargo = {}
 
     @property
     def reverse(self) -> 'DirectEdgeView':
