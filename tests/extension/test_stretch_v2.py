@@ -615,11 +615,7 @@ class TestClosureSnapshot:
     def test_create_closure_snapshot_from_stretch_with_crack(self, stretch_of_single_box_with_crack):
         stretch = stretch_of_single_box_with_crack
         closure_snapshot = ClosureSnapshot.create_from(stretch)
-        assert len(closure_snapshot.closures) == 1
-
-        stretch.remove_dangling_edges()
-        closure_snapshot = ClosureSnapshot.create_from(stretch)
-        assert len(closure_snapshot.closures) == 1
+        assert len(closure_snapshot.closures) == 0
 
     def test_create_closure_with_duplicate_pivots(self, stretch_of_single_box_with_duplicate_points):
         stretch = stretch_of_single_box_with_duplicate_points
