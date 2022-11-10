@@ -11,6 +11,7 @@ from uuid import uuid4
 from weakref import ref, ReferenceType
 
 from functional import seq
+from orderedset import OrderedSet
 from toolz import concat
 
 from shapely.extension.constant import MATH_EPS, ANGLE_AROUND_EPS
@@ -222,7 +223,7 @@ class DirectEdge:
                  endpoint_dist_tol: float = MATH_EPS) -> Optional['DirectEdge']:
         overlapping_segments: List[LineString] = (overlapping_geom.buffer(buffer)
                                                   .intersection(self.shape)
-                                                  .ext.decompose(LineString)
+                                                  .ext.decompose(StraightSegment)
                                                   .to_list())
         segment = max(overlapping_segments, key=attrgetter('length'), default=None)
         if not segment:
@@ -314,7 +315,7 @@ class ClosureView:
         return Polygon([pivot.shape for pivot in self.pivots])
 
     def shared_edges(self, closure: 'ClosureView') -> List[DirectEdgeView]:
-        edge_set: Set[DirectEdgeView] = set(self.edges)
+        edge_set: Set[DirectEdgeView] = OrderedSet(self.edges)
         return lfilter(lambda edge: edge.reverse in edge_set, closure.edges)
 
 
@@ -326,7 +327,7 @@ class ClosureSnapshot:
     def find_edge_ring(edge: DirectEdge) -> List[DirectEdge]:
         # TODO: explain the algorithm
         ring_edges: List[DirectEdge] = [edge]
-        seen = set(ring_edges)
+        seen = OrderedSet(ring_edges)
         while (next_edge := edge.next) and (next_edge not in seen):
             seen.add(next_edge)  # sanity guard
             ring_edges.append(next_edge)
@@ -362,7 +363,7 @@ class ClosureSnapshot:
     @classmethod
     def create_from(cls, stretch):
         stretch = deepcopy(stretch)
-        edge_set: Set[DirectEdge] = set(stretch.edges)
+        edge_set: Set[DirectEdge] = OrderedSet(stretch.edges)
 
         ring_edge_groups: List[List[DirectEdge]] = []
         guard = len(stretch.edges)
@@ -376,7 +377,7 @@ class ClosureSnapshot:
 
             ring_edge_groups.append(edges)
 
-            edge_set.difference_update(set(edges))
+            edge_set.difference_update(OrderedSet(edges))
 
         closures: List[ClosureView] = (seq(ring_edge_groups)
                                        .map(cls.ring_edges_to_closure)
@@ -474,7 +475,7 @@ class Stretch:
         # dangling edges include back turning edges
         self._remove_back_turning_edge()
 
-        valid_edges: Set[DirectEdgeView] = set(concat(closure.edges for closure in self.closure_snapshot().closures))
+        valid_edges: Set[DirectEdgeView] = OrderedSet(concat(closure.edges for closure in self.closure_snapshot().closures))
         deleting_edges = lfilter(lambda edge: edge not in valid_edges, self.edges)
         self._force_remove_edges(deleting_edges, delete_reverse=False)
 
@@ -490,7 +491,7 @@ class Stretch:
                 return False
 
             # pivot has exactly 2 neighbors
-            if len(set(concat([(edge.from_pivot, edge.to_pivot) for edge in pivot.in_edges + pivot.out_edges]))) != 3:
+            if len(OrderedSet(concat([(edge.from_pivot, edge.to_pivot) for edge in pivot.in_edges + pivot.out_edges]))) != 3:
                 return False
 
             def parallel(edge0: DirectEdge, edge1: DirectEdge):
@@ -522,9 +523,9 @@ class Stretch:
             edges = [edges]
 
         if delete_reverse:
-            deleting_edge_views: Set[DirectEdge] = set(concat([(e, e.reverse) for e in edges]))
+            deleting_edge_views: Set[DirectEdge] = OrderedSet(concat([(e, e.reverse) for e in edges]))
         else:
-            deleting_edge_views: Set[DirectEdge] = set(edges)
+            deleting_edge_views: Set[DirectEdge] = OrderedSet(edges)
 
         deleting_edges, self.edges = separate(lambda edge: edge in deleting_edge_views, self.edges)
 
@@ -593,7 +594,7 @@ class Stretch:
 
         lines_inside: List[LineString] = (self.closure_snapshot().occupation
                                           .intersection(line)
-                                          .ext.decompose(LineString)
+                                          .ext.decompose(StraightSegment)
                                           .filter(truth)
                                           .filter_not(self_intersection)
                                           .to_list())
@@ -659,7 +660,7 @@ class Stretch:
                 new_edges.add(DirectEdge(_to_pivot, _from_pivot, stretch=self))
 
         # remove possible duplicated edges
-        new_edges.difference_update(set(self.edges))
+        new_edges.difference_update(OrderedSet(self.edges))
         self.edges.extend(new_edges)
 
         return bool(self.edges)
