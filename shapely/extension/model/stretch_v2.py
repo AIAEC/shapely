@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from functools import partial, cached_property
 from itertools import combinations, product
 from operator import truth, attrgetter
-from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Dict, Tuple
+from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Dict, Tuple, Any
 from uuid import uuid4
 from weakref import ref, ReferenceType
 
@@ -23,6 +23,33 @@ from shapely.extension.util.iter_util import win_slice, first
 from shapely.geometry import Point, Polygon, MultiPolygon, LineString, LinearRing
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
+
+
+class OrderedSet:
+    def __init__(self, items: Optional[Sequence[Any]] = None):
+        self._dict = OrderedDict()
+        for item in items or []:
+            self._dict[item] = None
+
+    def __contains__(self, item):
+        return item in self._dict
+
+    def __bool__(self):
+        return bool(self._dict)
+
+    def __iter__(self):
+        return iter(self._dict.keys())
+
+    def pop(self) -> Any:
+        return self._dict.popitem()[0]
+
+    def add(self, item):
+        self._dict[item] = None
+
+    def difference_update(self, items: Sequence[Any]):
+        for item in items:
+            with suppress(KeyError):
+                self._dict.pop(item)
 
 
 class Pivot:
@@ -368,13 +395,13 @@ class ClosureSnapshot:
         stretch = deepcopy(stretch)
 
         # use OrderedDict to implement OrderedSet
-        edge_dict: OrderedDict[DirectEdge, None] = OrderedDict([(edge, None) for edge in stretch.edges])
+        edge_set: OrderedSet = OrderedSet(stretch.edges)
 
         ring_edge_groups: List[List[DirectEdge]] = []
         guard = len(stretch.edges)
-        while edge_dict and guard > 0:
+        while edge_set and guard > 0:
             guard -= 1
-            starting_edge = edge_dict.popitem()[0]  # pop last edge from edge_dict
+            starting_edge = edge_set.pop()
 
             edges = cls.find_edge_ring(starting_edge)
             if not cls.valid_ring_edges(edges):
@@ -382,9 +409,7 @@ class ClosureSnapshot:
 
             ring_edge_groups.append(edges)
 
-            for edge in edges:  # remove each edge from edge_dict
-                with suppress(KeyError):
-                    edge_dict.pop(edge)
+            edge_set.difference_update(edges)
 
         closures: List[ClosureView] = (seq(ring_edge_groups)
                                        .map(cls.ring_edges_to_closure)
@@ -652,7 +677,7 @@ class Stretch:
         # add pivots without duplicate
         lmap(add_pivot, line.ext.decompose(Point).to_list())
 
-        new_edges: OrderedDict[DirectEdge, None] = OrderedDict()
+        new_edges: OrderedSet = OrderedSet()
 
         # since points of splitter have already been added to stretch, the query below will fetch out the pivots of
         # splitter points as well as the already existed pivots.
@@ -662,16 +687,14 @@ class Stretch:
 
         # add edges
         for _from_pivot, _to_pivot in win_slice(pivots_on_line_inside, win_size=2, tail_cycling=line.is_ring):
-            new_edges[DirectEdge(_from_pivot, _to_pivot, stretch=self)] = None
+            new_edges.add(DirectEdge(_from_pivot, _to_pivot, stretch=self))
             if add_reverse:
-                new_edges[DirectEdge(_to_pivot, _from_pivot, stretch=self)] = None
+                new_edges.add(DirectEdge(_to_pivot, _from_pivot, stretch=self))
 
         # remove possible duplicated edges
-        for edge in self.edges:
-            with suppress(KeyError):
-                new_edges.pop(edge)
+        new_edges.difference_update(self.edges)
 
-        self.edges.extend(new_edges.keys())
+        self.edges.extend(new_edges)
 
         return bool(self.edges)
 
