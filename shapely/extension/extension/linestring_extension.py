@@ -383,3 +383,6 @@ class LineStringExtension(BaseGeomExtension):
             result.append(point)
 
         return result
+
+    def endpoints_vector(self) -> Vector:
+        return Vector.from_endpoints_of(self._geom)
