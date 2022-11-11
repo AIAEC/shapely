@@ -12,7 +12,7 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry, JOIN_STYL
 from shapely.ops import unary_union, substring
 
 
-def rect_buffer(geom: BaseGeometry, dist: float):
+def _rect_buffer(geom: BaseGeometry, dist: float):
     return geom.buffer(float(dist), join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
 
 
@@ -143,7 +143,7 @@ class ProjectionOnLine:
         if projected_seg.length == 0:
             projected_seg = Point(projected_seg.coords[0])
         else:
-            projected_seg = rect_buffer(projected_seg, MATH_MIDDLE_EPS)
+            projected_seg = _rect_buffer(projected_seg, MATH_MIDDLE_EPS)
 
         projected_seg = projected_seg.intersection(self.target_line)
 
@@ -185,7 +185,7 @@ class ProjectionOnLine:
         target_ray = Vector.from_endpoints_of(self.target_line).ray(origin)
         dist = origin.distance(point)
         # ray_len = 1e10 + buffer = 1e6  或者ray_len = 1e4 + buffer = 1e12 才能正常工作
-        location = dist if rect_buffer(target_ray, MATH_MIDDLE_EPS).covers(point) else -dist
+        location = dist if _rect_buffer(target_ray, MATH_MIDDLE_EPS).covers(point) else -dist
 
         if normalized:
             location /= self.target_line.length
@@ -212,8 +212,8 @@ class ProjectionTowards:
         raw_shadow = shadow_of_projector.intersection(reverse_shadow_of_target)
 
         shadows = (raw_shadow
-                   .difference(rect_buffer(self.projector, MATH_EPS))
-                   .difference(rect_buffer(self.target, MATH_EPS))
+                   .difference(_rect_buffer(self.projector, MATH_EPS))
+                   .difference(_rect_buffer(self.target, MATH_EPS))
                    .ext.flatten(target_class_or_callable=(LineString, Polygon)).to_list())
         valid_shadows = lfilter(lambda shadow: (shadow.distance(self.projector) < MATH_EPS * 2
                                                 and shadow.distance(self.target) < MATH_EPS * 2), shadows)
