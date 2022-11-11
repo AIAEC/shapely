@@ -9,6 +9,7 @@ from shapely.extension.model.aggregation import Aggregation
 from shapely.extension.model.alignment import AlignPolygon, AlignLineString, AlignPoint, BaseAlignMultiPartGeom, \
     BaseAlignGeom
 from shapely.extension.model.angle import Angle
+from shapely.extension.model.buffer import Buffer
 from shapely.extension.model.envelope import EnvelopeCreator
 from shapely.extension.model.projection import Projection, ProjectionTowards
 from shapely.extension.model.stretch import Stretch, StretchFactory
@@ -90,6 +91,9 @@ class BaseGeomExtension:
         object that has several methods to create envelope
         """
         return EnvelopeCreator(self._geom)
+
+    def buffer(self) -> Buffer:
+        return Buffer(self._geom)
 
     def divided_by(self, line_or_lines: Union[LineString, Iterable[LineString], MultiLineString],
                    dist_tol: float = MATH_EPS) -> Aggregation:
@@ -177,19 +181,23 @@ class BaseGeomExtension:
         """
         return ccw(self._geom)
 
-    def connect_path(self, geom: BaseGeometry, direction: Optional[Vector] = None) -> LineString:
+    def connect_path(self, geom: BaseGeometry,
+                     direction: Optional[Vector] = None,
+                     dist_tol: float = MATH_EPS,
+                     bidirect: bool = True) -> LineString:
         """
         return the shortest connecting linestring
         Parameters
         ----------
         geom: other geometry instance
         direction: the given connecting direction, if none, use the direction for nearest points on both geometries
+        bidirect: whether search in direction and its invert direction
 
         Returns
         -------
         shortest connecting linestring
         """
-        return ShortestStraightPath(direction=direction).of(self._geom, geom)
+        return ShortestStraightPath(direction=direction, dist_tol=dist_tol).of(self._geom, geom, bidirect=bidirect)
 
     def difference(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]],
                    self_buffer: float = 0,
