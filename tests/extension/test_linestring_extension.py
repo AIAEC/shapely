@@ -190,13 +190,15 @@ class LineStringExtensionTest(TestCase):
             line.ext.interpolate(None)
             line.ext.interpolate('abc')
 
+        self.assertEqual(Point(0, 0), line.ext.interpolate(0))
+
         self.assertListEqual(line.ext.interpolate([]), [])
 
         result = line.ext.interpolate(4, absolute=True)
-        self.assertListEqual([Point(0, 4)], result)
+        self.assertEqual(Point(0, 4), result)
 
         result = line.ext.interpolate(-1.5, absolute=False)
-        self.assertListEqual([Point(0, -4.5)], result)
+        self.assertEqual(Point(0, -4.5), result)
 
         result = line.ext.interpolate([-5.5, -1, 0, 3, 6], absolute=True)
         self.assertListEqual([Point(0, -5.5), Point(0, -1), Point(0, 0), Point(0, 3), Point(0, 6)], result)
@@ -210,10 +212,10 @@ class LineStringExtensionTest(TestCase):
 
         line = LineString([(0, 0), (0, 1), (1, 1), (1, 0), (3, 0)])
         result = line.ext.interpolate(4, absolute=True)
-        self.assertListEqual([Point(2, 0)], result)
+        self.assertEqual(Point(2, 0), result)
 
         result = line.ext.interpolate(-1, absolute=False)
-        self.assertListEqual([Point(0, -5)], result)
+        self.assertEqual(Point(0, -5), result)
 
         result = line.ext.interpolate([-5.5, -1, 0, 3, 6], absolute=True)
         self.assertListEqual([Point(0, -5.5), Point(0, -1), Point(0, 0), Point(1, 0), Point(4, 0)], result)
