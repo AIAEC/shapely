@@ -289,7 +289,7 @@ class BaseGeomExtension:
         """
         if strategy is None:
             strategy = {"Polygon": PolygonAngleStrategy(0).by_bounding_box_width(),
-                        "LineString": LineAngleStrategy().end_to_end()}.get(self._geom.type, default_angle_strategy)
+                        "LineString": LineAngleStrategy(0).end_to_end()}.get(self._geom.type, default_angle_strategy)
         return Angle(strategy(self._geom))
 
     def simplify(self, strategy: Optional[BaseSimplifyStrategy] = None):
