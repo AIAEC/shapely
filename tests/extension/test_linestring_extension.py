@@ -2,6 +2,7 @@ from typing import List
 from unittest import TestCase
 
 from shapely.extension.geometry import StraightSegment
+from shapely.extension.model import Vector
 from shapely.extension.model.interval import Interval
 from shapely.extension.strategy.bypassing_strategy import LongerBypassingStrategy
 from shapely.extension.util.func_util import lmap
@@ -239,3 +240,9 @@ class LineStringExtensionTest(TestCase):
         self.assertTrue(all(isinstance(seg, StraightSegment) for seg in segments))
         self.assertEqual(segments[0], StraightSegment([(0, 0), (0, 1)]))
         self.assertEqual(segments[1], StraightSegment([(0, 1), (0, 2)]))
+
+    def test_endpoints_vector(self):
+        line = LineString([(0, 0), (0, 1)])
+        vec = line.ext.endpoints_vector()
+        self.assertTrue(isinstance(vec, Vector))
+        self.assertEqual(Vector(0, 1), vec)
