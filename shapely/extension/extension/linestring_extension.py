@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from itertools import product, combinations
-from typing import Union, Tuple, Optional, Iterable, Callable, List, TypeVar
+from typing import Union, Tuple, Optional, Iterable, Callable, List, overload
 
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
@@ -354,10 +354,15 @@ class LineStringExtension(BaseGeomExtension):
         perpendicular_direction = Vector.from_endpoints_of(self._geom).cw_perpendicular
         return self.distance(geom, direction=perpendicular_direction)
 
-    T = TypeVar('T', bound=Num)
-    S = TypeVar('S', bound=Iterable)
+    @overload
+    def interpolate(self, distance: Num, absolute: bool = True) -> Point:
+        ...
 
-    def interpolate(self, distance: Union[T, S], absolute: bool = True) -> List[Point]:
+    @overload
+    def interpolate(self, distance: Iterable, absolute: bool = True) -> List[Point]:
+        ...
+
+    def interpolate(self, distance: Union[Num, Iterable], absolute: bool = True) -> Union[Point, List[Point]]:
         result: List[Point] = []
         distances = []
 
@@ -385,7 +390,7 @@ class LineStringExtension(BaseGeomExtension):
 
             result.append(point)
 
-        return result
+        return result[0] if isinstance(distance, Num) else result
 
     def endpoints_vector(self) -> Vector:
         return Vector.from_endpoints_of(self._geom)
