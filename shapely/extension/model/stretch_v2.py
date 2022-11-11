@@ -173,14 +173,17 @@ class DirectEdge:
     def closure(self) -> Optional['ClosureView']:
         return ClosureSnapshot.ring_edges_to_closure(ClosureSnapshot.find_edge_ring(self))
 
-    def offset(self, dist: float, side: Literal['left', 'right'], edge_offset_strategy_clz: type) -> 'DirectEdge':
+    def offset(self, dist: float,
+               side: Literal['left', 'right'],
+               edge_offset_strategy_clz: type,
+               eps: float = MATH_EPS) -> 'DirectEdge':
         edge_vec = Vector.from_endpoints_of(self.shape)
         if side == 'left':
             offset_vec = edge_vec.ccw_perpendicular.unit(dist)
         else:
             offset_vec = edge_vec.cw_perpendicular.unit(dist)
 
-        return edge_offset_strategy_clz(self, offset_vec).do()
+        return edge_offset_strategy_clz(self, offset_vec, eps).do()
 
     def expand(self, point: Point, endpoint_dist_tol: float = MATH_EPS) -> Pivot:
         reverse_existed = bool(self.reverse)
