@@ -16,7 +16,7 @@ class ShortestStraightPath:
         self._direction = direction
         self._dist_tol = dist_tol
 
-    def of(self, geom0: BaseGeometry, geom1: BaseGeometry, bidirect: bool = False) -> LineString:
+    def of(self, geom0: BaseGeometry, geom1: BaseGeometry, bidirect: bool = True) -> LineString:
         """
         this function will find the shortest path between two geometries in a certain angle. if the angle is not given,
         the shortest path will be found.
@@ -52,7 +52,7 @@ class ShortestStraightPath:
         path_geom0_to_geom1 = (self._shortest_path_in_direction(geom0, geom1, self._direction)
                                or self._shortest_path_in_direction(geom1, geom0, self._direction.invert())
                                or LineString())
-        if bidirect:
+        if not bidirect:
             return path_geom0_to_geom1
 
         path_geom1_to_geom0 = (self._shortest_path_in_direction(geom0, geom1, self._direction.invert())
