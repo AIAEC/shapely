@@ -405,6 +405,31 @@ class TestDirectEdge:
         assert edge.previous.shape.equals(LineString([(1, 1), (1, 0)]))
 
 
+class TestDirectEdgeView:
+    def test_create_edge_view_do_nothing_to_pivot(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        origin_num_from_pivot_in_edges = len(edge.from_pivot.in_edges)
+        origin_num_from_pivot_out_edges = len(edge.from_pivot.out_edges)
+        origin_num_to_pivot_in_edges = len(edge.to_pivot.in_edges)
+        origin_num_to_pivot_out_edges = len(edge.to_pivot.out_edges)
+
+        view = DirectEdgeView(edge.from_pivot, edge.to_pivot, edge.stretch)
+        assert isinstance(view, DirectEdgeView)
+
+        assert origin_num_from_pivot_in_edges == len(view.from_pivot.in_edges)
+        assert origin_num_from_pivot_out_edges == len(view.from_pivot.out_edges)
+        assert origin_num_to_pivot_in_edges == len(view.to_pivot.in_edges)
+        assert origin_num_to_pivot_out_edges == len(view.to_pivot.out_edges)
+
+        assert isinstance(view.reverse, DirectEdgeView)
+
+        assert origin_num_from_pivot_in_edges == len(view.from_pivot.in_edges)
+        assert origin_num_from_pivot_out_edges == len(view.from_pivot.out_edges)
+        assert origin_num_to_pivot_in_edges == len(view.to_pivot.in_edges)
+        assert origin_num_to_pivot_out_edges == len(view.to_pivot.out_edges)
+
+
 class TestStretch:
     def test_deep_copy_stretch(self):
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/stretch_for_deepcopy.pkl'),
