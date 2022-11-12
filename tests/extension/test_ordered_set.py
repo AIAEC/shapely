@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 
 from shapely.extension.util.ordered_set import OrderedSet
@@ -48,3 +50,17 @@ class TestOrderedSet:
         set_.discard(1)
         assert len(set_) == 2
         assert 1 not in set_
+
+    def test_deepcopy(self):
+        set0 = OrderedSet([1, 2, 3])
+        set1 = OrderedSet(set0)
+        set0.discard(1)
+        assert len(set1) == 3
+
+        set2 = deepcopy(set1)
+        set1.discard(1)
+        assert len(set2) == 3
+
+    def test_iter(self):
+        set0 = OrderedSet([1, 2, 3])
+        assert list(set0) == [1, 2, 3]
