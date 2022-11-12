@@ -115,6 +115,8 @@ class LineAngleStrategy:
     """
     angle strategy creator for linestring
     """
+    def __init__(self, default_angle: float):
+        self._default = default_angle
 
     class LineCalMode(EasyEnum):
         AVERAGE = 'average'  # 按线条的每两个坐标的角度,平权求平均
@@ -137,7 +139,7 @@ class LineAngleStrategy:
             raise ValueError("input line is not a valid lineString")
 
         if line.is_empty:
-            return self.default
+            return self._default
 
         coords = list(line.coords)
 
