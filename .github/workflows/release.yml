@@ -21,12 +21,14 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.10"
 
       - name: Build a source tarball
         env:
@@ -37,10 +39,10 @@ jobs:
         run: |
           ./ci/install_geos.sh
           python -m pip install --upgrade pip build
-          python -m pip install cython==0.29.28 oldest-supported-numpy
+          python -m pip install cython==0.29.32 oldest-supported-numpy
           python -m build --sdist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./dist/*.tar.gz
           retention-days: 30
@@ -76,10 +78,13 @@ jobs:
           cmake_osx_architectures: "x86_64;arm64"
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout source
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Cache GEOS build
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ runner.temp }}/geos-${{ env.GEOS_VERSION }}
           key: ${{ matrix.os }}-${{ matrix.arch }}-${{ env.GEOS_VERSION }}-${{ hashFiles('ci/*') }}
@@ -114,12 +119,9 @@ jobs:
         if: ${{ matrix.os == 'windows-2019' }}
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.3.1
+        uses: pypa/cibuildwheel@v2.10.2
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
-          CIBW_SKIP: pp* *musllinux* cp310-manylinux_i686
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2010
-          CIBW_MANYLINUX_I686_IMAGE: manylinux2010
           CIBW_ENVIRONMENT_LINUX:
             GEOS_VERSION=${{ env.GEOS_VERSION }}
             GEOS_INSTALL=/host${{ runner.temp }}/geos-${{ env.GEOS_VERSION }}
@@ -144,7 +146,7 @@ jobs:
           CIBW_TEST_COMMAND_WINDOWS: xcopy /y /i {project}\tests ${{ runner.temp }}\tests && chdir /d ${{ runner.temp }} && dir && python -m pytest -vv -k "not test_fallbacks and not test_minimum_clearance" tests
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
           retention-days: 5
@@ -155,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist
