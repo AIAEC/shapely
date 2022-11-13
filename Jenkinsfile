@@ -11,9 +11,6 @@ pipeline {
   }
 
   parameters {
-    string(name: 'PYPI_SERVER_HOST',
-          defaultValue: 'pypi.aiacesz.com',
-          description: 'The pypi repository host')
   }
 
   environment {
