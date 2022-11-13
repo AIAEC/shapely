@@ -20,7 +20,7 @@ class Arc(LineString):
                  radius: float = 1,
                  start_angle: float = 0,
                  rotate_angle: float = 90,
-                 resolution: int = 1):
+                 angle_step: float = 1):
         self._center = Point(center)
         self._radius = float(radius)
 
@@ -29,16 +29,16 @@ class Arc(LineString):
 
         self._start_angle = Angle(start_angle)
         self._rotate_angle = float(rotate_angle)
-        self._resolution = resolution
+        self._resolution = angle_step
         coords = list(self._coord_iter(center_coord=self._center.coords[0],
                                        radius=radius,
                                        start_angle=start_angle,
                                        rotate_angle=self._rotate_angle,
-                                       resolution=resolution))
+                                       resolution=angle_step))
         super(Arc, self).__init__(coords)
 
     @classmethod
-    def _angle_iter(cls, start_angle: float, rotate_angle: float, resolution: int) -> Iterable[float]:
+    def _angle_iter(cls, start_angle: float, rotate_angle: float, resolution: float) -> Iterable[float]:
         end_angle = start_angle + rotate_angle
         resolution = sign(float(rotate_angle) > 0) * resolution
         last_angle = None
@@ -60,7 +60,7 @@ class Arc(LineString):
                     radius: float,
                     start_angle: float,
                     rotate_angle: float,
-                    resolution: int) -> Iterable[CoordType]:
+                    resolution: float) -> Iterable[CoordType]:
         return ((center_coord[0] + radius * cos(radians(a)), center_coord[1] + radius * sin(radians(a)))
                 for a in cls._angle_iter(start_angle, rotate_angle, resolution))
 
@@ -125,7 +125,7 @@ class Arc(LineString):
                    radius=self.radius,
                    start_angle=(self._start_angle + self._rotate_angle).degree,
                    rotate_angle=rotate_angle,
-                   resolution=self._resolution)
+                   angle_step=self._resolution)
 
     @property
     def reverse(self) -> "Arc":
@@ -133,7 +133,7 @@ class Arc(LineString):
                    radius=self.radius,
                    start_angle=self._start_angle + self._rotate_angle,
                    rotate_angle=-float(self._rotate_angle),
-                   resolution=self._resolution)
+                   angle_step=self._resolution)
 
     def tangential(self, geom, dist_tol: float = MATH_EPS) -> bool:
         if not isclose(self._center.distance(geom), self._radius, abs_tol=dist_tol):
