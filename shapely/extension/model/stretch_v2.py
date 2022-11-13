@@ -1,13 +1,12 @@
 import pickle
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 from contextlib import suppress
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, cached_property
 from itertools import combinations, product
 from operator import truth, attrgetter
-from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Dict, Tuple, Any
+from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Dict, Tuple
 from uuid import uuid4
 from weakref import ref, ReferenceType
 
@@ -19,36 +18,10 @@ from shapely.extension.model import Coord, Vector, Angle
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap, separate
 from shapely.extension.util.iter_util import win_slice, first
+from shapely.extension.util.ordered_set import OrderedSet
 from shapely.geometry import Point, Polygon, MultiPolygon, LineString, LinearRing
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
-
-
-class OrderedSet:
-    def __init__(self, items: Optional[Sequence[Any]] = None):
-        self._dict = OrderedDict()
-        for item in items or []:
-            self._dict[item] = None
-
-    def __contains__(self, item):
-        return item in self._dict
-
-    def __bool__(self):
-        return bool(self._dict)
-
-    def __iter__(self):
-        return iter(self._dict.keys())
-
-    def pop(self) -> Any:
-        return self._dict.popitem()[0]
-
-    def add(self, item):
-        self._dict[item] = None
-
-    def difference_update(self, items: Sequence[Any]):
-        for item in items:
-            with suppress(KeyError):
-                self._dict.pop(item)
 
 
 class Pivot:
@@ -394,7 +367,6 @@ class ClosureSnapshot:
     def create_from(cls, stretch):
         stretch = deepcopy(stretch)
 
-        # use OrderedDict to implement OrderedSet
         edge_set: OrderedSet = OrderedSet(stretch.edges)
 
         closures: List[ClosureView] = []
