@@ -340,6 +340,16 @@ class TestDirectEdge:
         assert len(stretch.edges) == 5
         assert len(stretch.closure_snapshot().closures) == 1
 
+    def test_sub_edge_offset(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        sub_edge = edge.sub_edge(box(0.5, 0, 1, 1))
+        assert isinstance(sub_edge, DirectEdge)
+        result = OffsetStrategy(sub_edge, Vector(0, 1)).do()
+        assert isinstance(result, DirectEdge)
+        assert isinstance(result.closure, ClosureView)
+        assert result.closure.shape.equals(loads('POLYGON ((0.5 1, 1 1, 1 0, 2 0, 2 2, 0 2, 0 0, 0.5 0, 0.5 1))'))
+
     def test_related_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         edge = stretch.edges[0]
@@ -776,6 +786,15 @@ class TestOffsetStrategy:
         assert len(closures) == 2
         assert closures[1].shape.equals(loads('POLYGON ((1 0, 1 1, 2 1, 2 2, 0 2, 0 0, 1 0))'))
         assert closures[0].shape.equals(loads('POLYGON ((3 0, 3 1, 2 1, 1 1, 1 0, 2 0, 3 0))'))
+
+    def test_do_offset_case2(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        result = OffsetStrategy(edge, Vector(0, 1)).do()
+        assert isinstance(result, DirectEdge)
+        assert isinstance(result.closure, ClosureView)
+        assert result.closure.shape.equals(box(0, 1, 2, 2))
 
     def test_offset_corner_case0(self, stretch_of_single_box):
         stretch0 = stretch_of_single_box
