@@ -703,6 +703,9 @@ class AttachingOffset:
         else:
             ray = offset_vector.ccw_perpendicular.ray(moved_point, length=self._ring.length)
 
+        # add tol
+        ray = ray.ext.prolong().from_head(self._dist_tol)
+
         points = []
         points.extend(ray.intersection(self._ring).ext.decompose(Point).to_list())
 
