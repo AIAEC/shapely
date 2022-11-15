@@ -10,9 +10,6 @@ pipeline {
     }
   }
 
-  parameters {
-  }
-
   environment {
     PYPI = credentials('pypi-repo-credential')
   }
