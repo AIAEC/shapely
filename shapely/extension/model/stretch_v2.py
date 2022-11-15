@@ -644,7 +644,13 @@ class Stretch:
                             dist_tol=dist_tol)
 
         # add pivots without duplicate
-        lmap(add_pivot, line.ext.decompose(Point).to_list())
+        points_on_line: Set[Point] = line.ext.decompose(Point).to_set()
+        points_intersects_with_edges: Set[Point] = (unary_union([e.shape for e in self.edges])
+                                                    .intersection(line)
+                                                    .ext.decompose(Point)
+                                                    .to_set())
+        points: Set[Point] = points_on_line.union(points_intersects_with_edges)
+        lmap(add_pivot, points)
 
         new_edges: OrderedSet = OrderedSet()
 

@@ -515,6 +515,21 @@ class TestStretch:
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 3
 
+    def test_add_closure_that_crossing_multiple_closures(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        assert stretch.add_closure(box(0, 0, 2.5, 0.5))
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 4
+        assert len(stretch.pivots) == 11
+        assert len(stretch.edges) == 19
+
+    def test_add_closures_that_crossing_each_other(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        assert stretch.add_closure(LineString([(0.5, 0), (0.5, 1)]).buffer(MATH_EPS * 10, single_sided=True))
+        assert stretch.add_closure(LineString([(0, 0.5), (1, 0.5)]).buffer(MATH_EPS * 10, single_sided=True))
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 7
+
     def test_add_very_small_closure(self, stretch_of_single_box):
         stretch = stretch_of_single_box
         polys = (stretch.closure_snapshot().occupation
