@@ -8,7 +8,7 @@ from shapely.extension.constant import MATH_EPS
 from shapely.extension.model import Vector
 from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
     OffsetStrategy, ClosureView, StretchFactory
-from shapely.geometry import Point, box, LineString, CAP_STYLE, JOIN_STYLE, Polygon
+from shapely.geometry import Point, box, LineString, CAP_STYLE, JOIN_STYLE, Polygon, MultiLineString
 from shapely.wkt import loads
 
 
@@ -612,13 +612,33 @@ class TestStretch:
         assert len(stretch.pivots) == origin_num_pivots + 1
         assert len(stretch.edges) == origin_num_edges + 3
 
-    def test_split_by_spliter_crosing_pivot(self, stretch_of_single_concave_box):
+    def test_split_by_spliter_crossing_pivot(self, stretch_of_single_concave_box):
         stretch = stretch_of_single_concave_box
         assert stretch.split_by(LineString([(0, 1 - MATH_EPS / 10), (2, 1 - MATH_EPS / 10)]))
         assert len(stretch.pivots) == 7
         assert len(stretch.edges) == 11
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 3
+
+    def test_split_by_multi_linestring(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        multi_lines = MultiLineString([LineString([(-1, 1), (3, 1)]),
+                                       LineString([(1, -1), (1, 3)])])
+        assert stretch.split_by(multi_lines)
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 4
+
+    def test_split_by_multi_linestring_with_burr(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        multi_lines = MultiLineString([LineString([(-1, 1), (3, 1)]),
+                                       LineString([(1, -1), (1, 1.5)])])
+        assert stretch.split_by(multi_lines)
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+        closures.sort(key=lambda closure: closure.shape.centroid.x)
+        assert closures[0].shape.equals(box(0, 0, 1, 1))
+        assert closures[1].shape.equals(box(0, 1, 2, 2))
+        assert closures[2].shape.equals(box(1, 0, 2, 1))
 
     def test_remove_dangling_edges(self, stretch_of_single_box_with_glitch):
         stretch = stretch_of_single_box_with_glitch

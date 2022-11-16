@@ -19,7 +19,7 @@ from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap, separate
 from shapely.extension.util.iter_util import win_slice, first
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import Point, Polygon, MultiPolygon, LineString, LinearRing
+from shapely.geometry import Point, Polygon, MultiPolygon, LineString, LinearRing, MultiLineString
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -594,40 +594,33 @@ class Stretch:
         self.remove_dangling_edges()
         return new_edges
 
-    def split_by(self, line: LineString,
+    def split_by(self, line: Union[LineString, MultiLineString],
                  dist_tol: float = MATH_EPS) -> List[List[DirectEdge]]:
         from shapely.extension.util.offset import self_intersection
 
         lines_inside: List[LineString] = (self.closure_snapshot().occupation
                                           .intersection(line)
-                                          .ext.decompose(StraightSegment)
+                                          .ext.decompose(LineString)
                                           .filter(truth)
                                           .filter_not(self_intersection)
                                           .to_list())
-
-        def find_attaching_edge(point: Point) -> Optional[DirectEdge]:
-            return min(self.query_edges(point, buffer=dist_tol),
-                       key=lambda edge: edge.shape.distance(point),
-                       default=None)
 
         new_edge_groups: List[List[DirectEdge]] = []
 
         for line_inside in lines_inside:
             line_inside = line_inside.simplify(0)
-            start_point = line_inside.ext.start()
-            end_point = line_inside.ext.end()
-
-            start_inserting_edge = find_attaching_edge(start_point)
-            end_inserting_edge = find_attaching_edge(end_point)
-            if not (start_inserting_edge and end_inserting_edge):
-                continue  # just ignore this invalid line
-
             new_edge_groups.append(self._add_edge(line=line_inside, add_reverse=True, dist_tol=dist_tol))
 
         # when splitter exactly touches the closure boundary, it will create dangling edges, clean these edges here
         self.remove_dangling_edges()
 
-        return new_edge_groups
+        cur_edge_set: Set[DirectEdge] = set(self.edges)
+        existed_new_edge_groups: List[List[DirectEdge]] = []
+        for edge_group in new_edge_groups:
+            if edges_left := lfilter(lambda edge: edge in cur_edge_set, edge_group):
+                existed_new_edge_groups.append(edges_left)
+
+        return existed_new_edge_groups
 
     def _add_edge(self, line: LineString, add_reverse: bool = False, dist_tol: float = MATH_EPS) -> List[DirectEdge]:
         """
