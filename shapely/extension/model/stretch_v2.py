@@ -199,14 +199,14 @@ class DirectEdge:
     def offset(self, dist: float,
                side: Literal['left', 'right'],
                edge_offset_strategy_clz: type,
-               eps: float = MATH_EPS) -> 'DirectEdge':
+               attaching_dist_tol: float = MATH_EPS) -> 'DirectEdge':
         edge_vec = Vector.from_endpoints_of(self.shape)
         if side == 'left':
             offset_vec = edge_vec.ccw_perpendicular.unit(dist)
         else:
             offset_vec = edge_vec.cw_perpendicular.unit(dist)
 
-        return edge_offset_strategy_clz(self, offset_vec, eps).do()
+        return edge_offset_strategy_clz(self, offset_vec, attaching_dist_tol).do()
 
     def expand(self, point: Point, endpoint_dist_tol: float = MATH_EPS) -> Pivot:
         reverse_existed = bool(self.reverse)
@@ -748,10 +748,10 @@ class AttachingOffset:
 
 
 class BaseOffsetStrategy(ABC):
-    def __init__(self, edge: DirectEdge, offset_vector: Vector, dist_tol: float = MATH_EPS):
+    def __init__(self, edge: DirectEdge, offset_vector: Vector, attaching_dist_tol: float = MATH_EPS):
         self._edge = edge
         self._offset_vector = offset_vector
-        self._dist_tol = dist_tol
+        self._attaching_dist_tol = attaching_dist_tol
         if not self._edge.shape.ext.angle().perpendicular_to(offset_vector.angle):
             raise ValueError(f'expect offset vector perpendicular to edge, given {edge} and {offset_vector}')
 
@@ -802,7 +802,8 @@ class BaseOffsetStrategy(ABC):
         if perpendicular_mode:
             target_point = offset_vector.apply(edge.from_pivot.shape)
             try:
-                if shrinking_closure and not shrinking_closure.shape.buffer(self._dist_tol).covers(target_point):
+                if shrinking_closure and not shrinking_closure.shape.buffer(self._attaching_dist_tol).covers(
+                        target_point):
                     # if perpendicular mode failed, try attaching mode instead
                     raise RuntimeError
 
@@ -810,7 +811,7 @@ class BaseOffsetStrategy(ABC):
                 # 1. create dangling pivot
                 # 2. connect origin from_pivot to this dangling pivot
                 # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
+                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
                 new_edge = DirectEdge(from_pivot=edge.from_pivot, to_pivot=dangling_pivot, stretch=self.stretch)
                 self.stretch.edges.append(new_edge)
 
@@ -831,11 +832,11 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._dist_tol)
+        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._attaching_dist_tol)
                         .for_from_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
-        return self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
+        return self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
 
     def offset_to_pivot(self, edge: DirectEdge,
                         offset_vector: Vector,
@@ -847,7 +848,8 @@ class BaseOffsetStrategy(ABC):
         if perpendicular_mode:
             target_point = offset_vector.apply(edge.to_pivot.shape)
             try:
-                if shrinking_closure and not shrinking_closure.shape.buffer(self._dist_tol).covers(target_point):
+                if shrinking_closure and not shrinking_closure.shape.buffer(self._attaching_dist_tol).covers(
+                        target_point):
                     # if perpendicular mode failed, try attaching mode instead
                     raise RuntimeError
 
@@ -855,7 +857,7 @@ class BaseOffsetStrategy(ABC):
                 # 1. create dangling pivot
                 # 2. connect origin from_pivot to this dangling pivot
                 # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
+                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
                 new_edge = DirectEdge(from_pivot=dangling_pivot, to_pivot=edge.to_pivot, stretch=self.stretch)
                 self.stretch.edges.append(new_edge)
 
@@ -875,11 +877,11 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._dist_tol)
+        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._attaching_dist_tol)
                         .for_to_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
-        return self.stretch.add_pivot(target_point, dist_tol=self._dist_tol)
+        return self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
 
     @abstractmethod
     def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
