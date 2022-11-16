@@ -36,7 +36,7 @@ class Pivot:
 
         self.in_edges: List[DirectEdge] = []
         self.out_edges: List[DirectEdge] = []
-        self._stretch: ReferenceType['Stretch'] = ref(stretch)
+        self._stretch: 'Stretch' = stretch
         self.cargo = {}
         self.id = uuid4()
 
@@ -51,7 +51,7 @@ class Pivot:
 
     @property
     def stretch(self) -> 'Stretch':
-        return self._stretch()
+        return self._stretch
 
     @property
     def shape(self) -> Point:
@@ -87,7 +87,7 @@ class DirectEdge:
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
         self._from_pivot = ref(from_pivot)
         self._to_pivot = ref(to_pivot)
-        self._stretch: ReferenceType['Stretch'] = ref(stretch)
+        self._stretch: 'Stretch' = stretch
         self.cargo = {}
 
         if self not in from_pivot.out_edges:
@@ -127,7 +127,7 @@ class DirectEdge:
 
     @property
     def stretch(self) -> 'Stretch':
-        return self._stretch()
+        return self._stretch
 
     @property
     def shape(self) -> StraightSegment:
@@ -318,6 +318,10 @@ class DirectEdgeView(DirectEdge):
         self.cargo = {}
 
     @property
+    def stretch(self) -> 'Stretch':
+        return self._stretch()
+
+    @property
     def reverse(self) -> 'DirectEdgeView':
         return DirectEdgeView(from_pivot=self.to_pivot, to_pivot=self.from_pivot, stretch=self.stretch)
 
@@ -365,8 +369,6 @@ class ClosureSnapshot:
 
     @classmethod
     def create_from(cls, stretch):
-        stretch = deepcopy(stretch)
-
         edge_set: OrderedSet = OrderedSet(stretch.edges)
 
         closures: List[ClosureView] = []
@@ -426,6 +428,9 @@ class Stretch:
 
     def closure_snapshot(self) -> ClosureSnapshot:
         return ClosureSnapshot.create_from(self)
+
+    def static_closure_snapshot(self) -> ClosureSnapshot:
+        return ClosureSnapshot.create_from(deepcopy(self))
 
     def query_pivots(self, geom: BaseGeometry, buffer: float = 0) -> List[Pivot]:
         if buffer != 0:
@@ -712,7 +717,7 @@ class AttachingOffset:
         # add tol
         ray = ray.ext.prolong().from_head(self._dist_tol)
 
-        points = []
+        points: List[Point] = []
         points.extend(ray.intersection(self._ring).ext.decompose(Point).to_list())
 
         query_region = ray.buffer(self._dist_tol)
