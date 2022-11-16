@@ -37,7 +37,7 @@ pipeline {
       steps {
         container('python') {
           sh 'pip install twine'
-          sh 'twine upload --repository-url https://$PYPI_SERVER_HOST -u $PYPI_USR -p $PYPI_PSW dist/*'
+          sh 'twine upload --repository-url https://pypi.aiacesz.com -u $PYPI_USR -p $PYPI_PSW dist/*'
         }
       }
     }
