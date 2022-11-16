@@ -613,6 +613,7 @@ class Stretch:
 
         # when splitter exactly touches the closure boundary, it will create dangling edges, clean these edges here
         self.remove_dangling_edges()
+        self.simplify_edges()
 
         cur_edge_set: Set[DirectEdge] = set(self.edges)
         existed_new_edge_groups: List[List[DirectEdge]] = []
