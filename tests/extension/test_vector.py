@@ -38,6 +38,13 @@ class TestVector(TestCase):
         with self.assertRaises(ValueError):
             Vector.from_tuple(['a', 1, 1])
 
+    def test_from_point(self):
+        vector1 = Vector.from_point(Point(0, 0))
+        self.assertEqual(0, vector1.length)
+
+        vector2 = Vector.from_point(Point(1, 1))
+        self.assertEqual(Vector(1, 1), vector2)
+
     def test_from_coordinates(self):
         vector1 = Vector.from_origin_to_target((0, 0), (1, 1))
         self.assertTrue(isinstance(vector1, Vector))

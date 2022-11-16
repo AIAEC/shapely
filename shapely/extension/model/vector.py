@@ -81,6 +81,10 @@ class Vector:
         return cls(num_tuple[0], num_tuple[1])
 
     @classmethod
+    def from_point(cls, point: Point) -> 'Vector':
+        return cls(point.x, point.y)
+
+    @classmethod
     def from_origin_to_target(cls, origin: Union[CoordType, Point], target: Union[CoordType, Point]) -> 'Vector':
         """
         create vector from origin to target
