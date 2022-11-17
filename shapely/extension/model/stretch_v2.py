@@ -594,12 +594,14 @@ class Stretch:
         self.remove_dangling_edges()
         return new_edges
 
-    def split_by(self, line: Union[LineString, MultiLineString],
+    def split_by(self, line: Union[LineString, MultiLineString, Sequence[Union[LineString, MultiLineString]]],
                  dist_tol: float = MATH_EPS) -> List[List[DirectEdge]]:
         from shapely.extension.util.offset import self_intersection
 
+        line_union = unary_union(flatten(line, target_class_or_callable=LineString).to_list())
+
         lines_inside: List[LineString] = (self.closure_snapshot().occupation
-                                          .intersection(line)
+                                          .intersection(line_union)
                                           .ext.decompose(LineString)
                                           .filter(truth)
                                           .filter_not(self_intersection)
