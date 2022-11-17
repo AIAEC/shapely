@@ -1,3 +1,11 @@
+"""
+Stretch is a set of model that used to represent polygons with shared edge
+Core Concepts:
+1. Pivot: the actual "point" of each polygon
+2. DirectEdge: the "edge" of each polygon, notice that left side of direct edge is the inner side of polygon
+3. ClosureView: the polygon that closed by direct edges, which in stretch model, is an object only derived from edges
+"""
+
 import pickle
 from abc import ABC, abstractmethod
 from contextlib import suppress
@@ -25,6 +33,9 @@ from shapely.ops import unary_union
 
 
 class Pivot:
+    """
+    The representative point in stretch model
+    """
     def __init__(self, origin: Union[Coord, Point], stretch: 'Stretch'):
         try:
             self._origin = Point(origin)
@@ -84,6 +95,9 @@ class Pivot:
 
 
 class DirectEdge:
+    """
+    The representative linestring in stretch model
+    """
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
         self._from_pivot = ref(from_pivot)
         self._to_pivot = ref(to_pivot)
@@ -307,7 +321,7 @@ class DirectEdge:
 
 class DirectEdgeView(DirectEdge):
     """
-    View for direct edge, creating DirectEdgeView will not change the data inside stretch
+    View object for direct edge, creating DirectEdgeView will not change the data inside stretch
     """
 
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
@@ -328,6 +342,9 @@ class DirectEdgeView(DirectEdge):
 
 @dataclass(frozen=True)
 class ClosureView:
+    """
+    The representative polygon in stretch model
+    """
     pivots: List[Pivot] = field(default_factory=list)  # no duplicated tail pivot
 
     def __bool__(self):
@@ -365,6 +382,9 @@ class ClosureView:
 
 @dataclass(frozen=True)
 class ClosureSnapshot:
+    """
+    The closure view set
+    """
     closures: List[ClosureView] = field()
 
     @classmethod
@@ -398,6 +418,9 @@ class ClosureSnapshot:
 
 
 class Stretch:
+    """
+    The core model that hold every pivots and edges
+    """
     def __init__(self, pivots: List[Pivot], edges: List[DirectEdge]):
         self.pivots: List[Pivot] = pivots
         self.edges: List[DirectEdge] = edges
@@ -676,6 +699,9 @@ class Stretch:
 
 
 class StretchFactory:
+    """
+    The utility for creating stretch from set of polygons
+    """
     def __init__(self, dist_tol: float = MATH_EPS):
         self._dist_tol = dist_tol
 
@@ -696,6 +722,9 @@ class StretchFactory:
 
 
 class AttachingOffset:
+    """
+    The utility used for calculating from-pivot or to-pivot position after offset direct edge
+    """
     def __init__(self, ring: LinearRing, dist_tol: float = MATH_EPS):
         self._ring = ring
         self._ring_points_aggregation = self._ring.ext.decompose(Point)
@@ -749,6 +778,9 @@ class AttachingOffset:
 
 
 class BaseOffsetStrategy(ABC):
+    """
+    Base strategy class for offset
+    """
     def __init__(self, edge: DirectEdge, offset_vector: Vector, attaching_dist_tol: float = MATH_EPS):
         self._edge = edge
         self._offset_vector = offset_vector
@@ -907,6 +939,9 @@ class BaseOffsetStrategy(ABC):
 
 
 class OffsetStrategy(BaseOffsetStrategy):
+    """
+    simple offset strategy that will choose attaching mode or perpendicular mode for calculating offset
+    """
     def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
         new_edges = [DirectEdge(from_pivot=new_from_pivot, to_pivot=new_to_pivot, stretch=self.stretch)]
         if self._edge.reverse:
