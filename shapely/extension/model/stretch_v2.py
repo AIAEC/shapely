@@ -975,7 +975,7 @@ class BaseOffsetStrategy(ABC):
         target_point = (AttachingOffsetV2(shrinking_closure.shape, dist_tol=self._attaching_dist_tol)
                         .for_to_pivot(edge, offset_vector))
         if not target_point:
-            raise ValueError('offset_vector might be too strong')
+            raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
         return self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
 
     @abstractmethod
