@@ -10,7 +10,8 @@ from shapely.geometry.base import BaseGeometry
 
 def decompose(geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
               target_class: type,
-              strategy: Optional[DefaultDecomposeStrategy] = None) -> List:
+              strategy: Optional[DefaultDecomposeStrategy] = None,
+              remaining_low_dim_obj: bool = False) -> List:
     """
     Decompose the given geom or geoms according to decomposing order.
 
@@ -31,6 +32,8 @@ def decompose(geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
     geom_or_geoms
     target_class
     strategy
+    remaining_low_dim_obj: when dimension of target_class is larger than that of given geom_or_geoms, whether return the
+        geometries of lower dimension
 
     Returns
     -------
@@ -55,6 +58,12 @@ def decompose(geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
 
     result = []
     for gs in groupby(type, geoms).values():
-        result.extend(_decompose_single_type(gs, target_class=target_class))
+        # gs must contain geometries with same type
+        if decomposed_geoms := _decompose_single_type(gs, target_class=target_class):
+            if remaining_low_dim_obj or isinstance(decomposed_geoms[0], target_class):
+                # some group type index might be larger than target class type index, namely case as below
+                # target class type is LineString, but given group of points to decompose, thus origin group of points
+                # will be returned as decomposed_geoms, which is not our target objects
+                result.extend(decomposed_geoms)
 
     return result
