@@ -27,7 +27,7 @@ from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap, separate
 from shapely.extension.util.iter_util import win_slice, first
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import Point, Polygon, MultiPolygon, LineString, LinearRing, MultiLineString
+from shapely.geometry import Point, Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -36,6 +36,7 @@ class Pivot:
     """
     The representative point in stretch model
     """
+
     def __init__(self, origin: Union[Coord, Point], stretch: 'Stretch'):
         try:
             self._origin = Point(origin)
@@ -98,6 +99,7 @@ class DirectEdge:
     """
     The representative linestring in stretch model
     """
+
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
         self._from_pivot = ref(from_pivot)
         self._to_pivot = ref(to_pivot)
@@ -421,6 +423,7 @@ class Stretch:
     """
     The core model that hold every pivots and edges
     """
+
     def __init__(self, pivots: List[Pivot], edges: List[DirectEdge]):
         self.pivots: List[Pivot] = pivots
         self.edges: List[DirectEdge] = edges
@@ -702,6 +705,7 @@ class StretchFactory:
     """
     The utility for creating stretch from set of polygons
     """
+
     def __init__(self, dist_tol: float = MATH_EPS):
         self._dist_tol = dist_tol
 
@@ -725,8 +729,9 @@ class AttachingOffset:
     """
     The utility used for calculating from-pivot or to-pivot position after offset direct edge
     """
-    def __init__(self, ring: LinearRing, dist_tol: float = MATH_EPS):
-        self._ring = ring
+
+    def __init__(self, poly: Polygon, dist_tol: float = MATH_EPS):
+        self._ring = poly.exterior
         self._ring_points_aggregation = self._ring.ext.decompose(Point)
         self._dist_tol = dist_tol
 
@@ -777,10 +782,67 @@ class AttachingOffset:
                                            rotating_direct_from_offset_vec=other_direction)
 
 
+class AttachingOffsetV2:
+    def __init__(self, poly: Polygon, dist_tol: float = MATH_EPS):
+        self._poly = poly
+        self._dist_tol = dist_tol
+
+    def offset_to_left(self, edge: DirectEdge, offset_vector: Vector) -> bool:
+        return edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
+
+    def _cal_target_position(self, edge: DirectEdge, offset_vector: Vector, target_from_pivot: bool) -> Optional[Point]:
+        offset_edge: LineString = offset_vector.apply(edge.shape)
+        offset_from_point = offset_edge.ext.start()
+        offset_to_point = offset_edge.ext.end()
+
+        target_point, another_point = ((offset_from_point, offset_to_point) if target_from_pivot
+                                       else (offset_to_point, offset_from_point))
+
+        line = offset_edge
+        if target_point.within(self._poly):
+            if self.offset_to_left(edge, offset_vector) ^ target_from_pivot:
+                ray_vec = offset_vector.cw_perpendicular
+            else:
+                ray_vec = offset_vector.ccw_perpendicular
+            line = ray_vec.ray(target_point, self._poly.length)
+
+        offset_edge_inside = offset_edge.intersection(self._poly)
+
+        # candidate_projection is for covering 2 cases below
+        # 1. line projects onto poly.exterior as a single point and no other points should be considered candidates
+        # 2. line projects onto poly.exterior as a linestring(consisted of many points) or there are some other points
+        #   on poly.exterior that are very close to the projection line, so that these points should be treated as
+        #   candidate points too.
+        # CAUTION: don't change the order of the elements in GeometryCollection
+        # In case that candidate_points from candidate_projection all have the same distance(due to finite precision)
+        # but are actually different points, pick as result the accurate one(line's intersection on poly.exterior
+        # without buffer)
+        candidate_projection = GeometryCollection([
+            line.ext.intersection(self._poly.exterior),
+            line.ext.intersection(self._poly.exterior, self_buffer=self._dist_tol)])
+
+        # pick the closest candidate points that have distance larger than half-length of offset edge inside(candidate
+        # points on another_point side)
+        candidate_points: List[Point] = (
+            candidate_projection
+            .ext.decompose(Point)
+            .filter(lambda pt: pt.distance(another_point) > offset_edge_inside.length / 2)
+            .to_list())
+
+        return min(candidate_points, key=another_point.distance)
+
+    def for_from_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
+        return self._cal_target_position(edge, offset_vector, target_from_pivot=True)
+
+    def for_to_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
+        return self._cal_target_position(edge, offset_vector, target_from_pivot=False)
+
+
 class BaseOffsetStrategy(ABC):
     """
     Base strategy class for offset
     """
+
     def __init__(self, edge: DirectEdge, offset_vector: Vector, attaching_dist_tol: float = MATH_EPS):
         self._edge = edge
         self._offset_vector = offset_vector
@@ -865,7 +927,7 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._attaching_dist_tol)
+        target_point = (AttachingOffsetV2(shrinking_closure.shape, dist_tol=self._attaching_dist_tol)
                         .for_from_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
@@ -910,7 +972,7 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = (AttachingOffset(shrinking_closure.shape.exterior, dist_tol=self._attaching_dist_tol)
+        target_point = (AttachingOffsetV2(shrinking_closure.shape, dist_tol=self._attaching_dist_tol)
                         .for_to_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector might be too strong')
@@ -942,6 +1004,7 @@ class OffsetStrategy(BaseOffsetStrategy):
     """
     simple offset strategy that will choose attaching mode or perpendicular mode for calculating offset
     """
+
     def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
         new_edges = [DirectEdge(from_pivot=new_from_pivot, to_pivot=new_to_pivot, stretch=self.stretch)]
         if self._edge.reverse:
