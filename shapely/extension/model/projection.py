@@ -147,10 +147,13 @@ class ProjectionOnLine:
 
         projected_seg = projected_seg.intersection(self.target_line)
 
-        if isinstance(projected_seg, Point) and not projected_seg.is_empty:
-            projected_seg = LineString([projected_seg, projected_seg])
+        def seg_to_line(projected_seg_):
+            if isinstance(projected_seg_, Point) and not projected_seg_.is_empty:
+                projected_seg_ = LineString([projected_seg_, projected_seg_])
 
-        return [] if projected_seg.is_empty else [projected_seg]
+            return [] if projected_seg_.is_empty else [projected_seg_]
+
+        return projected_seg.ext.flatten().flat_map(seg_to_line).to_list()
 
     def positive_intervals(self, normalized: bool = False) -> List[Interval]:
         """

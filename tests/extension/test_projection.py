@@ -271,3 +271,10 @@ class ProjectionTest(TestCase):
         negative_intervals = l1.ext.projection_by(o1).negative_intervals()
 
         self.assertEqual(2, len(negative_intervals))
+
+    def test_projection_of_small_projector(self):
+        obs = loads(
+            "GEOMETRYCOLLECTION (POLYGON ((72.31927645643002 53.576712197850696, 72.31933140499405 30.74639189107678, 69.56933240500207 30.746385272313045, 69.56927745643806 53.57670557908696, 72.31927645643002 53.576712197850696)), LINESTRING (67.69474738542999 30.746380760516733, 67.01933340500939 30.74637913491412))")
+        line = loads(
+            "LINESTRING (67.01927745644537 53.576699441685626, 67.0193324050094 30.746379134911713)")
+        line.ext.projection_by(obs).negative_intervals()  # assert no raise
