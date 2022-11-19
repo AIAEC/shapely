@@ -260,6 +260,7 @@ class DirectEdge(StretchMixin):
         -------
 
         """
+
         def _expand_single_edge(edge: DirectEdge) -> List[DirectEdge]:
             """
             对于单条有向边，插入一个点，生成新的有向边:

@@ -22,6 +22,7 @@ class FixedRadiusArcCreator:
     """
     helper class for arc or circle creation given fixed radius beforehand
     """
+
     def __init__(self, radius: float):
         """
         Parameters
@@ -132,6 +133,7 @@ class FixedCenterArcCreator:
     """
     helper class for arc or circle creation given fixed center point beforehand
     """
+
     def __init__(self, center: Union[Point, CoordType]):
         """
         Parameters
@@ -236,6 +238,7 @@ class ArcCreator:
     """
     entry class for creat arc and circle
     """
+
     def center(self, center: Union[Point, CoordType]) -> FixedCenterArcCreator:
         """
         fix center beforehand and calculate the arc or circle with further intersected geometries given

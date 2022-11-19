@@ -3,8 +3,8 @@ from operator import truth
 from typing import Union, Sequence, Callable, List, Dict
 
 import numpy as np
-from shapely.extension.geometry.straight_segment import StraightSegment
 
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat

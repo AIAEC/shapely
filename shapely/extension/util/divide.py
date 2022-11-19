@@ -3,9 +3,8 @@ from copy import deepcopy
 from queue import Queue
 from typing import Union, List, Dict
 
-from shapely.extension.geometry.straight_segment import StraightSegment
-
 from shapely.extension.constant import MATH_EPS, SAFE_COUNT
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.util.func_util import lconcat, lmap
 from shapely.extension.util.iter_util import win_slice
 from shapely.geometry import LineString, MultiLineString, Point, Polygon, MultiPolygon, MultiPoint
@@ -103,7 +102,7 @@ def _divide_polygon_by_multilinestring(polygon: Polygon,
 
     divider_shape = unary_union(divider).buffer(dist_tol / 10, cap_style=CAP_STYLE.square, join_style=JOIN_STYLE.mitre)
     divided_polys = polygon.difference(divider_shape).ext.flatten(Polygon).to_list()
-    return lmap(lambda poly: _split_polygon_boundary(poly, divider, dist_tol*10), divided_polys)
+    return lmap(lambda poly: _split_polygon_boundary(poly, divider, dist_tol * 10), divided_polys)
 
 
 def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],

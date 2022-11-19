@@ -1,10 +1,9 @@
 from itertools import product
 from typing import Union, Optional, Iterable, Tuple
 
-from shapely.extension.geometry.straight_segment import StraightSegment
-
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
 from shapely.extension.util.decompose import decompose

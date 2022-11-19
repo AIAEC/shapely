@@ -3,9 +3,8 @@ from functools import cached_property
 from operator import attrgetter
 from typing import Union, List, Optional
 
-from shapely.extension.geometry.straight_segment import StraightSegment
-
 from shapely.extension.constant import MATH_EPS
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import GeomObj
 from shapely.extension.util.func_util import lmap, lconcat, lfilter

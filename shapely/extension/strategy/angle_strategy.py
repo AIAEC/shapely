@@ -115,6 +115,7 @@ class LineAngleStrategy:
     """
     angle strategy creator for linestring
     """
+
     def __init__(self, default_angle: float):
         self._default = default_angle
 

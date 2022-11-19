@@ -260,8 +260,9 @@ def stretch_for_real_offset_case() -> Stretch:
 
 @fixture
 def stretch_for_split_by_case() -> Stretch:
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/stretch_for_split_by.pkl'), 'rb') as fp:
-        return Stretch.load(fp)
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'data/stretch_for_split_by_without_cargo.pkl'), 'rb') as fp:
+        return Stretch.load(fp, with_cargo=False)
 
 
 class TestPivot:
@@ -320,6 +321,19 @@ class TestDirectEdge:
         assert len(pivot.out_edges) == 2
         assert len(pivot.in_edges) == 2
 
+    def test_cargo_after_expand(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        edge_cargo = {'test': 0}
+        pivot_cargo = {'test': 1}
+        edge.cargo = edge_cargo
+        new_pivot = edge.expand(Point(1, -1), pivot_cargo=pivot_cargo)
+        assert isinstance(new_pivot, Pivot)
+        assert new_pivot.cargo == pivot_cargo
+        assert new_pivot.in_edges[0].cargo == edge_cargo
+        assert new_pivot.out_edges[0].cargo == edge_cargo
+
     def test_sub_edge_without_touching_pivot(self, stretch_of_single_box):
         stretch = stretch_of_single_box
         edge = stretch.edges[0]
@@ -355,6 +369,24 @@ class TestDirectEdge:
         assert isinstance(result, DirectEdge)
         assert isinstance(result.closure, ClosureView)
         assert result.closure.shape.equals(loads('POLYGON ((0.5 1, 1 1, 1 0, 2 0, 2 2, 0 2, 0 0, 0.5 0, 0.5 1))'))
+
+    def test_cargo_of_sub_edge(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        pivot_cargo = {'test': 0}
+        edge_cargo = {'test': 1}
+        edge.cargo = edge_cargo
+
+        override_edge_cargo = {'override': 0}
+        new_edge = edge.sub_edge(box(1, 0, 1.5, 1),
+                                 pivot_cargo=pivot_cargo,
+                                 cargo_inherit_strategy=lambda cargo: override_edge_cargo)
+        assert isinstance(new_edge, DirectEdge)
+        assert new_edge.cargo != edge_cargo
+        assert new_edge.cargo == override_edge_cargo
+        assert new_edge.from_pivot.cargo == pivot_cargo
+        assert new_edge.to_pivot.cargo == pivot_cargo
 
     def test_related_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -448,9 +480,9 @@ class TestDirectEdgeView:
 
 class TestStretch:
     def test_deep_copy_stretch(self):
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/stretch_for_deepcopy.pkl'),
-                  'rb') as fp:
-            stretch = Stretch.load(fp)
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'data/stretch_for_deepcopy_without_cargo.pkl'), 'rb') as fp:
+            stretch = Stretch.load(fp, with_cargo=False)
         stretch = deepcopy(stretch)
         assert isinstance(stretch, Stretch)
 
@@ -478,8 +510,10 @@ class TestStretch:
         result = stretch.add_pivot(Point(MATH_EPS / 10, 0), reuse_existing=True, dist_tol=MATH_EPS)
         assert pivot0 == result
 
-        result = stretch.add_pivot(Point(-MATH_EPS / 10, 0), reuse_existing=True, dist_tol=0)
+        pivot_cargo = {'test': 1}
+        result = stretch.add_pivot(Point(-MATH_EPS / 10, 0), reuse_existing=True, dist_tol=0, cargo=pivot_cargo)
         assert pivot0 != result
+        assert result.cargo == pivot_cargo
 
         result = stretch.add_pivot(Point(0, 0), reuse_existing=False, dist_tol=MATH_EPS)
         assert pivot0 != result
@@ -501,6 +535,19 @@ class TestStretch:
         result = stretch.add_closure(box(2, 1, 3, 2), dist_tol=MATH_EPS)
         assert result
         assert origin_num_pivots + 1 == len(stretch.pivots)
+
+    def test_cargo_after_add_closure(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        edge_cargo = {'test': 0}
+        pivot_cargo = {'test': 1}
+        stretch.add_closure(box(0, 0, 1, 1), edge_cargo=edge_cargo, pivot_cargo=pivot_cargo)
+        assert stretch.query_pivots(Point(0, 0))[0].cargo == pivot_cargo
+        assert stretch.query_pivots(Point(1, 0))[0].cargo == pivot_cargo
+        assert stretch.query_pivots(Point(0, 1))[0].cargo == pivot_cargo
+        assert stretch.query_pivots(Point(1, 1))[0].cargo == pivot_cargo
+        assert all(edge.cargo == edge_cargo for edge in stretch.query_edges(Point(0, 0)))
+        assert all(edge.cargo == edge_cargo for edge in stretch.query_edges(Point(1, 1)))
+        assert all(edge.cargo == {} for edge in stretch.query_edges(Point(2, 2)))
 
     def test_add_closure_case1(self, stretch_of_single_box):
         stretch = stretch_of_single_box
@@ -588,7 +635,8 @@ class TestStretch:
 
     def test_split_by_simple_splitter(self, stretch_of_two_box):
         stretch = stretch_of_two_box
-        assert stretch.split_by(LineString([(1, 0), (1, 2)]))
+        edge_cargo = {'test': 0}
+        assert stretch.split_by(LineString([(1, 0), (1, 2)]), edge_cargo=edge_cargo)
 
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 3
@@ -596,6 +644,9 @@ class TestStretch:
         assert closures[0].shape.equals(box(0, 0, 1, 2))
         assert closures[1].shape.equals(box(1, 0, 2, 2))
         assert closures[2].shape.equals(box(2, 0, 3, 1))
+
+        edge = stretch.query_edges(Point(1, 1))[0]
+        assert edge.cargo == edge_cargo
 
     def test_split_by_splitter_across_several_closures(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -685,6 +736,18 @@ class TestStretch:
         assert len(stretch.pivots) == 6
         assert len(stretch.edges) == 8
 
+    def test_cargo_of_simplify_edge(self, stretch_of_single_box_collinear_edge):
+        stretch = stretch_of_single_box_collinear_edge
+        edges = stretch.query_edges(Point(1, 2), buffer=0.1)
+        edge_cargo = {'test': 1}
+        for edge in edges:
+            edge.cargo = edge_cargo
+
+        stretch.simplify_edges(cargo_union_strategy=lambda cargo0, cargo1: {'test': cargo0['test'] + cargo1['test']})
+        edges = stretch.query_edges(Point(1, 2), buffer=0.1)
+        assert len(edges) == 1
+        assert edges[0].cargo == {'test': 2}
+
 
 class TestStretchFactory:
     def test_create(self):
@@ -738,6 +801,20 @@ class TestOffsetStrategy:
         closure = OffsetStrategy(edge, Vector(0, -1)).shrinking_closure
         assert isinstance(closure, ClosureView)
         assert closure.shape.equals(box(2, 0, 3, 1))
+
+    def test_cargo_inherit(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        cargo = {'test': 0}
+        edge.cargo = cargo
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+        result = edge.offset(0.5, side='left', edge_offset_strategy_clz=OffsetStrategy)
+        assert isinstance(result, DirectEdge)
+        assert result.cargo == cargo
+
+        # result's cargo should be different dict object
+        result.cargo['another_test'] = 1
+        assert result.cargo != cargo
 
     def test_does_from_pivot_use_perpendicular_mode_case0(self, stretch_of_two_box):
         stretch = stretch_of_two_box

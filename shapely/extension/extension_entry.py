@@ -15,6 +15,7 @@ def ext_entry():
     -------
     cached_property that has wrapped helper as its __get__
     """
+
     def helper(instance):
         # This needs to be called here to avoid circular references
         from shapely.extension.extension.base_geom_extension import BaseGeomExtension
