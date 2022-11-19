@@ -129,7 +129,13 @@ class ShortestStraightPathTest(TestCase):
         path = ShortestStraightPath(Vector(1, 0)).of(empty_line, line1)
         self.assertTrue(path)
         self.assertAlmostEqual(1, path.length)
+        path = ShortestStraightPath(Vector(1, 0)).of(line1, empty_line)
+        self.assertTrue(path)
+        self.assertAlmostEqual(1, path.length)
 
         path = ShortestStraightPath(Vector(-1, 0)).of(empty_line, line1)
+        self.assertTrue(path)
+        self.assertAlmostEqual(1, path.length)
+        path = ShortestStraightPath(Vector(-1, 0)).of(line1, empty_line)
         self.assertTrue(path)
         self.assertAlmostEqual(1, path.length)
