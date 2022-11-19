@@ -394,3 +394,12 @@ class LineStringExtension(BaseGeomExtension):
 
     def endpoints_vector(self) -> Vector:
         return Vector.from_endpoints_of(self._geom)
+
+    def normal_vector(self) -> Vector:
+        """
+        the normal vector of current linestring, a.k.a the perpendicular vector of endpoints_vector
+        Returns
+        -------
+        Vector
+        """
+        return self.endpoints_vector().ccw_perpendicular

@@ -259,3 +259,9 @@ class LineStringExtensionTest(TestCase):
         vec = line.ext.endpoints_vector()
         self.assertTrue(isinstance(vec, Vector))
         self.assertEqual(Vector(0, 1), vec)
+
+    def test_normal_vector(self):
+        line = LineString([(0, 0), (0, 1)])
+        vec = line.ext.normal_vector()
+        self.assertTrue(isinstance(vec, Vector))
+        self.assertEqual(Vector(-1, 0), vec)

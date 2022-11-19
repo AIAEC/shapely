@@ -122,3 +122,14 @@ class ShortestStraightPathTest(TestCase):
         point = Point(0, 20)
         path: LineString = ShortestStraightPath(Vector(-1, 0)).of(point, ring)
         self.assertFalse(path)
+
+    def test_empty_line_to_other_line_path(self):
+        empty_line = LineString([(0 , 0), (0, 0)])
+        line1 = LineString([(1, -1), (1, 1)])
+        path = ShortestStraightPath(Vector(1, 0)).of(empty_line, line1)
+        self.assertTrue(path)
+        self.assertAlmostEqual(1, path.length)
+
+        path = ShortestStraightPath(Vector(-1, 0)).of(empty_line, line1)
+        self.assertTrue(path)
+        self.assertAlmostEqual(1, path.length)

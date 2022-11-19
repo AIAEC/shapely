@@ -2,7 +2,7 @@ from typing import Optional
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.vector import Vector
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import nearest_points, unary_union
 
@@ -31,7 +31,12 @@ class ShortestStraightPath:
         -------
         shapely.Linestring
         """
-        if not geom0.is_valid or not geom1.is_valid:
+        # only exclude invalid polygon or multi-polygon, and let linestring or point pass, since invalid linestring
+        # or point can be used to create the shortest path
+        if isinstance(geom0, (Polygon, MultiPolygon)) and not geom0.is_valid:
+            return LineString()
+
+        if isinstance(geom1, (Polygon, MultiPolygon)) and not geom1.is_valid:
             return LineString()
 
         if geom0.is_empty or geom1.is_empty:
