@@ -802,19 +802,44 @@ class TestOffsetStrategy:
         assert isinstance(closure, ClosureView)
         assert closure.shape.equals(box(2, 0, 3, 1))
 
-    def test_cargo_inherit(self, stretch_of_two_box):
+    def test_cargo_inherit_when_offset(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         edge = stretch.query_edges(Point(2, 0.5))[0]
         cargo = {'test': 0}
         edge.cargo = cargo
         assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
-        result = edge.offset(0.5, side='left', edge_offset_strategy_clz=OffsetStrategy)
+        result = edge.offset(dist=0.5,
+                             side='left',
+                             edge_offset_strategy_clz=OffsetStrategy)
         assert isinstance(result, DirectEdge)
         assert result.cargo == cargo
-
         # result's cargo should be different dict object
         result.cargo['another_test'] = 1
         assert result.cargo != cargo
+
+        edges = stretch.query_edges(Point(1, 1), buffer=0.1)
+        for edge in edges:
+            assert edge.cargo == cargo
+
+    def test_different_cargo_inherit_strategy_when_offset(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        cargo = {'test': 0}
+        edge.cargo = cargo
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+        new_cargo = {'test': 1}
+        result = edge.offset(dist=0.5,
+                             side='left',
+                             edge_offset_strategy_clz=OffsetStrategy,
+                             cargo_inherit_strategy=lambda cargo: deepcopy(new_cargo))
+        assert isinstance(result, DirectEdge)
+        assert result.cargo != cargo
+        assert result.cargo == new_cargo
+
+        edges = stretch.query_edges(Point(1, 1), buffer=0.1)
+        for edge in edges:
+            assert edge.cargo != cargo
+            assert edge.cargo == new_cargo
 
     def test_does_from_pivot_use_perpendicular_mode_case0(self, stretch_of_two_box):
         stretch = stretch_of_two_box

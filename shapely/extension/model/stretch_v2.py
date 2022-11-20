@@ -42,7 +42,9 @@ class Pivot:
     The representative point in stretch model
     """
 
-    def __init__(self, origin: Union[Coord, Point], stretch: 'Stretch', cargo: Optional[dict] = None):
+    def __init__(self, origin: Union[Coord, Point],
+                 stretch: 'Stretch',
+                 cargo: Optional[dict] = None):
         try:
             self._origin = Point(origin)
         except Exception:
@@ -105,7 +107,11 @@ class DirectEdge:
     The representative linestring in stretch model
     """
 
-    def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch', cargo: Optional[dict] = None):
+    def __init__(self, from_pivot: Pivot,
+                 to_pivot: Pivot,
+                 stretch: 'Stretch',
+                 cargo: Optional[dict] = None):
+
         self._from_pivot = ref(from_pivot)
         self._to_pivot = ref(to_pivot)
         self._stretch: 'Stretch' = stretch
@@ -165,6 +171,11 @@ class DirectEdge:
 
     @property
     def next(self) -> Optional['DirectEdge']:
+        """
+        Returns
+        -------
+        the next DirectEdge of current edge of same closure
+        """
         if not self.shape.is_valid:
             return None
 
@@ -182,6 +193,11 @@ class DirectEdge:
 
     @property
     def previous(self) -> Optional['DirectEdge']:
+        """
+        Returns
+        -------
+        the previous DirectEdge of current edge of same closure
+        """
         if not self.shape.is_valid:
             return None
 
@@ -199,6 +215,15 @@ class DirectEdge:
 
     @staticmethod
     def consecutive_edges(edge: 'DirectEdge') -> List['DirectEdge']:
+        """
+        Parameters
+        ----------
+        edge
+
+        Returns
+        -------
+        the serial of next edges in consecutive orders of the same closure
+        """
         # TODO: explain the algorithm
         ring_edges: List[DirectEdge] = [edge]
         seen = set(ring_edges)
@@ -222,10 +247,6 @@ class DirectEdge:
                edge_offset_strategy_clz: type,
                attaching_dist_tol: float = MATH_EPS,
                cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> 'DirectEdge':
-        # calculate the cargo first to avoid disturbing of offset operation
-        edge_cargo = cargo_inherit_strategy(self.cargo)
-        from_pivot_cargo = cargo_inherit_strategy(self.from_pivot.cargo)
-        to_pivot_cargo = cargo_inherit_strategy(self.to_pivot.cargo)
 
         edge_vec = Vector.from_endpoints_of(self.shape)
         if side == 'left':
@@ -233,12 +254,12 @@ class DirectEdge:
         else:
             offset_vec = edge_vec.cw_perpendicular.unit(dist)
 
-        new_edge: DirectEdge = edge_offset_strategy_clz(self, offset_vec, attaching_dist_tol).do()
-
-        # update cargo
-        new_edge.cargo = edge_cargo
-        new_edge.from_pivot.cargo = from_pivot_cargo
-        new_edge.to_pivot.cargo = to_pivot_cargo
+        new_edge: DirectEdge = edge_offset_strategy_clz(
+            edge=self,
+            offset_vector=offset_vec,
+            attaching_dist_tol=attaching_dist_tol,
+            edge_cargo_inherit_strategy=cargo_inherit_strategy,
+            pivot_cargo_inherit_strategy=cargo_inherit_strategy).do()
 
         return new_edge
 
@@ -950,8 +971,14 @@ class BaseOffsetStrategy(ABC):
     Base strategy class for offset
     """
 
-    def __init__(self, edge: DirectEdge, offset_vector: Vector, attaching_dist_tol: float = MATH_EPS):
+    def __init__(self, edge: DirectEdge,
+                 offset_vector: Vector,
+                 attaching_dist_tol: float = MATH_EPS,
+                 edge_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
+                 pivot_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy):
         self._edge = edge
+        self._edge_cargo_inherit_strategy = edge_cargo_inherit_strategy
+        self._pivot_cargo_inherit_strategy = pivot_cargo_inherit_strategy
         self._offset_vector = offset_vector
         self._attaching_dist_tol = attaching_dist_tol
         if not self._edge.shape.ext.angle().perpendicular_to(offset_vector.angle):
@@ -1013,14 +1040,20 @@ class BaseOffsetStrategy(ABC):
                 # 1. create dangling pivot
                 # 2. connect origin from_pivot to this dangling pivot
                 # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
-                new_edge = DirectEdge(from_pivot=edge.from_pivot, to_pivot=dangling_pivot, stretch=self.stretch)
+                dangling_pivot = self.stretch.add_pivot(target_point,
+                                                        dist_tol=self._attaching_dist_tol,
+                                                        cargo=self._pivot_cargo_inherit_strategy(edge.from_pivot.cargo))
+                new_edge = DirectEdge(from_pivot=edge.from_pivot,
+                                      to_pivot=dangling_pivot,
+                                      stretch=self.stretch,
+                                      cargo=self._edge_cargo_inherit_strategy(edge.cargo))
                 self.stretch.edges.append(new_edge)
 
                 if edge.reverse:
                     new_reverse_edge = DirectEdge(from_pivot=dangling_pivot,
                                                   to_pivot=edge.from_pivot,
-                                                  stretch=self.stretch)
+                                                  stretch=self.stretch,
+                                                  cargo=self._edge_cargo_inherit_strategy(edge.reverse.cargo))
                     self.stretch.edges.append(new_reverse_edge)
 
                 return dangling_pivot
@@ -1038,7 +1071,9 @@ class BaseOffsetStrategy(ABC):
                         .for_from_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
-        return self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
+        return self.stretch.add_pivot(target_point,
+                                      dist_tol=self._attaching_dist_tol,
+                                      cargo=self._pivot_cargo_inherit_strategy(edge.from_pivot.cargo))
 
     def offset_to_pivot(self, edge: DirectEdge,
                         offset_vector: Vector,
@@ -1059,14 +1094,20 @@ class BaseOffsetStrategy(ABC):
                 # 1. create dangling pivot
                 # 2. connect origin from_pivot to this dangling pivot
                 # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
-                new_edge = DirectEdge(from_pivot=dangling_pivot, to_pivot=edge.to_pivot, stretch=self.stretch)
+                dangling_pivot = self.stretch.add_pivot(target_point,
+                                                        dist_tol=self._attaching_dist_tol,
+                                                        cargo=self._pivot_cargo_inherit_strategy(edge.to_pivot.cargo))
+                new_edge = DirectEdge(from_pivot=dangling_pivot,
+                                      to_pivot=edge.to_pivot,
+                                      stretch=self.stretch,
+                                      cargo=self._edge_cargo_inherit_strategy(edge.cargo))
                 self.stretch.edges.append(new_edge)
 
                 if edge.reverse:
                     new_reverse_edge = DirectEdge(from_pivot=edge.to_pivot,
                                                   to_pivot=dangling_pivot,
-                                                  stretch=self.stretch)
+                                                  stretch=self.stretch,
+                                                  cargo=self._edge_cargo_inherit_strategy(edge.reverse.cargo))
                     self.stretch.edges.append(new_reverse_edge)
                 return dangling_pivot
 
@@ -1083,7 +1124,9 @@ class BaseOffsetStrategy(ABC):
                         .for_to_pivot(edge, offset_vector))
         if not target_point:
             raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
-        return self.stretch.add_pivot(target_point, dist_tol=self._attaching_dist_tol)
+        return self.stretch.add_pivot(target_point,
+                                      dist_tol=self._attaching_dist_tol,
+                                      cargo=self._pivot_cargo_inherit_strategy(edge.to_pivot.cargo))
 
     @abstractmethod
     def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
@@ -1113,9 +1156,15 @@ class OffsetStrategy(BaseOffsetStrategy):
     """
 
     def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
-        new_edges = [DirectEdge(from_pivot=new_from_pivot, to_pivot=new_to_pivot, stretch=self.stretch)]
+        new_edges = [DirectEdge(from_pivot=new_from_pivot,
+                                to_pivot=new_to_pivot,
+                                stretch=self.stretch,
+                                cargo=self._edge_cargo_inherit_strategy(self._edge.cargo))]
         if self._edge.reverse:
-            new_edges.append(DirectEdge(from_pivot=new_to_pivot, to_pivot=new_from_pivot, stretch=self.stretch))
+            new_edges.append(DirectEdge(from_pivot=new_to_pivot,
+                                        to_pivot=new_from_pivot,
+                                        stretch=self.stretch,
+                                        cargo=self._edge_cargo_inherit_strategy(self._edge.reverse.cargo)))
         self.stretch.edges.extend(new_edges)
         return new_edges[0]
 
