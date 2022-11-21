@@ -33,8 +33,12 @@ from shapely.ops import unary_union
 
 CargoInheritStrategy = Callable[[dict], dict]
 default_cargo_inherit_strategy: CargoInheritStrategy = lambda cargo: deepcopy(cargo)
-CargoUnionStrategy = Callable[[dict, dict], dict]
-default_cargo_union_strategy: CargoUnionStrategy = lambda cargo0, cargo1: deepcopy(cargo0)
+EdgeCargoUnionStrategy = Callable[['DirectEdge', 'DirectEdge'], dict]
+
+
+def default_edge_cargo_union_strategy(edge0: 'DirectEdge', edge1: 'DirectEdge') -> dict:
+    major_edge, minor_edge = sorted([edge0, edge1], key=attrgetter('shape.length'), reverse=True)
+    return deepcopy(major_edge.cargo)
 
 
 class Pivot:
@@ -603,7 +607,7 @@ class Stretch:
         self._force_remove_edges(deleting_edges, delete_reverse=False)
 
     def simplify_edges(self, angle_tol: float = ANGLE_AROUND_EPS,
-                       cargo_union_strategy: CargoUnionStrategy = default_cargo_union_strategy) -> None:
+                       cargo_union_strategy: EdgeCargoUnionStrategy = default_edge_cargo_union_strategy) -> None:
         def removable_pivot(pivot: Pivot) -> bool:
             # pivot that satisfies conditions below should be considered a removable pivot
             # 1. has (1 in-edge and 1 out-edge) or (2 in-edges and 2-out-edges)
@@ -625,17 +629,14 @@ class Stretch:
             in_edge: DirectEdge = pivot.in_edges[0]
             previous_pivot: Pivot = in_edge.from_pivot
             next_pivot: Pivot = in_edge.next.to_pivot
+
             # calculate the cargo of new DirectEdge
-            # union_cargo should equal cargo of longger edge
-            major_edge, minor_edge = sorted([in_edge, in_edge.next], key=attrgetter('shape.length'), reverse=True)
-            union_cargo = cargo_union_strategy(major_edge.cargo, minor_edge.cargo)
+            union_cargo = cargo_union_strategy(in_edge, in_edge.next)
 
             # calculate the cargo of reverse DirectEdge of new DirectEdge above
             reverse_in_edge = in_edge.reverse
             if reverse_in_edge:
-                major_reversed_edge, minor_reversed_edge = sorted([reverse_in_edge.previous, reverse_in_edge],
-                                                                  key=attrgetter('shape.length'), reverse=True)
-                union_cargo_of_reverse = cargo_union_strategy(major_reversed_edge.cargo, minor_reversed_edge.cargo)
+                union_cargo_of_reverse = cargo_union_strategy(reverse_in_edge.previous, reverse_in_edge)
             else:
                 union_cargo_of_reverse = None
 

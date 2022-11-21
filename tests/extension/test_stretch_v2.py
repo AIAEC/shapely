@@ -743,7 +743,8 @@ class TestStretch:
         for edge in edges:
             edge.cargo = edge_cargo
 
-        stretch.simplify_edges(cargo_union_strategy=lambda cargo0, cargo1: {'test': cargo0['test'] + cargo1['test']})
+        stretch.simplify_edges(
+            cargo_union_strategy=lambda edge0, edge1: {'test': edge0.cargo['test'] + edge1.cargo['test']})
         edges = stretch.query_edges(Point(1, 2), buffer=0.1)
         assert len(edges) == 1
         assert edges[0].cargo == {'test': 2}

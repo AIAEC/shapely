@@ -168,7 +168,7 @@ class LineStringExtensionTest(TestCase):
         line0 = LineString([(0, 0), (1, 0)])
         line1 = LineString([(3, 1), (4, 2)])
         result = line0.ext.extend_to_merge(line1)
-        self.assertTrue(LineString([(0, 0), (1, 0), (2, 0), (3, 1), (4, 2)]).almost_equals(result))
+        self.assertTrue(LineString([(0, 0), (2, 0), (4, 2)]).almost_equals(result))
 
     def test_projection_by(self):
         line0 = LineString([(i, 0) for i in range(100)])

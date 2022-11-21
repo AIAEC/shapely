@@ -112,4 +112,4 @@ class GroupByLineExtentTest(TestCase):
         ]
 
         groups = group_by_line_extent(lines, parallel_as_separate_group=True)
-        self.assertEqual(2, len(groups))
+        self.assertEqual(1, len(groups))
