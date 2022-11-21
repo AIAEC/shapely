@@ -5,6 +5,7 @@ from shapely.extension.geometry import StraightSegment
 from shapely.extension.model import Vector
 from shapely.extension.model.interval import Interval
 from shapely.extension.strategy.bypassing_strategy import LongerBypassingStrategy
+from shapely.extension.strategy.linemerge_strategy import as_longest_straight_line
 from shapely.extension.util.func_util import lmap
 from shapely.geometry import Point, LineString, box
 
@@ -265,3 +266,16 @@ class LineStringExtensionTest(TestCase):
         vec = line.ext.normal_vector()
         self.assertTrue(isinstance(vec, Vector))
         self.assertEqual(Vector(-1, 0), vec)
+
+    def test_merge_with_native_linemerge(self):
+        line = LineString([(0, 0), (0, 1)])
+        result = line.ext.merge(LineString([(0, 1), (0, 2)]))
+        self.assertTrue(LineString([(0, 0), (0, 2)]).equals(result))
+
+        result = line.ext.merge(LineString([(0, 2), (0, 3)]))
+        self.assertTrue(line.equals(result))
+
+    def test_merge_as_longest_straight_line(self):
+        line = LineString([(0, 0), (1, 0)])
+        result = line.ext.merge(LineString([(0.5, -0.1), (-1, 0)]), as_longest_straight_line)
+        self.assertTrue(LineString([(1, 0), (-1, 0)]).equals(result))

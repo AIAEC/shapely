@@ -11,6 +11,7 @@ from shapely.extension.model.interval import Interval
 from shapely.extension.model.projection import Projection, ProjectionOnLine
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.bypassing_strategy import BaseBypassingStrategy, ShorterBypassingStrategy
+from shapely.extension.strategy.linemerge_strategy import MergeLineStrategy, native_linemerge
 from shapely.extension.strategy.offset_strategy import BaseOffsetStrategy, OffsetStrategy
 from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.func_util import min_max
@@ -19,7 +20,7 @@ from shapely.extension.util.line_extent import LineExtent
 from shapely.extension.util.prolong import Prolong
 from shapely.geometry import Point, LineString
 from shapely.geometry.base import BaseGeometry
-from shapely.ops import substring, unary_union
+from shapely.ops import substring, unary_union, nearest_points
 
 
 class LineStringExtension(BaseGeomExtension):
@@ -351,8 +352,20 @@ class LineStringExtension(BaseGeomExtension):
         return vector.ray(start_point, length)
 
     def perpendicular_distance(self, geom: BaseGeometry) -> float:
-        perpendicular_direction = Vector.from_endpoints_of(self._geom).cw_perpendicular
-        return self.distance(geom, direction=perpendicular_direction)
+        """
+        Parameters
+        ----------
+        geom: Any geometry object
+
+        Returns
+        -------
+        distance in direction of normal vector of current line to the given geom. if geom is empty, return 0
+        """
+        if not isinstance(geom, BaseGeometry):
+            raise TypeError(f'expect given geom is an instance of BaseGeometry, given {geom}')
+        if geom.is_empty:
+            return 0
+        return Vector.from_origin_to_target(*nearest_points(self._geom, geom)).sub_vector(self.normal_vector()).length
 
     @overload
     def interpolate(self, distance: Num, absolute: bool = True) -> Point:
@@ -363,6 +376,16 @@ class LineStringExtension(BaseGeomExtension):
         ...
 
     def interpolate(self, distance: Union[Num, Iterable], absolute: bool = True) -> Union[Point, List[Point]]:
+        """
+        Parameters
+        ----------
+        distance: number or iterator of numbers
+        absolute: bool
+
+        Returns
+        -------
+        point(s) of given interpolates distance(s)
+        """
         result: List[Point] = []
         distances = []
 
@@ -393,6 +416,11 @@ class LineStringExtension(BaseGeomExtension):
         return result[0] if isinstance(distance, Num) else result
 
     def endpoints_vector(self) -> Vector:
+        """
+        Returns
+        -------
+        Vector that created from start and end points of current linestring
+        """
         return Vector.from_endpoints_of(self._geom)
 
     def normal_vector(self) -> Vector:
@@ -403,3 +431,19 @@ class LineStringExtension(BaseGeomExtension):
         Vector
         """
         return self.endpoints_vector().ccw_perpendicular
+
+    def merge(self, line: LineString, merge_line_strategy: MergeLineStrategy = native_linemerge) -> LineString:
+        """
+        Parameters
+        ----------
+        line
+        merge_line_strategy: function of MergeLineStrategy
+
+        Returns
+        -------
+        return merged linestring, if success. otherwise return origin linestring
+        """
+        if not isinstance(line, LineString):
+            raise TypeError(f'merge accept another linestring as parameter, given {line}')
+
+        return merge_line_strategy(self._geom, line)
