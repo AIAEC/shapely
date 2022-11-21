@@ -191,8 +191,8 @@ class LineStringExtensionTest(TestCase):
 
     def test_perpendicular_distance(self):
         line = LineString([(0, 0), (0, 1)])
-        self.assertEqual(float('inf'), line.ext.perpendicular_distance(Point(0, 2)))
-        self.assertEqual(float('inf'), line.ext.perpendicular_distance(Point(10, 2)))
+        self.assertEqual(float(0), line.ext.perpendicular_distance(Point(0, 2)))
+        self.assertEqual(float(10), line.ext.perpendicular_distance(Point(10, 2)))
         self.assertAlmostEqual(10, line.ext.perpendicular_distance(Point(10, 1)))
 
     def test_interpolate(self):
