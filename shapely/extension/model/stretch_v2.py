@@ -269,13 +269,14 @@ class DirectEdge:
                cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> Pivot:
         reverse_existed = bool(self.reverse)
         closest_end_pivot = min([self.from_pivot, self.to_pivot], key=lambda pivot: pivot.distance(point))
+        pivot_cargo = deepcopy(pivot_cargo) or {}
         if closest_end_pivot.distance(point) <= endpoint_dist_tol:
             # don't expand if given point is too close to the end pivots
-            closest_end_pivot.cargo = deepcopy(pivot_cargo)
+            closest_end_pivot.cargo = pivot_cargo
             return closest_end_pivot
 
         # create insertion pivot
-        insert_pivot = Pivot(point, self.stretch, cargo=deepcopy(pivot_cargo) or {})
+        insert_pivot = Pivot(point, self.stretch, cargo=pivot_cargo)
 
         # delete edge ref in pivot
         self.from_pivot.out_edges.remove(self)
@@ -331,7 +332,7 @@ class DirectEdge:
         return self._sub_edge_by_points(start_point=segment.ext.start(),
                                         end_point=segment.ext.end(),
                                         endpoint_dist_tol=endpoint_dist_tol,
-                                        pivot_cargo=pivot_cargo,
+                                        pivot_cargo=pivot_cargo or {},
                                         cargo_inherit_strategy=cargo_inherit_strategy)
 
     def _sub_edge_by_points(self, start_point: Point,
@@ -346,7 +347,7 @@ class DirectEdge:
                 return pivot
             assert not self.stretch.query_pivots(point, buffer=endpoint_dist_tol), \
                 'new pivot should not overlap with existed'
-            pivot = Pivot(point, stretch=self.stretch, cargo=deepcopy(pivot_cargo))
+            pivot = Pivot(point, stretch=self.stretch, cargo=deepcopy(pivot_cargo) or {})
             self.stretch.pivots.append(pivot)
             return pivot
 
@@ -700,15 +701,16 @@ class Stretch:
         if not isinstance(point, Point) or not point.is_valid or point.is_empty:
             raise ValueError(f'expect valid point, given {point}')
 
+        cargo = deepcopy(cargo) or {}
         if reuse_existing:
             if existed_pivot := self._query_attachable_pivot(point, dist_tol):
-                existed_pivot.cargo = deepcopy(cargo)
+                existed_pivot.cargo = cargo
                 return existed_pivot
 
             if attach_to_nearest_edge and (existed_edge := self._query_attachable_edge(point, dist_tol)):
                 return existed_edge.expand(point, endpoint_dist_tol=dist_tol, pivot_cargo=cargo)
 
-        new_pivot = Pivot(point, stretch=self, cargo=deepcopy(cargo))
+        new_pivot = Pivot(point, stretch=self, cargo=cargo)
         self.pivots.append(new_pivot)
 
         return new_pivot
@@ -723,8 +725,8 @@ class Stretch:
         add_reverse = unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures)).covers(polygon)
         new_edges = self._add_edge(polygon.exterior.ext.ccw(),
                                    add_reverse=add_reverse,
-                                   edge_cargo=edge_cargo,
-                                   pivot_cargo=pivot_cargo,
+                                   edge_cargo=edge_cargo or {},
+                                   pivot_cargo=pivot_cargo or {},
                                    dist_tol=dist_tol)
         self.remove_dangling_edges()
         return new_edges
@@ -751,8 +753,8 @@ class Stretch:
             new_edge_groups.append(self._add_edge(line=line_inside,
                                                   add_reverse=True,
                                                   dist_tol=dist_tol,
-                                                  pivot_cargo=pivot_cargo,
-                                                  edge_cargo=edge_cargo))
+                                                  pivot_cargo=pivot_cargo or {},
+                                                  edge_cargo=edge_cargo or {}))
 
         # when splitter exactly touches the closure boundary, it will create dangling edges, clean these edges here
         self.remove_dangling_edges()
@@ -789,7 +791,7 @@ class Stretch:
         add_pivot = partial(self.add_pivot,
                             reuse_existing=True,
                             attach_to_nearest_edge=True,
-                            cargo=pivot_cargo,
+                            cargo=pivot_cargo or {},
                             dist_tol=dist_tol)
 
         # add pivots without duplicate
@@ -816,14 +818,14 @@ class Stretch:
             if new_edge not in origin_edge_dict:
                 new_edges.append(new_edge)
             else:
-                origin_edge_dict[new_edge].cargo = deepcopy(edge_cargo)
+                origin_edge_dict[new_edge].cargo = deepcopy(edge_cargo) or {}
 
             if add_reverse:
                 new_reverse_edge = DirectEdge(_to_pivot, _from_pivot, stretch=self, cargo=deepcopy(edge_cargo))
                 if new_reverse_edge not in origin_edge_dict:
                     new_edges.append(new_reverse_edge)
                 else:
-                    origin_edge_dict[new_reverse_edge].cargo = deepcopy(edge_cargo)
+                    origin_edge_dict[new_reverse_edge].cargo = deepcopy(edge_cargo) or {}
 
         self.edges.extend(new_edges)
         return new_edges
