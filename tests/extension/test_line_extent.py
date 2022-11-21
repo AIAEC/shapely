@@ -140,3 +140,19 @@ class LineExtendTest(TestCase):
         self.assert_geometries_almost_equal(curve_ab, extend.extended_curve_ab)
         self.assert_geometries_almost_equal(curve_cd, extend.extended_curve_cd)
         self.assert_geometries_almost_equal(LineString([curve_ab.coords[0], curve_cd.coords[-1]]), extend.merged_curve)
+
+    def test_curve_back_linestring_extension(self):
+        curve_ab = loads(
+            'LINESTRING (57.1897561951074 -0.5444931868081699, 39.272336872096275 9.343560637945473, 39.27233687182982 37.56162193469444, 32.57337963265413 51.2380979620815, 32.572451667989604 63.489902315997824, -147.839775709154 63.476237702424065, -176.46151528527918 49.28081614415168, -176.4170832483861 49.19122935845721, -169.31722438199355 52.71252090558536)')
+        curve_cd = loads('LINESTRING (-161.71597391143092 52.47259376444484, -148.55375215562657 44.87471268170515)')
+        extend = LineExtent.of_sequence_curves(curve_ab, curve_cd)
+        self.assertTrue(extend.extended_curve_ab.length > curve_ab.length)
+        self.assertTrue(extend.extended_curve_cd.length > curve_cd.length)
+        self.assertTrue(extend.joint.disjoint(curve_ab))
+        self.assertTrue(extend.joint.disjoint(curve_cd))
+
+    def test_2_curve_back_linestrings_extension(self):
+        curve_ab = loads('LINESTRING (10 1, 0 1, 0 0, 8.45 0)')
+        curve_cd = loads('LINESTRING (4 6, 4 -3, 5 -3, 5 4)')
+        extend = LineExtent.of_sequence_curves(curve_ab, curve_cd)
+        self.assertTrue(extend.merged_curve.equals(loads('LINESTRING (10 1, 4 1, 4 -3, 5 -3, 5 4)')))

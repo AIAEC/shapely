@@ -43,21 +43,18 @@ class LineExtent:
         :param direction: extend的方向
         :return: extend之后的曲线的coords
         """
-
-        joint_pos_ratio = curve.project(joint, normalized=True)
-        if isclose(joint_pos_ratio, 0.0) and direction == cls.ExtendingDirection.TO_FRONT:
-            extent_coords = [] if curve.boundary.geoms[0].equals(joint) else list(joint.coords)
-            return extent_coords + list(curve.coords)
-
-        if isclose(joint_pos_ratio, 1.0) and direction == cls.ExtendingDirection.TO_END:
-            extent_coords = [] if curve.boundary.geoms[-1].equals(joint) else list(joint.coords)
-            return list(curve.coords) + extent_coords
-
-        if 0.0 < joint_pos_ratio < 1.0:
+        if curve.ext.almost_intersects(joint, MATH_EPS):
+            joint_pos_ratio = curve.project(joint, normalized=True)
             if direction == cls.ExtendingDirection.TO_END:
                 return list(substring(curve, 0.0, joint_pos_ratio, normalized=True).coords)
             else:  # TO_FRONT
                 return list(substring(curve, joint_pos_ratio, 1.0, normalized=True).coords)
+
+        if direction == cls.ExtendingDirection.TO_FRONT:
+            return list(joint.coords) + list(curve.coords)[1:]
+
+        elif direction == cls.ExtendingDirection.TO_END:
+            return list(curve.coords)[:-1] + list(joint.coords)
 
         return []
 
