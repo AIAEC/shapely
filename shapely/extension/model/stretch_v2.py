@@ -626,12 +626,16 @@ class Stretch:
             previous_pivot: Pivot = in_edge.from_pivot
             next_pivot: Pivot = in_edge.next.to_pivot
             # calculate the cargo of new DirectEdge
-            union_cargo = cargo_union_strategy(in_edge.cargo, in_edge.next.cargo)
+            # union_cargo should equal cargo of longger edge
+            major_edge, minor_edge = sorted([in_edge, in_edge.next], key=attrgetter('shape.length'), reverse=True)
+            union_cargo = cargo_union_strategy(major_edge.cargo, minor_edge.cargo)
 
             # calculate the cargo of reverse DirectEdge of new DirectEdge above
             reverse_in_edge = in_edge.reverse
             if reverse_in_edge:
-                union_cargo_of_reverse = cargo_union_strategy(reverse_in_edge.previous.cargo, reverse_in_edge.cargo)
+                major_reversed_edge, minor_reversed_edge = sorted([reverse_in_edge.previous, reverse_in_edge],
+                                                                  key=attrgetter('shape.length'), reverse=True)
+                union_cargo_of_reverse = cargo_union_strategy(major_reversed_edge.cargo, minor_reversed_edge.cargo)
             else:
                 union_cargo_of_reverse = None
 
