@@ -565,3 +565,12 @@ class Vector:
         self.x -= other.x
         self.y -= other.y
         return self
+
+    def sub_vector(self, direction: 'Vector') -> 'Vector':
+        if not isinstance(direction, Vector):
+            raise TypeError('expect given direction is an instance of Vector')
+
+        return direction.unit(self @ direction.unit())
+
+    def __or__(self, direction: 'Vector') -> 'Vector':
+        return self.sub_vector(direction)

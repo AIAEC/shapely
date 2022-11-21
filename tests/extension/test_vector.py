@@ -298,3 +298,22 @@ class TestVector(TestCase):
         vector5 = Vector(1, -1)
         self.assertTrue(vector5.parallel_to(vector0, angle_tol=46))
         self.assertFalse(vector5.parallel_to(vector0, angle_tol=44))
+
+    def test_sub_vector(self):
+        vector0 = Vector(1, 1)
+        direction0 = Vector(1, 0)
+        result = vector0.sub_vector(direction0)
+        self.assertEqual(Vector(1, 0), result)
+
+        direction1= Vector(0, 1)
+        result = vector0.sub_vector(direction1)
+        self.assertEqual(Vector(0, 1), result)
+
+        direction2 = Vector(-1, 0)
+        result = vector0.sub_vector(direction2)
+        self.assertEqual(Vector(1, 0), result)
+
+        vector1 = Vector(2, 0)
+        result = vector1.sub_vector(Vector(10, 10))
+        self.assertAlmostEqual(1, result.x)
+        self.assertAlmostEqual(1, result.y)
