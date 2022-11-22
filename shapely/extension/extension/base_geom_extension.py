@@ -12,7 +12,6 @@ from shapely.extension.model.angle import Angle
 from shapely.extension.model.buffer import Buffer
 from shapely.extension.model.envelope import EnvelopeCreator
 from shapely.extension.model.projection import Projection, ProjectionTowards
-from shapely.extension.model.stretch import Stretch, StretchFactory
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.alignment_predicator_creator import AlignmentPredicatorCreator
 from shapely.extension.predicator.angle_predicator_creator import AnglePredicatorCreator
@@ -42,9 +41,6 @@ class BaseGeomExtension:
     @property
     def cargo(self) -> Dict:
         return self._cargo
-
-    def stretch(self) -> Stretch:
-        return StretchFactory().create(self._geom)
 
     def decompose(self, target_class: type, strategy: Optional[BaseDecomposeStrategy] = None) -> Aggregation:
         """
