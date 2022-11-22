@@ -38,4 +38,4 @@ class CircleTest(TestCase):
     def test_circle_init(self):
         circle = Circle()
         self.assertTrue(circle.centroid.equals(Point(0, 0)))
-        self.assertTrue(circle.radius==1)
+        self.assertTrue(circle.radius == 1)
