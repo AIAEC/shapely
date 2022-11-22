@@ -20,7 +20,7 @@ from weakref import ref, ReferenceType
 
 from toolz import concat
 
-from shapely.extension.constant import MATH_EPS, ANGLE_AROUND_EPS
+from shapely.extension.constant import MATH_EPS
 from shapely.extension.geometry import StraightSegment
 from shapely.extension.model import Coord, Vector, Angle
 from shapely.extension.util.flatten import flatten
@@ -283,8 +283,11 @@ class DirectEdge:
         insert_pivot = Pivot(point, self.stretch, cargo=pivot_cargo)
 
         # delete edge ref in pivot
-        self.from_pivot.out_edges.remove(self)
-        self.to_pivot.in_edges.remove(self)
+        try:  # TODO hyg 临时补丁
+            self.from_pivot.out_edges.remove(self)
+            self.to_pivot.in_edges.remove(self)
+        except ValueError:
+            pass
 
         # delete edge record in stretch and add 2 new edges
         self.stretch.edges.append(DirectEdge(from_pivot=self.from_pivot,
@@ -300,9 +303,11 @@ class DirectEdge:
         if reverse_existed:
             # delete reverse edge ref in pivot
             reverse_edge = self.reverse
-            self.from_pivot.in_edges.remove(reverse_edge)
-            self.to_pivot.out_edges.remove(reverse_edge)
-
+            try:  # TODO hyg
+                self.from_pivot.in_edges.remove(reverse_edge)
+                self.to_pivot.out_edges.remove(reverse_edge)
+            except ValueError:
+                pass
             # delete reverse edge record in stretch and add 2 new edges
             self.stretch.edges.append(DirectEdge(from_pivot=insert_pivot,
                                                  to_pivot=self.from_pivot,
@@ -606,7 +611,7 @@ class Stretch:
         deleting_edges = lfilter(lambda edge: edge not in valid_edges, self.edges)
         self._force_remove_edges(deleting_edges, delete_reverse=False)
 
-    def simplify_edges(self, angle_tol: float = ANGLE_AROUND_EPS,
+    def simplify_edges(self, angle_tol: float = 0.1,
                        cargo_union_strategy: EdgeCargoUnionStrategy = default_edge_cargo_union_strategy) -> None:
         def removable_pivot(pivot: Pivot) -> bool:
             # pivot that satisfies conditions below should be considered a removable pivot
