@@ -327,12 +327,12 @@ class TestDirectEdge:
         assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
         edge_cargo = {'test': 0}
         pivot_cargo = {'test': 1}
-        edge.cargo = edge_cargo
-        new_pivot = edge.expand(Point(1, -1), pivot_cargo=pivot_cargo)
+        edge.cargo.update(edge_cargo)
+        new_pivot = edge.expand(Point(1, -1), pivot_cargo_dict=pivot_cargo)
         assert isinstance(new_pivot, Pivot)
-        assert new_pivot.cargo == pivot_cargo
-        assert new_pivot.in_edges[0].cargo == edge_cargo
-        assert new_pivot.out_edges[0].cargo == edge_cargo
+        assert new_pivot.cargo.data_equals(pivot_cargo)
+        assert new_pivot.in_edges[0].cargo.data_equals(edge_cargo)
+        assert new_pivot.out_edges[0].cargo.data_equals(edge_cargo)
 
     def test_sub_edge_without_touching_pivot(self, stretch_of_single_box):
         stretch = stretch_of_single_box
@@ -376,17 +376,17 @@ class TestDirectEdge:
         assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
         pivot_cargo = {'test': 0}
         edge_cargo = {'test': 1}
-        edge.cargo = edge_cargo
+        edge.cargo.update(edge_cargo)
 
         override_edge_cargo = {'override': 0}
         new_edge = edge.sub_edge(box(1, 0, 1.5, 1),
-                                 pivot_cargo=pivot_cargo,
+                                 pivot_cargo_dict=pivot_cargo,
                                  cargo_inherit_strategy=lambda cargo: override_edge_cargo)
         assert isinstance(new_edge, DirectEdge)
-        assert new_edge.cargo != edge_cargo
-        assert new_edge.cargo == override_edge_cargo
-        assert new_edge.from_pivot.cargo == pivot_cargo
-        assert new_edge.to_pivot.cargo == pivot_cargo
+        assert not new_edge.cargo.data_equals(edge_cargo)
+        assert new_edge.cargo.data_equals(override_edge_cargo)
+        assert new_edge.from_pivot.cargo.data_equals(pivot_cargo)
+        assert new_edge.to_pivot.cargo.data_equals(pivot_cargo)
 
     def test_related_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -511,9 +511,9 @@ class TestStretch:
         assert pivot0 == result
 
         pivot_cargo = {'test': 1}
-        result = stretch.add_pivot(Point(-MATH_EPS / 10, 0), reuse_existing=True, dist_tol=0, cargo=pivot_cargo)
+        result = stretch.add_pivot(Point(-MATH_EPS / 10, 0), reuse_existing=True, dist_tol=0, cargo_dict=pivot_cargo)
         assert pivot0 != result
-        assert result.cargo == pivot_cargo
+        assert result.cargo.data_equals(pivot_cargo)
 
         result = stretch.add_pivot(Point(0, 0), reuse_existing=False, dist_tol=MATH_EPS)
         assert pivot0 != result
@@ -540,14 +540,14 @@ class TestStretch:
         stretch = stretch_of_single_box
         edge_cargo = {'test': 0}
         pivot_cargo = {'test': 1}
-        stretch.add_closure(box(0, 0, 1, 1), edge_cargo=edge_cargo, pivot_cargo=pivot_cargo)
-        assert stretch.query_pivots(Point(0, 0))[0].cargo == pivot_cargo
-        assert stretch.query_pivots(Point(1, 0))[0].cargo == pivot_cargo
-        assert stretch.query_pivots(Point(0, 1))[0].cargo == pivot_cargo
-        assert stretch.query_pivots(Point(1, 1))[0].cargo == pivot_cargo
-        assert all(edge.cargo == edge_cargo for edge in stretch.query_edges(Point(0, 0)))
-        assert all(edge.cargo == edge_cargo for edge in stretch.query_edges(Point(1, 1)))
-        assert all(edge.cargo == {} for edge in stretch.query_edges(Point(2, 2)))
+        stretch.add_closure(box(0, 0, 1, 1), edge_cargo_dict=edge_cargo, pivot_cargo_dict=pivot_cargo)
+        assert stretch.query_pivots(Point(0, 0))[0].cargo.data_equals(pivot_cargo)
+        assert stretch.query_pivots(Point(1, 0))[0].cargo.data_equals(pivot_cargo)
+        assert stretch.query_pivots(Point(0, 1))[0].cargo.data_equals(pivot_cargo)
+        assert stretch.query_pivots(Point(1, 1))[0].cargo.data_equals(pivot_cargo)
+        assert all(edge.cargo.data_equals(edge_cargo) for edge in stretch.query_edges(Point(0, 0)))
+        assert all(edge.cargo.data_equals(edge_cargo) for edge in stretch.query_edges(Point(1, 1)))
+        assert all(edge.cargo.data_equals({}) for edge in stretch.query_edges(Point(2, 2)))
 
     def test_add_closure_case1(self, stretch_of_single_box):
         stretch = stretch_of_single_box
@@ -636,7 +636,7 @@ class TestStretch:
     def test_split_by_simple_splitter(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         edge_cargo = {'test': 0}
-        assert stretch.split_by(LineString([(1, 0), (1, 2)]), edge_cargo=edge_cargo)
+        assert stretch.split_by(LineString([(1, 0), (1, 2)]), edge_cargo_dict=edge_cargo)
 
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 3
@@ -646,7 +646,7 @@ class TestStretch:
         assert closures[2].shape.equals(box(2, 0, 3, 1))
 
         edge = stretch.query_edges(Point(1, 1))[0]
-        assert edge.cargo == edge_cargo
+        assert edge.cargo.data_equals(edge_cargo)
 
     def test_split_by_splitter_across_several_closures(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -741,13 +741,13 @@ class TestStretch:
         edges = stretch.query_edges(Point(1, 2), buffer=0.1)
         edge_cargo = {'test': 1}
         for edge in edges:
-            edge.cargo = edge_cargo
+            edge.cargo.update(edge_cargo)
 
         stretch.simplify_edges(
-            cargo_union_strategy=lambda edge0, edge1: {'test': edge0.cargo['test'] + edge1.cargo['test']})
+            cargo_union_strategy=lambda cargo0, cargo1: {'test': cargo0['test'] + cargo1['test']})
         edges = stretch.query_edges(Point(1, 2), buffer=0.1)
         assert len(edges) == 1
-        assert edges[0].cargo == {'test': 2}
+        assert edges[0].cargo.data_equals({'test': 2})
 
 
 class TestStretchFactory:
@@ -807,26 +807,26 @@ class TestOffsetStrategy:
         stretch = stretch_of_two_box
         edge = stretch.query_edges(Point(2, 0.5))[0]
         cargo = {'test': 0}
-        edge.cargo = cargo
+        edge.cargo.update(cargo)
         assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
         result = edge.offset(dist=0.5,
                              side='left',
                              edge_offset_strategy_clz=OffsetStrategy)
         assert isinstance(result, DirectEdge)
-        assert result.cargo == cargo
+        assert result.cargo.data_equals(cargo)
         # result's cargo should be different dict object
         result.cargo['another_test'] = 1
-        assert result.cargo != cargo
+        assert not result.cargo.data_equals(cargo)
 
         edges = stretch.query_edges(Point(1, 1), buffer=0.1)
         for edge in edges:
-            assert edge.cargo == cargo
+            assert edge.cargo.data_equals(cargo)
 
     def test_different_cargo_inherit_strategy_when_offset(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         edge = stretch.query_edges(Point(2, 0.5))[0]
         cargo = {'test': 0}
-        edge.cargo = cargo
+        edge.cargo.update(cargo)
         assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
         new_cargo = {'test': 1}
         result = edge.offset(dist=0.5,
@@ -834,13 +834,13 @@ class TestOffsetStrategy:
                              edge_offset_strategy_clz=OffsetStrategy,
                              cargo_inherit_strategy=lambda cargo: deepcopy(new_cargo))
         assert isinstance(result, DirectEdge)
-        assert result.cargo != cargo
-        assert result.cargo == new_cargo
+        assert not result.cargo.data_equals(cargo)
+        assert result.cargo.data_equals(new_cargo)
 
         edges = stretch.query_edges(Point(1, 1), buffer=0.1)
         for edge in edges:
-            assert edge.cargo != cargo
-            assert edge.cargo == new_cargo
+            assert not edge.cargo.data_equals(cargo)
+            assert edge.cargo.data_equals(new_cargo)
 
     def test_does_from_pivot_use_perpendicular_mode_case0(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -1023,8 +1023,8 @@ class TestOffsetStrategy:
         assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
 
         # first set cargo of the offset target edge to empty
-        edge.cargo = {}
-        edge.reverse.cargo = {}
+        edge.cargo.clear()
+        edge.reverse.cargo.clear()
         OffsetStrategy(edge, Vector(-0.5, 0)).do()
 
         # test the new created edge's cargo is empty either
@@ -1037,3 +1037,20 @@ class TestOffsetStrategy:
 
         for other_edge in stretch.query_edges(Point(1.7, 0)):
             assert other_edge.cargo.get('test') == 0
+
+
+class TestCargo:
+    def test_closure_cargo(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        for edge in stretch.edges:
+            edge.cargo['test'] = 1
+
+        stretch.edges[0].cargo['test'] = 0
+
+        closure = stretch.closure_snapshot().closures[0]
+        assert closure.edge_cargo.get('test') == 1
+
+        stretch.edges[1].cargo['test'] = 0
+        stretch.edges[2].cargo['test'] = 0
+        closure = stretch.closure_snapshot().closures[0]
+        assert closure.edge_cargo.get('test') == 0
