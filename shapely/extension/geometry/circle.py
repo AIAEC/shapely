@@ -12,7 +12,7 @@ class Circle(Arc):
     child type of Arc representing the full exterior of circle exterior
     """
 
-    def __init__(self, center: Union[Point, CoordType],
+    def __init__(self, center: Union[Point, CoordType] = Point(0, 0),
                  radius: float = 1,
                  angle_step: float = 1):
         if radius <= 0:

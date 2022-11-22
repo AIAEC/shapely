@@ -34,3 +34,8 @@ class CircleTest(TestCase):
         arcs.sort(key=lambda arc: arc.length)
         self.assertAlmostEqual(10 * 2 * pi / 4, arcs[0].length)
         self.assertAlmostEqual(10 * 2 * pi * 3 / 4, arcs[1].length)
+
+    def test_circle_init(self):
+        circle = Circle()
+        self.assertTrue(circle.centroid.equals(Point(0, 0)))
+        self.assertTrue(circle.radius==1)
