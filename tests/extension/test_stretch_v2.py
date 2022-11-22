@@ -1013,3 +1013,27 @@ class TestOffsetStrategy:
         closures.sort(key=lambda closure: closure.shape.centroid.y)
         assert closures[0].shape.equals(box(0, 0, 3, 1))
         assert closures[1].shape.equals(box(0, 1, 2, 2))
+
+    def test_cargo_after_offset(self, stretch_of_two_box_with_collinear_edge):
+        stretch = stretch_of_two_box_with_collinear_edge
+        for edge in stretch.edges:
+            edge.cargo['test'] = 0
+
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
+
+        # first set cargo of the offset target edge to empty
+        edge.cargo = {}
+        edge.reverse.cargo = {}
+        OffsetStrategy(edge, Vector(-0.5, 0)).do()
+
+        # test the new created edge's cargo is empty either
+        for other_edge in stretch.query_edges(Point(1.5, 1)):
+            assert not other_edge.cargo
+
+        # test the already existed edges' cargo stay unchanged
+        for other_edge in stretch.query_edges(Point(1, 0)):
+            assert other_edge.cargo.get('test') == 0
+
+        for other_edge in stretch.query_edges(Point(1.7, 0)):
+            assert other_edge.cargo.get('test') == 0

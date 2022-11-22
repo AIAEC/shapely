@@ -4,6 +4,9 @@ Core Concepts:
 1. Pivot: the actual "point" of each polygon
 2. DirectEdge: the "edge" of each polygon, notice that left side of direct edge is the inner side of polygon
 3. ClosureView: the polygon that closed by direct edges, which in stretch model, is an object only derived from edges
+4. Stretch: the container that holds all pivots and direct edges
+5. StretchFactory: Factory utility for creating stretch
+6. ClosureSnapshot: utility for creating closure views for current state of stretch
 """
 
 import pickle
@@ -31,6 +34,7 @@ from shapely.geometry import Point, Polygon, MultiPolygon, LineString, MultiLine
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
+# cargo update strategy and typing
 CargoInheritStrategy = Callable[[dict], dict]
 default_cargo_inherit_strategy: CargoInheritStrategy = lambda cargo: deepcopy(cargo)
 EdgeCargoUnionStrategy = Callable[['DirectEdge', 'DirectEdge'], dict]
@@ -82,28 +86,72 @@ class Pivot:
 
     @property
     def valid(self) -> bool:
+        """
+        whether current pivot is valid. pivot that have equal number of in-edges and out-edges is valid.
+        Notice: valid pivot could be dangling!
+        Returns
+        -------
+
+        """
         return len(self.in_edges) == len(self.out_edges)
 
     @property
     def dangling(self) -> bool:
+        """
+        whether current pivot is dangling. pivot that have only 0/1 in-edge or 0/1 out-edge will be seemed as dangling
+        Notice: not dangling doesn't mean valid!
+        Returns
+        -------
+        bool
+        """
         return len(self.in_edges) + len(self.out_edges) < 2
 
     def distance(self, point: Union[Point, 'Pivot']) -> float:
+        """
+        distance to given point or pivot
+        Parameters
+        ----------
+        point: Point or Pivot
+
+        Returns
+        -------
+        distance of current pivot poisition to given point or pivot
+        """
         point = point.shape if isinstance(point, Pivot) else point
         return self.shape.distance(point)
 
     def move_to(self, target: Union[Point, Coord]) -> None:
+        """
+        move pivot to given position
+        Parameters
+        ----------
+        target: Point or Coord
+
+        Returns
+        -------
+        None
+        """
         try:
             target = Point(target)
         except Exception:
             raise TypeError(f'target cannot form a point, given {target}')
         self._origin = target
 
-    def move_by(self, direct: Vector) -> None:
-        if not isinstance(direct, Vector):
-            raise TypeError(f'direct must be vector, given {direct}')
+    def move_by(self, vec: Vector) -> None:
+        """
+        move pivot by vector
+        Parameters
+        ----------
+        vec: the given moving vector
 
-        self._origin = direct.apply(self._origin)
+        Returns
+        -------
+        None
+        """
+        if not isinstance(vec, Vector):
+            raise TypeError(f'direct must be vector, given {vec}')
+
+        self._origin = vec.apply(self._origin)
 
 
 class DirectEdge:
@@ -149,11 +197,25 @@ class DirectEdge:
 
     @property
     def reverse(self) -> Optional['DirectEdge']:
+        """
+        Returns
+        -------
+        the reverse DirectEdge if it exists, otherwise return None
+        """
         return first(lambda edge: edge.from_pivot == self.to_pivot and edge.to_pivot == self.from_pivot,
                      iter=self.stretch.edges,
                      default=None)
 
     def is_reversed(self, edge: 'DirectEdge') -> bool:
+        """
+        Parameters
+        ----------
+        edge: DirectEdge instance
+
+        Returns
+        -------
+        bool, whether given edge is the reverse edge of current one
+        """
         return self.from_pivot == edge.to_pivot and self.to_pivot == edge.from_pivot
 
     @property
@@ -165,6 +227,15 @@ class DirectEdge:
         return StraightSegment([self.from_pivot.shape, self.to_pivot.shape])
 
     def _is_valid_neighbor(self, other_edge: 'DirectEdge') -> bool:
+        """
+        Parameters
+        ----------
+        other_edge: DirectEdge
+
+        Returns
+        -------
+        bool, whether the given other_edge is a valid DirectEdge that can be the next or previous edge of current edge
+        """
         try:
             return not (self == other_edge
                         or self.is_reversed(other_edge)
@@ -178,7 +249,7 @@ class DirectEdge:
         """
         Returns
         -------
-        the next DirectEdge of current edge of same closure
+        the next DirectEdge of current edge of the same closure
         """
         if not self.shape.is_valid:
             return None
@@ -200,7 +271,7 @@ class DirectEdge:
         """
         Returns
         -------
-        the previous DirectEdge of current edge of same closure
+        the previous DirectEdge of current edge of the same closure
         """
         if not self.shape.is_valid:
             return None
@@ -222,11 +293,11 @@ class DirectEdge:
         """
         Parameters
         ----------
-        edge
+        edge: DirectEdge
 
         Returns
         -------
-        the serial of next edges in consecutive orders of the same closure
+        the serial of edges (including the given edge) in consecutive orders of the same closure
         """
         # TODO: explain the algorithm
         ring_edges: List[DirectEdge] = [edge]
@@ -240,10 +311,20 @@ class DirectEdge:
 
     @property
     def consecutive(self) -> List['DirectEdge']:
+        """
+        Returns
+        -------
+        the serial of edges (including the current edge) in consecutive orders of the same closure
+        """
         return DirectEdge.consecutive_edges(self)
 
     @property
     def closure(self) -> Optional['ClosureView']:
+        """
+        Returns
+        -------
+        the related closure for current edge, if a valid closure can be formed, otherwise return None
+        """
         return ClosureView.create_from(self.consecutive)
 
     def offset(self, dist: float,
@@ -251,6 +332,22 @@ class DirectEdge:
                edge_offset_strategy_clz: type,
                attaching_dist_tol: float = MATH_EPS,
                cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> 'DirectEdge':
+        """
+        offset the current edge according to parameters given, and affect other resources(pivot/edges) to change
+        accordingly
+
+        Parameters
+        ----------
+        dist: offset distance, could be positive or negative number
+        side: 'left' or 'right' side for offset according to current direct edge
+        edge_offset_strategy_clz: the offset strategy type (a class not a instance)
+        attaching_dist_tol: the maximum distance for attaching existed pivots or direct edges
+        cargo_inherit_strategy: strategy that inherit current edge's cargo to newly offset edge
+
+        Returns
+        -------
+        newly created edge that appear to be the offset result
+        """
 
         edge_vec = Vector.from_endpoints_of(self.shape)
         if side == 'left':
@@ -271,6 +368,19 @@ class DirectEdge:
                endpoint_dist_tol: float = MATH_EPS,
                pivot_cargo: Optional[dict] = None,
                cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> Pivot:
+        """
+        for edge(A, B), insert the given point C between to expand the current edge into 2 new edges (A, C) and (C, B)
+        Parameters
+        ----------
+        point: given point instance
+        endpoint_dist_tol: maximum distance for given point attaching to the existed pivots
+        pivot_cargo: the cargo of the new pivot. default None means set {} as cargo
+        cargo_inherit_strategy: strategy that inherit the current edge's cargo to the newly created edges
+
+        Returns
+        -------
+        newly created pivot corresponding to given point
+        """
         reverse_existed = bool(self.reverse)
         closest_end_pivot = min([self.from_pivot, self.to_pivot], key=lambda pivot: pivot.distance(point))
         pivot_cargo = deepcopy(pivot_cargo) or {}
@@ -325,6 +435,21 @@ class DirectEdge:
                  pivot_cargo: Optional[dict] = None,
                  cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
                  ) -> Optional['DirectEdge']:
+        """
+        for current edge(A, B), create and return a sub edge(C, D), of which C and D are new pivot on edge(A, B)
+        Parameters
+        ----------
+        overlapping_geom: the given geometry that have intersection with current edge, the longest intersection segment
+            will be used to create sub edge
+        buffer: buffer of the given overlapping_geom for creating intersection segment
+        endpoint_dist_tol: maximum distance for new pivots attaching to (reuse actually) existed pivots
+        pivot_cargo: the cargo of the newly created pivots
+        cargo_inherit_strategy: cargo inherit strategy that determine the sub_edge's cargo
+
+        Returns
+        -------
+        DirectEdge of sub_edge or None if no sub_edge created
+        """
         overlapping_segments: List[LineString] = (overlapping_geom.buffer(buffer)
                                                   .intersection(self.shape)
                                                   .ext.decompose(StraightSegment)
@@ -345,6 +470,21 @@ class DirectEdge:
                             pivot_cargo: Optional[dict] = None,
                             cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
                             ) -> 'DirectEdge':
+        """
+        helper method for creating sub_edge
+        Parameters
+        ----------
+        start_point: starting point of sub_edge
+        end_point: ending point of sub_edge
+        endpoint_dist_tol: maximum distance for new pivots attaching to (reuse actually) existed pivots
+        pivot_cargo: the cargo of the newly created pivots
+        cargo_inherit_strategy: cargo inherit strategy that determine the sub_edge's cargo
+
+        Returns
+        -------
+        newly created sub edge
+        """
+
         def add_pivot(point) -> Pivot:
             if pivot := first(lambda pivot: pivot.distance(point) < endpoint_dist_tol,
                               [self.from_pivot, self.to_pivot]):
@@ -396,7 +536,7 @@ class DirectEdge:
 
 class DirectEdgeView(DirectEdge):
     """
-    View object for direct edge, creating DirectEdgeView will not change the data inside stretch
+    View object for direct edge, operation on DirectEdgeView will affect the data inside stretch
     """
 
     def __init__(self, from_pivot: Pivot, to_pivot: Pivot, stretch: 'Stretch'):
@@ -438,11 +578,34 @@ class ClosureView:
         return Polygon([pivot.shape for pivot in self.pivots])
 
     def shared_edges(self, closure: 'ClosureView') -> List[DirectEdgeView]:
+        """
+        Parameters
+        ----------
+        closure: another closure in the same stretch
+
+        Returns
+        -------
+        shared edge views
+        """
+        if self == closure:
+            return self.edges
+
         edge_set: Set[DirectEdgeView] = set(self.edges)
         return lfilter(lambda edge: edge.reverse in edge_set, closure.edges)
 
     @classmethod
     def create_from(cls, consecutive_edges: List[DirectEdge]) -> Optional['ClosureView']:
+        """
+        algorithm for creating ClosureView from consecutive edges
+        Parameters
+        ----------
+        consecutive_edges: list of direct edge, each pair of edge must have 1 pivot shared, otherwise it will be regarded
+            as invalid
+
+        Returns
+        -------
+        ClosureView if success, otherwise return None
+        """
         if not consecutive_edges or consecutive_edges[0].from_pivot != consecutive_edges[-1].to_pivot:
             return None
 
@@ -464,6 +627,16 @@ class ClosureSnapshot:
 
     @classmethod
     def create_from(cls, stretch):
+        """
+        algorithm for getting current closure views of given stretch
+        Parameters
+        ----------
+        stretch
+
+        Returns
+        -------
+        ClosureSnapshot instance
+        """
         edge_set: OrderedSet = OrderedSet(stretch.edges)
 
         closures: List[ClosureView] = []
@@ -486,9 +659,25 @@ class ClosureSnapshot:
 
     @property
     def occupation(self) -> MultiPolygon:
+        """
+        the MultiPolygon that correlated to closure views
+        Returns
+        -------
+        MultiPolygon
+        """
         return MultiPolygon(lmap(attrgetter('shape'), self.closures))
 
     def query_closures(self, geom: BaseGeometry) -> List[ClosureView]:
+        """
+        method for query current closure views
+        Parameters
+        ----------
+        geom
+
+        Returns
+        -------
+        list of closure views with their shapes intersect with given geom
+        """
         return lfilter(lambda closure: closure.shape.intersects(geom), self.closures)
 
 
@@ -503,6 +692,17 @@ class Stretch:
         self.id = uuid4()
 
     def dump(self, fp, with_cargo: bool = True):
+        """
+        dump method for debugging
+        Parameters
+        ----------
+        fp: file pointer
+        with_cargo: whether carrying cargo to the dump
+
+        Returns
+        -------
+        None
+        """
         if with_cargo:
             data = {'pivots': {pivot.id: (pivot.shape, pivot.cargo) for pivot in self.pivots},
                     'edges': [(edge.from_pivot.id, edge.to_pivot.id, edge.cargo) for edge in self.edges]}
@@ -513,7 +713,18 @@ class Stretch:
         pickle.dump(data, fp)
 
     @classmethod
-    def load(cls, fp, with_cargo: bool = True):
+    def load(cls, fp, with_cargo: bool = True) -> 'Stretch':
+        """
+        load dump file to recover a stretch instance, mainly used when debugging
+        Parameters
+        ----------
+        fp: file pointer
+        with_cargo: whether reading dump with cargo
+
+        Returns
+        -------
+        stretch instance
+        """
         data = pickle.load(fp)
         point_dict: Dict[str, Tuple[Point, Optional[dict]]] = data['pivots']
         edge_info_tuples: List[Tuple[str, str, Optional[dict]]] = data['edges']
@@ -548,17 +759,51 @@ class Stretch:
         return stretch
 
     def closure_snapshot(self) -> ClosureSnapshot:
+        """
+        Returns
+        -------
+        the closure snapshot of current stretch for current state, notice that the resources will be reference by the
+        closure snapshot
+        """
         return ClosureSnapshot.create_from(self)
 
     def static_closure_snapshot(self) -> ClosureSnapshot:
+        """
+        Returns
+        -------
+        the closure snapshot of current stretch for current state, notice that the resources will be copied by the
+        closure snapshot
+        """
         return ClosureSnapshot.create_from(deepcopy(self))
 
     def query_pivots(self, geom: BaseGeometry, buffer: float = 0) -> List[Pivot]:
+        """
+        return the intersected pivots in the current stretch
+        Parameters
+        ----------
+        geom: query geometry
+        buffer: round buffer distance for the query geometry
+
+        Returns
+        -------
+        list of pivots
+        """
         if buffer != 0:
             geom = geom.buffer(buffer)
         return lfilter(lambda pivot: geom.intersects(pivot.shape), self.pivots)
 
     def query_edges(self, geom: BaseGeometry, buffer: float = 0) -> List[DirectEdge]:
+        """
+        return the intersected edges in the current stretch
+        Parameters
+        ----------
+        geom: query geometry
+        buffer: round buffer distance of the query geometry
+
+        Returns
+        -------
+        list of direct edges
+        """
         if buffer != 0:
             geom = geom.buffer(buffer)
         return lfilter(lambda edge: geom.intersects(edge.shape), self.edges)
@@ -567,12 +812,36 @@ class Stretch:
         self.pivots = lfilter(lambda pivot: not pivot.dangling, self.pivots)
 
     def _force_remove_pivot(self, pivot: Pivot):
+        """
+        PRIVATE helper method that removes given pivot and its corresponding in-edges and out-edges.
+        Notice: calling this method might
+        1. reduce the closure number
+        2. creating back turning edges
+        3. creating dangling edges
+
+        Parameters
+        ----------
+        pivot: given pivot in current stretch
+
+        Returns
+        -------
+        None
+        """
         # do not use this method publicly, this method is designed to be used as private method
-        self._force_remove_edges([*pivot.in_edges, *pivot.out_edges], delete_reverse=True, clean_dangling=False)
+        self._force_remove_edges([*pivot.in_edges, *pivot.out_edges], delete_reverse=True, clean_dangling_pivots=False)
         with suppress(ValueError):
             self.pivots.remove(pivot)
 
     def _remove_back_turning_edge(self) -> None:
+        """
+        PRIVATE helper method to remove back turning edges recursively.
+        If pivot B only have 1 in-edge (A, B) and 1 out-edge (B, C), then edge(A, B) and (B, C) are pair of back turning
+            edges
+        Returns
+        -------
+        None
+        """
+
         def removable_pivot(pivot: Pivot) -> bool:
             return len(pivot.in_edges) == len(pivot.out_edges) == 1 and pivot.in_edges[0].is_reversed(
                 pivot.out_edges[0])
@@ -599,6 +868,15 @@ class Stretch:
                 candidate = next_candidate
 
     def remove_dangling_edges(self) -> None:
+        """
+        remove all dangling edges in current stretch
+        dangling edges include:
+        1. back turning edges
+        2. edges that are not part of any closures
+        Returns
+        -------
+        None
+        """
         # dangling edges include back turning edges
         self._remove_back_turning_edge()
 
@@ -608,6 +886,18 @@ class Stretch:
 
     def simplify_edges(self, angle_tol: float = ANGLE_AROUND_EPS,
                        cargo_union_strategy: EdgeCargoUnionStrategy = default_edge_cargo_union_strategy) -> None:
+        """
+        union collinear direct edges and reduce the number of pivots
+        Parameters
+        ----------
+        angle_tol: angle degree tolerance for checking collinear of 2 direct edges
+        cargo_union_strategy: how to union the 2 simplify candidates' cargo into 1 and pass to the newly created edge
+
+        Returns
+        -------
+        None
+        """
+
         def removable_pivot(pivot: Pivot) -> bool:
             # pivot that satisfies conditions below should be considered a removable pivot
             # 1. has (1 in-edge and 1 out-edge) or (2 in-edges and 2-out-edges)
@@ -640,7 +930,8 @@ class Stretch:
             else:
                 union_cargo_of_reverse = None
 
-            self._force_remove_edges([*pivot.in_edges, *pivot.out_edges], delete_reverse=True, clean_dangling=False)
+            self._force_remove_edges([*pivot.in_edges, *pivot.out_edges], delete_reverse=True,
+                                     clean_dangling_pivots=False)
             self.edges.append(DirectEdge(from_pivot=previous_pivot,
                                          to_pivot=next_pivot,
                                          stretch=self,
@@ -656,7 +947,20 @@ class Stretch:
 
     def _force_remove_edges(self, edges: Union[Sequence[DirectEdge], DirectEdge],
                             delete_reverse: bool = False,
-                            clean_dangling: bool = True) -> None:
+                            clean_dangling_pivots: bool = True) -> None:
+        """
+        PRIVATE helper method that remove given Direct Edge(s)
+        NOTICE: this method might create dangling pivots, dangling edges and reduce number of closures
+        Parameters
+        ----------
+        edges: target direct edge(s)
+        delete_reverse: whether removing the corresponding reverse edges
+        clean_dangling_pivots: whether remove the dangling Pivots
+
+        Returns
+        -------
+        None
+        """
         # only used as internal method, don't use it publicly
         if not isinstance(edges, Sequence):
             edges = [edges]
@@ -674,27 +978,49 @@ class Stretch:
             with suppress(Exception):
                 deleting_edge.to_pivot.in_edges.remove(deleting_edge)
 
-        if clean_dangling:
+        if clean_dangling_pivots:
             self.remove_dangling_pivots()
 
-    def remove_closure(self, closure_copy: ClosureView) -> None:
-        self._force_remove_edges(closure_copy.edges, delete_reverse=False, clean_dangling=True)
+    def remove_closure(self, closure: ClosureView) -> None:
+        self._force_remove_edges(closure.edges, delete_reverse=False, clean_dangling_pivots=True)
 
-    def union_closures(self, closure_copies: List[ClosureView]) -> None:
-        if len(closure_copies) < 2:
+    def union_closures(self, closures: List[ClosureView]) -> None:
+        if len(closures) < 2:
             return
 
-        for closure_copy0, closure_copy1 in combinations(closure_copies, 2):
+        for closure_copy0, closure_copy1 in combinations(closures, 2):
             self._force_remove_edges(closure_copy0.shared_edges(closure_copy1), delete_reverse=True)
 
         self.remove_dangling_edges()
         self.remove_dangling_pivots()
 
-    def _query_attachable_pivot(self, point: Point, dist_tol: float = MATH_EPS) -> Pivot:
+    def _query_attachable_pivot(self, point: Point, dist_tol: float = MATH_EPS) -> Optional[Pivot]:
+        """
+        PRIVATE helper method for finding existed pivot that are close enough to the given point
+        Parameters
+        ----------
+        point
+        dist_tol
+
+        Returns
+        -------
+        closest Pivot or None
+        """
         pivots = self.query_pivots(geom=point, buffer=dist_tol)
         return min(pivots, key=lambda pivot: pivot.shape.distance(point), default=None)
 
     def _query_attachable_edge(self, point: Point, dist_tol: float = MATH_EPS) -> DirectEdge:
+        """
+        PRIVATE helper method for finding existed edge that are close enough to the given point
+        Parameters
+        ----------
+        point
+        dist_tol
+
+        Returns
+        -------
+        closest DirectEdge or None
+        """
         edges = self.query_edges(geom=point, buffer=dist_tol)
         return min(edges, key=lambda edge: edge.shape.distance(point), default=None)
 
@@ -703,6 +1029,21 @@ class Stretch:
                   attach_to_nearest_edge: bool = True,
                   cargo: Optional[dict] = None,
                   dist_tol: float = MATH_EPS) -> Pivot:
+        """
+        add new pivot to current stretch
+        Parameters
+        ----------
+        point: Point instance
+        reuse_existing: whether reuse existed pivot instead of creating new one if point is close enough to existed
+            pivots(distance <= dist_tol)
+        attach_to_nearest_edge: whether let inserting pivot expand the nearby direct edge if it's close enough
+        cargo: cargo of new pivot
+        dist_tol: distance tolerance for attaching existed pivots or edges
+
+        Returns
+        -------
+        newly created pivot
+        """
         if not isinstance(point, Point) or not point.is_valid or point.is_empty:
             raise ValueError(f'expect valid point, given {point}')
 
@@ -724,6 +1065,19 @@ class Stretch:
                     dist_tol: float = MATH_EPS,
                     edge_cargo: Optional[dict] = None,
                     pivot_cargo: Optional[dict] = None) -> List[DirectEdge]:
+        """
+        add closure according to given polygon
+        Parameters
+        ----------
+        polygon: polygon instance
+        dist_tol: distance tolerance for attaching existed pivots or edges
+        edge_cargo: cargo of new edge
+        pivot_cargo: cargo of new pivot
+
+        Returns
+        -------
+        list of direct edges
+        """
         if not (isinstance(polygon, Polygon) and polygon.is_valid and not polygon.is_empty):
             raise ValueError('expect a non-empty, valid polygon')
 
@@ -740,6 +1094,19 @@ class Stretch:
                  edge_cargo: Optional[dict] = None,
                  pivot_cargo: Optional[dict] = None,
                  dist_tol: float = MATH_EPS) -> List[List[DirectEdge]]:
+        """
+        split current closures by given linestring(s) or multi-linestring(s)
+        Parameters
+        ----------
+        line: linestring(s) or multi-linestring(s)
+        edge_cargo: cargo of new edges
+        pivot_cargo: cargo of new pivots
+        dist_tol: distance tolerance for attaching existed pivots or edges
+
+        Returns
+        -------
+        list of group of direct edges, direct edges in same group are in the same closure
+        """
         from shapely.extension.util.offset import self_intersection
 
         line_union = unary_union(flatten(line, target_class_or_callable=LineString).to_list())
@@ -779,19 +1146,19 @@ class Stretch:
                   edge_cargo: Optional[dict] = None,
                   dist_tol: float = MATH_EPS) -> List[DirectEdge]:
         """
-        Add edge by linestring, attaching pivots and edges to each other if possible.
+        PRIVATE helper method. Add edge by linestring, attaching pivots and edges to each other if possible.
         NOTICE: It might introduce dangling edges!
         Parameters
         ----------
-        line
-        add_reverse
-        pivot_cargo
-        edge_cargo
-        dist_tol
+        line: linestring
+        add_reverse: whether adding reverse edge
+        pivot_cargo: cargo of new pivot
+        edge_cargo: cargo of new edge
+        dist_tol: distance tolerance for attaching to existed pivots or edges
 
         Returns
         -------
-
+        list of direct edges
         """
         add_pivot = partial(self.add_pivot,
                             reuse_existing=True,
@@ -845,6 +1212,16 @@ class StretchFactory:
         self._dist_tol = dist_tol
 
     def create(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]]) -> Stretch:
+        """
+        create stretch from geometry(s)
+        Parameters
+        ----------
+        geom_or_geoms
+
+        Returns
+        -------
+        stretch
+        """
         stretch = Stretch([], [])
 
         polys = (flatten(geom_or_geoms)
@@ -862,67 +1239,15 @@ class StretchFactory:
 
 class AttachingOffset:
     """
-    The utility used for calculating from-pivot or to-pivot position after offset direct edge
+    utility that calculates the new endpoints on the given poly boundary for offsetting the edge
     """
 
-    def __init__(self, poly: Polygon, dist_tol: float = MATH_EPS):
-        self._ring = poly.exterior
-        self._ring_points_aggregation = self._ring.ext.decompose(Point)
-        self._dist_tol = dist_tol
-
-    def _find_attachable_point(self, point: Point,
-                               offset_vector: Vector,
-                               rotating_direct_from_offset_vec: str) -> Optional[Point]:
-        moved_point = offset_vector.apply(point)
-        if rotating_direct_from_offset_vec == 'cw':
-            ray = offset_vector.cw_perpendicular.ray(moved_point, length=self._ring.length)
-        else:
-            ray = offset_vector.ccw_perpendicular.ray(moved_point, length=self._ring.length)
-
-        # add tol
-        ray = ray.ext.prolong().from_head(self._dist_tol)
-
-        points: List[Point] = []
-        points.extend(ray.intersection(self._ring).ext.decompose(Point).to_list())
-
-        query_region = ray.buffer(self._dist_tol)
-        points.extend(self._ring_points_aggregation.filter(lambda pt: query_region.covers(pt)).to_list())
-
-        return min(points, key=moved_point.distance, default=None)
-
-    def for_from_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
-        offset_to_left: bool = edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
-        direction = ['cw', 'ccw'][offset_to_left]
-        if point := self._find_attachable_point(point=edge.from_pivot.shape,
-                                                offset_vector=offset_vector,
-                                                rotating_direct_from_offset_vec=direction):
-            return point
-
-        other_direction = ['cw', 'ccw'][offset_to_left - 1]
-        return self._find_attachable_point(point=edge.from_pivot.shape,
-                                           offset_vector=offset_vector,
-                                           rotating_direct_from_offset_vec=other_direction)
-
-    def for_to_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
-        offset_to_left: bool = edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
-        direction = ['ccw', 'cw'][offset_to_left]
-        if point := self._find_attachable_point(point=edge.to_pivot.shape,
-                                                offset_vector=offset_vector,
-                                                rotating_direct_from_offset_vec=direction):
-            return point
-
-        other_direction = ['ccw', 'cw'][offset_to_left - 1]
-        return self._find_attachable_point(point=edge.to_pivot.shape,
-                                           offset_vector=offset_vector,
-                                           rotating_direct_from_offset_vec=other_direction)
-
-
-class AttachingOffsetV2:
     def __init__(self, poly: Polygon, dist_tol: float = MATH_EPS):
         self._poly = poly
         self._dist_tol = dist_tol
 
-    def offset_to_left(self, edge: DirectEdge, offset_vector: Vector) -> bool:
+    @staticmethod
+    def _offset_to_left(edge: DirectEdge, offset_vector: Vector) -> bool:
         return edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
 
     def _cal_target_position(self, edge: DirectEdge, offset_vector: Vector, target_from_pivot: bool) -> Optional[Point]:
@@ -935,7 +1260,7 @@ class AttachingOffsetV2:
 
         line = offset_edge
         if target_point.within(self._poly):
-            if self.offset_to_left(edge, offset_vector) ^ target_from_pivot:
+            if self._offset_to_left(edge, offset_vector) ^ target_from_pivot:
                 ray_vec = offset_vector.cw_perpendicular
             else:
                 ray_vec = offset_vector.ccw_perpendicular
@@ -1008,11 +1333,19 @@ class BaseOffsetStrategy(ABC):
     @cached_property
     def shrinking_closure(self) -> Optional[ClosureView]:
         """
-        find the closure that take self._edge as one of its edges and offset_vector make it smaller
-        # TODO: draw a diagram
+        find the closure that take self._edge as one of its edges and offset_vector to make it smaller.
+        shrinking_closure is used to bridle offset distance
+
+        shrinking closure
+            ┌───────┐
+            │       │
+            │   ▲   │
+            │   │   │
+            └───┴───┘
+
         Returns
         -------
-
+        closure or None if offset_vector make the current closure larger
         """
         edge_angle = self._edge.shape.ext.angle()
         using_edge_find_closure = edge_angle.rotating_angle(self._offset_vector.angle, direct='ccw').degree < 180
@@ -1028,37 +1361,81 @@ class BaseOffsetStrategy(ABC):
 
         return ClosureView.create_from(edge.consecutive)
 
-    def offset_from_pivot(self, edge: DirectEdge,
-                          offset_vector: Vector,
-                          shrinking_closure: Optional[ClosureView]) -> Pivot:
-        perpendicular_mode = self.does_from_pivot_use_perpendicular_mode(edge, offset_vector)
+    def offset_pivot(self, edge: DirectEdge,
+                     offset_vector: Vector,
+                     shrinking_closure: Optional[ClosureView],
+                     handling_from_pivot: bool) -> Pivot:
+        """
+
+        Parameters
+        ----------
+        edge: offset target edge
+        offset_vector: offset vector
+        shrinking_closure: restrict space closure that offset edge should never move outside. if given None, meaning
+            no limit for offset distance in offset_vector's direction
+        handling_from_pivot: bool, True if handling from_pivot, otherwise handling to_pivot
+
+        Returns
+        -------
+        Pivot
+        """
+
+        # perpendicular mode:
+        # pivot of offsetting edge do not attach to any existed edge or closure so that it extrude perpendicularly
+        # attaching mode:
+        # pivot of offsetting edge move along existed edges of closure
+        #                              │
+        #                              │
+        #  perpendicular mode          │
+        #             ┌────────────────┤
+        #             │    offset      │
+        #             │      ▲         │ attaching mode
+        #             │      │         │
+        #             │      │         │
+        #     ────────┴──────┴─────────┘
+
+        if handling_from_pivot:
+            perpendicular_mode = self.does_from_pivot_use_perpendicular_mode(edge, offset_vector)
+        else:
+            perpendicular_mode = self.does_to_pivot_use_perpendicular_mode(edge, offset_vector)
 
         # perpendicular mode:
         # target point will go along line which is perpendicular to the given edge
         if perpendicular_mode:
-            target_point = offset_vector.apply(edge.from_pivot.shape)
+            if handling_from_pivot:
+                target_point = offset_vector.apply(edge.from_pivot.shape)
+                target_point_cargo = self._pivot_cargo_inherit_strategy(edge.from_pivot.cargo)
+            else:
+                target_point = offset_vector.apply(edge.to_pivot.shape)
+                target_point_cargo = self._pivot_cargo_inherit_strategy(edge.to_pivot.cargo)
+
             try:
-                if shrinking_closure and not shrinking_closure.shape.buffer(self._attaching_dist_tol).covers(
-                        target_point):
+                if (shrinking_closure
+                        and not shrinking_closure.shape.buffer(self._attaching_dist_tol).covers(target_point)):
                     # if perpendicular mode failed, try attaching mode instead
                     raise RuntimeError
 
                 # process in perpendicular mode:
                 # 1. create dangling pivot
-                # 2. connect origin from_pivot to this dangling pivot
+                # 2. connect origin from_pivot/to_pivot to this dangling pivot
                 # 3. return the dangling pivot
                 dangling_pivot = self.stretch.add_pivot(target_point,
                                                         dist_tol=self._attaching_dist_tol,
-                                                        cargo=self._pivot_cargo_inherit_strategy(edge.from_pivot.cargo))
-                new_edge = DirectEdge(from_pivot=edge.from_pivot,
-                                      to_pivot=dangling_pivot,
+                                                        cargo=target_point_cargo)
+                if handling_from_pivot:
+                    handling_from_pivot, to_pivot = edge.from_pivot, dangling_pivot
+                else:
+                    handling_from_pivot, to_pivot = dangling_pivot, edge.to_pivot
+
+                new_edge = DirectEdge(from_pivot=handling_from_pivot,
+                                      to_pivot=to_pivot,
                                       stretch=self.stretch,
                                       cargo=self._edge_cargo_inherit_strategy(edge.cargo))
                 self.stretch.edges.append(new_edge)
 
                 if edge.reverse:
-                    new_reverse_edge = DirectEdge(from_pivot=dangling_pivot,
-                                                  to_pivot=edge.from_pivot,
+                    new_reverse_edge = DirectEdge(from_pivot=to_pivot,
+                                                  to_pivot=handling_from_pivot,
                                                   stretch=self.stretch,
                                                   cargo=self._edge_cargo_inherit_strategy(edge.reverse.cargo))
                     self.stretch.edges.append(new_reverse_edge)
@@ -1074,72 +1451,76 @@ class BaseOffsetStrategy(ABC):
         if not shrinking_closure:
             raise ValueError('probably because perpendicular mode failed')
 
-        target_point = (AttachingOffsetV2(shrinking_closure.shape, dist_tol=self._attaching_dist_tol)
-                        .for_from_pivot(edge, offset_vector))
+        attaching_offset = AttachingOffset(shrinking_closure.shape, dist_tol=self._attaching_dist_tol)
+        if handling_from_pivot:
+            target_point = attaching_offset.for_from_pivot(edge, offset_vector)
+        else:
+            target_point = attaching_offset.for_to_pivot(edge, offset_vector)
+
         if not target_point:
             raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
+
         return self.stretch.add_pivot(target_point,
                                       dist_tol=self._attaching_dist_tol,
                                       cargo=self._pivot_cargo_inherit_strategy(edge.from_pivot.cargo))
 
+    def offset_from_pivot(self, edge: DirectEdge,
+                          offset_vector: Vector,
+                          shrinking_closure: Optional[ClosureView]) -> Pivot:
+        """
+        Parameters
+        ----------
+        edge
+        offset_vector
+        shrinking_closure
+
+        Returns
+        -------
+        position point of from_pivot after offset
+        """
+        return self.offset_pivot(edge=edge,
+                                 offset_vector=offset_vector,
+                                 shrinking_closure=shrinking_closure,
+                                 handling_from_pivot=True)
+
     def offset_to_pivot(self, edge: DirectEdge,
                         offset_vector: Vector,
                         shrinking_closure: Optional[ClosureView]) -> Pivot:
-        perpendicular_mode = self.does_to_pivot_use_perpendicular_mode(edge, offset_vector)
+        """
 
-        # perpendicular mode:
-        # target point will go along line which is perpendicular to the given edge
-        if perpendicular_mode:
-            target_point = offset_vector.apply(edge.to_pivot.shape)
-            try:
-                if shrinking_closure and not shrinking_closure.shape.buffer(self._attaching_dist_tol).covers(
-                        target_point):
-                    # if perpendicular mode failed, try attaching mode instead
-                    raise RuntimeError
+        Parameters
+        ----------
+        edge
+        offset_vector
+        shrinking_closure
 
-                # process in perpendicular mode:
-                # 1. create dangling pivot
-                # 2. connect origin from_pivot to this dangling pivot
-                # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point,
-                                                        dist_tol=self._attaching_dist_tol,
-                                                        cargo=self._pivot_cargo_inherit_strategy(edge.to_pivot.cargo))
-                new_edge = DirectEdge(from_pivot=dangling_pivot,
-                                      to_pivot=edge.to_pivot,
-                                      stretch=self.stretch,
-                                      cargo=self._edge_cargo_inherit_strategy(edge.cargo))
-                self.stretch.edges.append(new_edge)
-
-                if edge.reverse:
-                    new_reverse_edge = DirectEdge(from_pivot=edge.to_pivot,
-                                                  to_pivot=dangling_pivot,
-                                                  stretch=self.stretch,
-                                                  cargo=self._edge_cargo_inherit_strategy(edge.reverse.cargo))
-                    self.stretch.edges.append(new_reverse_edge)
-                return dangling_pivot
-
-            except RuntimeError:
-                pass  # try attaching mode instead
-
-        # attaching mode:
-        # target point will move along the boundary of given closure
-        # in attaching mode, shrinking_closure must exist
-        if not shrinking_closure:
-            raise ValueError('probably because perpendicular mode failed')
-
-        target_point = (AttachingOffsetV2(shrinking_closure.shape, dist_tol=self._attaching_dist_tol)
-                        .for_to_pivot(edge, offset_vector))
-        if not target_point:
-            raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
-        return self.stretch.add_pivot(target_point,
-                                      dist_tol=self._attaching_dist_tol,
-                                      cargo=self._pivot_cargo_inherit_strategy(edge.to_pivot.cargo))
+        Returns
+        -------
+        position point of to_pivot after offset
+        """
+        return self.offset_pivot(edge=edge,
+                                 offset_vector=offset_vector,
+                                 shrinking_closure=shrinking_closure,
+                                 handling_from_pivot=False)
 
     @abstractmethod
     def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
         raise NotImplementedError
 
     def do(self) -> DirectEdge:
+        """
+        algorithm for offset
+
+        Each offset process includes 4 generic steps:
+        1. calculate the new from-pivot and to-pivot after offset
+        2. create new direct edge(and its reverse if needed) according to offset vector
+        3. remove old edge before offset
+        4. clean the mess, including removing dangling pivots and edges
+
+        Returns
+        -------
+        newly created direct edge
+        """
         new_from_pivot = self.offset_from_pivot(edge=self._edge,
                                                 offset_vector=self._offset_vector,
                                                 shrinking_closure=self.shrinking_closure)
