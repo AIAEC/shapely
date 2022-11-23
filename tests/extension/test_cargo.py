@@ -28,7 +28,7 @@ def test_cargo_usage_as_dict():
     assert cargo.get('test1') is None
 
     assert list(cargo.values()) == [0]
-    assert list(cargo.keys()) == 'test'
+    assert list(cargo.keys()) == ['test']
     assert list(cargo.items()) == [('test', 0)]
 
     assert cargo.setdefault('test1', 1) == 1
