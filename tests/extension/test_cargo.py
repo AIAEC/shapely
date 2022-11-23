@@ -42,6 +42,14 @@ def test_cargo_usage_as_dict():
     cargo.pop('test')
 
 
+def test_cargo_override():
+    cargo0 = Cargo({1: 1, 2: 2})
+    cargo1 = Cargo({1: 0, 3: 0})
+    cargo0.override(cargo1)
+    assert cargo1.get(1) == 1  # override by cargo0
+    assert cargo1.get(3) == 0  # not override, because cargo0 has no key 3
+
+
 def test_cargo_default():
     cargo = Cargo(default=None)
     assert cargo.get(1, default=0) == 0
