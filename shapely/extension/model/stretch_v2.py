@@ -914,7 +914,7 @@ class Stretch:
 
     def simplify_edges(self, angle_tol: float = 0.1,
                        cargo_union_strategy: EdgeCargoUnionStrategy = default_edge_cargo_union_strategy,
-                       consider_cargo_equality: bool = False) -> None:
+                       consider_cargo_equality: bool = True) -> None:
         """
         union collinear direct edges and reduce the number of pivots
         Parameters
@@ -928,6 +928,7 @@ class Stretch:
         -------
         None
         """
+
         def mergeable(edge0: DirectEdge, edge1: DirectEdge) -> bool:
             collinear = edge0.shape.ext.angle().parallel_to(edge1.shape.ext.angle(), angle_tol=angle_tol)
             if consider_cargo_equality:
