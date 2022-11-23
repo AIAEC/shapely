@@ -2,8 +2,10 @@ from math import isclose, sqrt
 from unittest import TestCase
 
 from shapely.extension.geometry.straight_segment import StraightSegment
+from shapely.extension.model.alignment import AlignLineString
+from shapely.extension.model.angle import Angle
+from shapely.extension.model.vector import Vector
 
-from shapely.extension.model import Vector, Angle, AlignLineString
 from shapely.geometry import Polygon, LineString, MultiLineString, box, Point
 
 

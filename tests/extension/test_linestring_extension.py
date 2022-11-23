@@ -1,9 +1,9 @@
 from typing import List
 from unittest import TestCase
 
-from shapely.extension.geometry import StraightSegment
-from shapely.extension.model import Vector
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.interval import Interval
+from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.bypassing_strategy import LongerBypassingStrategy
 from shapely.extension.strategy.linemerge_strategy import as_longest_straight_line
 from shapely.extension.util.func_util import lmap
