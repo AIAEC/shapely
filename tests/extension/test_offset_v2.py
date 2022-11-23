@@ -196,17 +196,32 @@ class GeomOffsetTest(TestCase):
         line1 = LineString([(0, 0), (1, 0), (2, 0)])
         result0 = offset(line1, dist=1, side='left', invert_coords=False)
         self.assertTrue(LineString([(0, 1), (1, 1), (2, 1)]).equals(result0))
+        self.assertTrue(result0.ext.start().equals(Point(0, 1)))
+
         result1 = offset(line1, dist=1, side='left', invert_coords=True)
         self.assertTrue(LineString([(2, 1), (1, 1), (0, 1)]).equals(result1))
+        self.assertTrue(result1.ext.start().equals(Point(2, 1)))
+
         result2 = offset(line1, dist=-1, side='left', invert_coords=False)
         self.assertTrue(LineString([(0, -1), (1, -1), (2, -1)]).equals(result2))
+        self.assertTrue(result2.ext.start().equals(Point(0, -1)))
+
         result3 = offset(line1, dist=-1, side='left', invert_coords=True)
         self.assertTrue(LineString([(2, -1), (1, -1), (0, -1)]).equals(result3))
+        self.assertTrue(result3.ext.start().equals(Point(2, -1)))
+
         result4 = offset(line1, dist=1, side='right', invert_coords=False)
         self.assertTrue(LineString([(0, -1), (1, -1), (2, -1)]).equals(result4))
+        self.assertTrue(result4.ext.start().equals(Point(0, -1)))
+
         result5 = offset(line1, dist=1, side='right', invert_coords=True)
         self.assertTrue(LineString([(2, -1), (1, -1), (0, -1)]).equals(result5))
+        self.assertTrue(result5.ext.start().equals(Point(2, -1)))
+
         result6 = offset(line1, dist=-1, side='right', invert_coords=False)
         self.assertTrue(LineString([(0, 1), (1, 1), (2, 1)]).equals(result6))
+        self.assertTrue(result6.ext.start().equals(Point(0, 1)))
+
         result7 = offset(line1, dist=-1, side='right', invert_coords=True)
         self.assertTrue(LineString([(2, 1), (1, 1), (0, 1)]).equals(result7))
+        self.assertTrue(result7.ext.start().equals(Point(2, 1)))

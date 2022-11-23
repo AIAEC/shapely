@@ -9,6 +9,7 @@ from shapely.extension.typing import CoordType
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lmap
 from shapely.geometry import LineString, JOIN_STYLE, Point, LinearRing, Polygon, MultiLineString
+from shapely.geos import geos_version_string
 from shapely.ops import unary_union
 
 __all__ = ['offset']
@@ -111,11 +112,20 @@ def offset(line: LineString,
     # thus if the native parallel_offset gives a linestring, then that's the answer
     def parallel_offset_with_coord_order_kept(line, dist, side, join_style):
         offset_line = line.parallel_offset(distance=dist, side=side, join_style=join_style)
-        if offset_to_right_side:
-            # native parallel_offset of shapely will reverse the coords of line when offset to side 'right'
-            # 2 cases will do right offset:
-            # with dist > 0, side to right
-            # with dist < 0, side to left
+
+        # try to check the coordinates order
+        # for GEOS <= 3.9 on Darwin(macos), the parallel_offset might reverse the order of coordinates of result line
+        # for GEOS >= 3.10 on Darwin(macos), the parallel_offset might not reverse the coord order of the result
+        # for GEOS on linux, the behaviour of parallel_offset is undetermined
+        # in order to handle the coord reverse situation, we calculate the interpolated points distance between
+        # origin line and offset line as the cost of offset line. we compare cost of offset line and cost of its
+        # reverse and choose to pick the one with less cost
+        origin_points = line.ext.interpolate([i/10 for i in range(11)], absolute=False)
+        offset_points = offset_line.ext.interpolate([i/10 for i in range(11)], absolute=False)
+        offset_line_cost = sum(pt0.distance(pt1) for pt0, pt1 in zip(origin_points, offset_points))
+        reverse_offset_line_cost = sum(pt0.distance(pt1) for pt0, pt1 in zip(origin_points, offset_points[::-1]))
+
+        if reverse_offset_line_cost < offset_line_cost:
             offset_line = reverse_line(offset_line)
         return offset_line.simplify(0)
 
