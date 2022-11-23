@@ -593,13 +593,13 @@ class ClosureView:
         return [DirectEdgeView(from_pivot, to_pivot, from_pivot.stretch)
                 for from_pivot, to_pivot in win_slice(self.pivots, win_size=2, tail_cycling=True)]
 
-    @property
+    @cached_property
     def edge_cargo(self) -> ConsensusCargo:
         edge = first(lambda edge: edge == self.edges[0], self.pivots[0].stretch.edges)
         assert isinstance(edge, DirectEdge)
         return ConsensusCargo(lmap(attrgetter('cargo'), edge.consecutive))
 
-    @property
+    @cached_property
     def pivot_cargo(self) -> ConsensusCargo:
         return ConsensusCargo(lmap(attrgetter('cargo'), self.pivots))
 
