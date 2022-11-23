@@ -71,7 +71,8 @@ class Cargo:
         return None, None
 
     def get(self, key, default=None):
-        return self._data.get(key, default or self._default)
+        default = default if default is not None else self._default
+        return self._data.get(key, default)
 
     def update(self, *args, **kwargs):
         if self._verbose:

@@ -42,6 +42,11 @@ def test_cargo_usage_as_dict():
     cargo.pop('test')
 
 
+def test_cargo_default():
+    cargo = Cargo(default=None)
+    assert cargo.get(1, default=0) == 0
+
+
 def test_cargo_to_dict():
     cargo = Cargo({'test0': 0, 'test1': 1})
     assert {'test0': 0, 'test1': 1} == dict(cargo)
