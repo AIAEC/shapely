@@ -1,7 +1,7 @@
 from collections import Counter
 from copy import deepcopy
 from operator import itemgetter
-from typing import Any, Sequence, Union
+from typing import Any, Sequence, Union, Optional
 from uuid import uuid4
 
 from shapely.extension.util.iter_util import first
@@ -95,13 +95,19 @@ class Cargo:
     def __len__(self):
         return len(self._data)
 
-    def copy_to(self, cargo: 'Cargo'):
+    def overlap(self, cargo: 'Cargo', keys: Optional[Sequence[Any]] = None):
         if not isinstance(cargo, Cargo):
             raise TypeError(f'expect cargo instance, given {cargo}')
 
         if self._verbose:
             print(f'{self}: copy to {cargo}')
-        cargo._data = deepcopy(self._data)
+
+        data_copy = deepcopy(self._data)
+        keys = keys or list(self._data.keys())
+
+        for key in keys:
+            if key in data_copy:
+                cargo._data[key] = data_copy[key]
 
 
 class ConsensusCargo(Cargo):
@@ -128,6 +134,6 @@ class ConsensusCargo(Cargo):
 
         super().__init__(data, host, default, verbose)
 
-    def sync(self):
+    def sync(self, keys: Optional[Sequence[Any]] = None):
         for cargo in self._cargos:
-            self.copy_to(cargo)
+            self.overlap(cargo, keys=keys)
