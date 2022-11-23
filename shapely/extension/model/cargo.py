@@ -96,7 +96,18 @@ class Cargo:
     def __len__(self):
         return len(self._data)
 
-    def overlap(self, cargo: 'Cargo', keys: Optional[Sequence[Any]] = None):
+    def override(self, cargo: 'Cargo', keys: Optional[Sequence[Any]] = None) -> None:
+        """
+        override fields of given cargo if they share same keys with self
+        Parameters
+        ----------
+        cargo: other cargo instance
+        keys: None or list of keys. if None, all keys are used. otherwise, only consider given keys
+
+        Returns
+        -------
+        None
+        """
         if not isinstance(cargo, Cargo):
             raise TypeError(f'expect cargo instance, given {cargo}')
 
@@ -137,4 +148,4 @@ class ConsensusCargo(Cargo):
 
     def sync(self, keys: Optional[Sequence[Any]] = None):
         for cargo in self._cargos:
-            self.overlap(cargo, keys=keys)
+            self.override(cargo, keys=keys)
