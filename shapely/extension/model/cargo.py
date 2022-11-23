@@ -106,6 +106,8 @@ class Cargo:
 
 class ConsensusCargo(Cargo):
     def __init__(self, cargos: Sequence[Cargo]):
+        self._cargos = cargos
+
         board = {}
         for cargo in cargos:
             for key, val in cargo.items():
@@ -123,4 +125,9 @@ class ConsensusCargo(Cargo):
         host = Counter([cargo._host for cargo in cargos]).most_common(1)[0][0]  # most common host
         default = Counter([cargo._default for cargo in cargos]).most_common(1)[0][0]  # most common default
         verbose = sum([cargo._verbose for cargo in cargos]) > len(cargos) / 2
+
         super().__init__(data, host, default, verbose)
+
+    def sync(self):
+        for cargo in self._cargos:
+            self.copy_to(cargo)
