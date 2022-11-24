@@ -258,3 +258,9 @@ class AngleTest(TestCase):
         angle = case.ext.angle().degree
         self.assertTrue(angle > 0)
         self.assertAlmostEqual(angle, 309, delta=1)
+
+    def test_angle_of_square(self):
+        case = loads('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))')
+        angle = case.ext.angle().degree
+        self.assertTrue(angle == 0)
+

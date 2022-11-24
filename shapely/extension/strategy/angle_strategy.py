@@ -95,8 +95,10 @@ class PolygonAngleStrategy:
                 return self._default
 
             from shapely.extension.model.vector import Vector
-            from shapely.extension.geometry import StraightSegment
-            repr_segment = bounding_box.ext.decompose(StraightSegment).max_by(attrgetter('length'))
+            from shapely.extension.geometry.straight_segment import StraightSegment
+            repr_segment = (bounding_box.ext.decompose(StraightSegment)
+                            .max_by(lambda seg: (seg.length, -seg.ext.angle().degree)))
+
             return Vector.from_endpoints_of(repr_segment).angle.degree
 
         return _angle_calculator
