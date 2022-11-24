@@ -1291,23 +1291,65 @@ class AttachingOffset:
     def _offset_to_left(edge: DirectEdge, offset_vector: Vector) -> bool:
         return edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').degree <= 180
 
-    def _cal_target_position(self, edge: DirectEdge, offset_vector: Vector, target_from_pivot: bool) -> Optional[Point]:
+    def _cal_attached_position(self, edge: DirectEdge,
+                               offset_vector: Vector,
+                               handle_from_pivot: bool) -> Optional[Point]:
+        #     poly exterior
+        #   │
+        #   │
+        #
+        #   │           offset
+        #   │           from pivot(inside poly)
+        #       ◄─  ──  ─┐
+        #   │  query     │
+        #   │  line      │
+        #                │
+        #                └─────────────────────►
+        #             origin
+        #             from pivot
+        # diagram above denotes the method to find attaching position for from_pivot when offset from_pivot sits inside
+        # the polygon. In this case, query line start from the offset from_pivot position and goes backwards
+        # ----
+        #
+        #                                   poly exterior
+        #                             │
+        #                             │
+        #
+        #                             │
+        #  (outside poly)             │
+        #    offset
+        #    from pivot               │
+        #        ┌─ ── ── ── ── ── ───┘►
+        #        │        query line
+        #        │
+        #        │
+        #        └─────────────────────►
+        #     origin
+        #     from pivot
+        # diagram above denotes the method to find attaching position for from_pivot when offset from_pivot slip out
+        # the polygon. In this case, query line should be the offset edge.
+
         offset_edge: LineString = offset_vector.apply(edge.shape)
         offset_from_point = offset_edge.ext.start()
         offset_to_point = offset_edge.ext.end()
 
-        target_point, another_point = ((offset_from_point, offset_to_point) if target_from_pivot
-                                       else (offset_to_point, offset_from_point))
+        pivot_position_after_offset_without_attaching = offset_from_point if handle_from_pivot else offset_to_point
 
-        line = offset_edge
-        if target_point.within(self._poly):
-            if self._offset_to_left(edge, offset_vector) ^ target_from_pivot:
+        query_line = offset_edge
+        if pivot_position_after_offset_without_attaching.intersects(self._poly):
+            # as diagrams above show
+            if self._offset_to_left(edge, offset_vector) ^ handle_from_pivot:
                 ray_vec = offset_vector.cw_perpendicular
             else:
                 ray_vec = offset_vector.ccw_perpendicular
-            line = ray_vec.ray(target_point, self._poly.length)
+            query_line = ray_vec.ray(pivot_position_after_offset_without_attaching, self._poly.length)
 
         offset_edge_inside = offset_edge.intersection(self._poly)
+        if not offset_edge_inside:
+            return None
+
+        offset_edge_opposite_endpoint: Point = (offset_edge_inside.ext.end() if handle_from_pivot
+                                                else offset_edge_inside.ext.start())
 
         # candidate_projection is for covering 2 cases below
         # 1. line projects onto poly.exterior as a single point and no other points should be considered candidates
@@ -1319,24 +1361,24 @@ class AttachingOffset:
         # but are actually different points, pick as result the accurate one(line's intersection on poly.exterior
         # without buffer)
         candidate_projection = GeometryCollection([
-            line.ext.intersection(self._poly.exterior),
-            line.ext.intersection(self._poly.exterior, self_buffer=self._dist_tol)])
+            query_line.ext.intersection(self._poly.exterior),
+            query_line.ext.intersection(self._poly.exterior, self_buffer=self._dist_tol)])
 
         # pick the closest candidate points that have distance larger than half-length of offset edge inside(candidate
         # points on another_point side)
         candidate_points: List[Point] = (
             candidate_projection
             .ext.decompose(Point)
-            .filter(lambda pt: pt.distance(another_point) > offset_edge_inside.length / 2)
+            .filter(lambda pt: pt.distance(offset_edge_opposite_endpoint) > offset_edge_inside.length / 2)
             .to_list())
 
-        return min(candidate_points, key=another_point.distance)
+        return min(candidate_points, key=offset_edge_opposite_endpoint.distance)
 
     def for_from_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
-        return self._cal_target_position(edge, offset_vector, target_from_pivot=True)
+        return self._cal_attached_position(edge, offset_vector, handle_from_pivot=True)
 
     def for_to_pivot(self, edge: DirectEdge, offset_vector: Vector) -> Optional[Point]:
-        return self._cal_target_position(edge, offset_vector, target_from_pivot=False)
+        return self._cal_attached_position(edge, offset_vector, handle_from_pivot=False)
 
 
 class BaseOffsetStrategy(ABC):

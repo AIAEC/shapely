@@ -265,6 +265,31 @@ def stretch_for_split_by_case() -> Stretch:
         return Stretch.load(fp, with_cargo=False)
 
 
+@fixture
+def stretch_for_offset_edges_that_is_longer_than_body_width() -> Stretch:
+    stretch = Stretch([], [])
+
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_10_0 = Pivot(Point(10, 0), stretch)
+    pivot_10_1 = Pivot(Point(10, 1), stretch)
+    pivot_5_1 = Pivot(Point(5, 1), stretch)
+    pivot_5_10 = Pivot(Point(5, 10), stretch)
+    pivot_1_10 = Pivot(Point(1, 10), stretch)
+
+    edges = [
+        DirectEdge(pivot_0_0, pivot_10_0, stretch),
+        DirectEdge(pivot_10_0, pivot_10_1, stretch),
+        DirectEdge(pivot_10_1, pivot_5_1, stretch),
+        DirectEdge(pivot_5_1, pivot_5_10, stretch),
+        DirectEdge(pivot_5_10, pivot_1_10, stretch),
+        DirectEdge(pivot_1_10, pivot_0_0, stretch)
+    ]
+    pivots = [pivot_0_0, pivot_10_0, pivot_10_1, pivot_5_1, pivot_5_10, pivot_1_10]
+    stretch.edges = edges
+    stretch.pivots = pivots
+    return stretch
+
+
 class TestPivot:
     def test_equality(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -917,6 +942,13 @@ class TestOffsetStrategy:
         closures.sort(key=lambda closure: closure.shape.centroid.y)
         assert closures[0].shape.equals(box(0, 0, 3, 1))
         assert closures[1].shape.equals(box(0, 1, 2, 2))
+
+    def test_offset_edge_that_is_wider_than_closure_body(self, stretch_for_offset_edges_that_is_longer_than_body_width):
+        stretch = stretch_for_offset_edges_that_is_longer_than_body_width
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
+        result = OffsetStrategy(edge, Vector(0, 2)).do()
+        assert result.shape.almost_equals(LineString([(0.2, 2), (5, 2)]))
 
 
 class TestCargo:
