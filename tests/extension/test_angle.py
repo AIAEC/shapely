@@ -3,6 +3,7 @@ from math import radians, pi, sin, cos, tan, isclose
 from unittest import TestCase
 
 from shapely.extension.model.angle import Angle
+from shapely.wkt import loads
 
 
 class AngleTest(TestCase):
@@ -250,3 +251,10 @@ class AngleTest(TestCase):
 
         self.assertTrue(Angle(0).perpendicular_to(Angle(270)))
         self.assertTrue(Angle(270).perpendicular_to(Angle(0)))
+
+    def test_angle_of_multiline(self):
+        case = loads(
+            'MULTILINESTRING ((89.2729564955735 -22.904484944092047, 89.12507739055026 -22.724075984210003), (88.74471614047512 -22.26004438559634, 85.7018261685458 -18.54779163166595), (85.32146491110643 -18.083760024068113, 82.27857494134994 -14.371507272788532), (81.89821369208678 -13.907475675165465, 79.35354529324636 -10.80304128595699), (79.35354529324636 -10.80304128595699, 78.86626734215581 -10.208573877489204), (78.86626734215581 -10.208573877489204, 78.28748867806912 -9.502477794655928))')
+        angle = case.ext.angle().degree
+        self.assertTrue(angle > 0)
+        self.assertAlmostEqual(angle, 309, delta=1)

@@ -1,13 +1,12 @@
 import math
 from functools import partial
-from operator import itemgetter
-from typing import Optional, Callable
+from operator import itemgetter, attrgetter
+from typing import Callable
 
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.coord import Coord
 from shapely.extension.util.easy_enum import EasyEnum
 from shapely.extension.util.func_util import group
-from shapely.extension.util.iter_util import win_slice
 from shapely.geometry import Polygon, LineString
 from shapely.geometry.base import BaseGeometry
 
@@ -92,21 +91,13 @@ class PolygonAngleStrategy:
         def _angle_calculator(polygon: Polygon):
             bounding_box = polygon.minimum_rotated_rectangle.simplify(0)
 
-            if not isinstance(bounding_box, Polygon):
+            if not isinstance(bounding_box, (Polygon, LineString)) or bounding_box.length == 0:
                 return self._default
 
-            box_coords = list(bounding_box.exterior.coords)
-
-            longest_edge_len: float = 0
-            longest_edge_angle: Optional[float] = None
-
             from shapely.extension.model.vector import Vector
-            for coord0, coord1 in win_slice(box_coords, win_size=2):
-                if (edge_len := Coord.dist(coord0, coord1)) >= longest_edge_len:
-                    longest_edge_len = edge_len
-                    longest_edge_angle = Vector.from_origin_to_target(coord0, coord1).angle.degree
-
-            return longest_edge_angle or self._default
+            from shapely.extension.geometry import StraightSegment
+            repr_segment = bounding_box.ext.decompose(StraightSegment).max_by(attrgetter('length'))
+            return Vector.from_endpoints_of(repr_segment).angle.degree
 
         return _angle_calculator
 
