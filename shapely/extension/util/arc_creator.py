@@ -5,7 +5,8 @@ from operator import truth
 from typing import Union, List
 
 from shapely.extension.constant import LARGE_ENOUGH_DISTANCE, MATH_EPS
-from shapely.extension.geometry import Circle, Arc
+from shapely.extension.geometry.arc import Arc
+from shapely.extension.geometry.circle import Circle
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import CoordType
 from shapely.extension.util.decompose import decompose

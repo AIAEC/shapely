@@ -1,7 +1,7 @@
 from copy import deepcopy
 from unittest import TestCase
 
-from shapely.extension.geometry import StraightSegment
+from shapely.extension.geometry.straight_segment import StraightSegment
 
 
 class StraightSegmentTest(TestCase):

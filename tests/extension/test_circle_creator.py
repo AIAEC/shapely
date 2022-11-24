@@ -2,7 +2,7 @@ from math import isclose
 from unittest import TestCase
 
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.geometry import Circle
+from shapely.extension.geometry.circle import Circle
 from shapely.extension.util.arc_creator import FixedRadiusArcCreator, FixedCenterArcCreator
 from shapely.geometry import Point, LineString
 

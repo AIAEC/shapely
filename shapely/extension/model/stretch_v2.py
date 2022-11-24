@@ -24,9 +24,11 @@ from weakref import ref, ReferenceType
 from toolz import concat
 
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.geometry import StraightSegment
-from shapely.extension.model import Coord, Vector, Angle
+from shapely.extension.geometry.straight_segment import StraightSegment
+from shapely.extension.model.angle import Angle
 from shapely.extension.model.cargo import Cargo, ConsensusCargo
+from shapely.extension.model.coord import Coord
+from shapely.extension.model.vector import Vector
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap, separate
 from shapely.extension.util.iter_util import win_slice, first
