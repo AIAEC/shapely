@@ -193,5 +193,5 @@ def default_angle_strategy(geom: BaseGeometry) -> float:
     if isinstance(rect, Polygon):
         return float(PolygonAngleStrategy(0).by_bounding_box_width()(rect))
     elif isinstance(rect, LineString):
-        return float(LineAngleStrategy().end_to_end()(rect))
+        return float(LineAngleStrategy(0).end_to_end()(rect))
     return 0

@@ -2,7 +2,9 @@ from collections import defaultdict
 from copy import deepcopy
 from itertools import chain
 from operator import attrgetter
-from typing import Iterable, Any, Callable, Tuple, List, Set, Union, Sequence, Dict
+from typing import Iterable, Any, Callable, Tuple, List, Union, Sequence, Dict
+
+from shapely.extension.util.ordered_set import OrderedSet
 
 
 def separate(func: Callable[[Any], bool], items: Iterable[Any]) -> Tuple[List[Any], List[Any]]:
@@ -47,8 +49,8 @@ def group(grouping_func: Callable[[Any, Any], bool], items: List[Any], strict_mo
     def group_helper(grouping_func: Callable[[Any, Any], bool], items: List[Any]) -> List[List[Any]]:
         result: List[List[Any]] = []
 
-        ungrouped_indices: Set[int] = set(range(len(items)))
-        seen: Set[int] = set()
+        ungrouped_indices: OrderedSet = OrderedSet(range(len(items)))
+        seen: OrderedSet = OrderedSet()
         while len(ungrouped_indices) > 0:
             cur_idx = ungrouped_indices.pop()
             cur_group: List[Any] = []
@@ -59,7 +61,7 @@ def group(grouping_func: Callable[[Any, Any], bool], items: List[Any], strict_mo
                 seen.add(cand_idx)
                 cur_group.append(items[cand_idx])
 
-                idx_nearby_cands = set()
+                idx_nearby_cands: OrderedSet = OrderedSet()
                 for ungrouped_idx in ungrouped_indices:
                     if ungrouped_idx not in seen and grouping_func(items[ungrouped_idx], items[cand_idx]):
                         idx_nearby_cands.add(ungrouped_idx)
