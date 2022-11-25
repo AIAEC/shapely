@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from operator import attrgetter
 
 import pytest
 from pytest import fixture
@@ -290,6 +291,76 @@ def stretch_for_offset_edges_that_is_longer_than_body_width() -> Stretch:
     return stretch
 
 
+@fixture
+def stretch_for_tricky_offset():
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_4_0 = Pivot(Point(4, 0), stretch)
+    pivot_10_0 = Pivot(Point(10, 0), stretch)
+    pivot_10_5 = Pivot(Point(10, 5), stretch)
+    pivot_10_10 = Pivot(Point(10, 10), stretch)
+    pivot_5_10 = Pivot(Point(5, 10), stretch)
+    pivot_0_10 = Pivot(Point(0, 10), stretch)
+    pivot_0_6 = Pivot(Point(0, 6), stretch)
+    pivot_4_5 = Pivot(Point(4, 5), stretch)
+    pivot_4_6 = Pivot(Point(4, 6), stretch)
+    pivot_5_6 = Pivot(Point(5, 6), stretch)
+
+    edges = [
+        DirectEdge(pivot_0_0, pivot_4_0, stretch),
+        DirectEdge(pivot_4_0, pivot_4_5, stretch),
+        DirectEdge(pivot_4_5, pivot_4_6, stretch),
+        DirectEdge(pivot_4_6, pivot_0_6, stretch),
+        DirectEdge(pivot_0_6, pivot_0_0, stretch),
+        DirectEdge(pivot_4_0, pivot_10_0, stretch),
+        DirectEdge(pivot_10_0, pivot_10_5, stretch),
+        DirectEdge(pivot_10_5, pivot_4_5, stretch),
+        DirectEdge(pivot_4_5, pivot_4_0, stretch),
+        DirectEdge(pivot_4_5, pivot_10_5, stretch),
+        DirectEdge(pivot_10_5, pivot_10_10, stretch),
+        DirectEdge(pivot_10_10, pivot_5_10, stretch),
+        DirectEdge(pivot_5_10, pivot_5_6, stretch),
+        DirectEdge(pivot_5_6, pivot_4_6, stretch),
+        DirectEdge(pivot_4_6, pivot_4_5, stretch),
+        DirectEdge(pivot_0_6, pivot_4_6, stretch),
+        DirectEdge(pivot_4_6, pivot_5_6, stretch),
+        DirectEdge(pivot_5_6, pivot_5_10, stretch),
+        DirectEdge(pivot_5_10, pivot_0_10, stretch),
+        DirectEdge(pivot_0_10, pivot_0_6, stretch)
+    ]
+    pivots = [pivot_0_0, pivot_4_0, pivot_10_0, pivot_10_5, pivot_10_10, pivot_5_10, pivot_0_10, pivot_0_6,
+              pivot_4_5, pivot_4_6, pivot_5_6]
+    stretch.pivots = pivots
+    stretch.edges = edges
+    return stretch
+
+
+@fixture
+def stretch_with_concave_ridge_roof() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_10_0 = Pivot(Point(10, 0), stretch)
+    pivot_10_10 = Pivot(Point(10, 10), stretch)
+    pivot_5_5 = Pivot(Point(5, 5), stretch)
+    pivot_0_10 = Pivot(Point(0, 10), stretch)
+
+    edges = [
+        DirectEdge(pivot_0_0, pivot_10_0, stretch),
+        DirectEdge(pivot_10_0, pivot_10_10, stretch),
+        DirectEdge(pivot_10_10, pivot_5_5, stretch),
+        DirectEdge(pivot_5_5, pivot_0_10, stretch),
+        DirectEdge(pivot_0_10, pivot_0_0, stretch),
+        DirectEdge(pivot_5_5, pivot_10_10, stretch),
+        DirectEdge(pivot_10_10, pivot_0_10, stretch),
+        DirectEdge(pivot_0_10, pivot_5_5, stretch),
+    ]
+
+    pivots = [pivot_0_0, pivot_10_0, pivot_10_10, pivot_5_5, pivot_0_10]
+    stretch.pivots = pivots
+    stretch.edges = edges
+    return stretch
+
+
 class TestPivot:
     def test_equality(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -377,7 +448,7 @@ class TestDirectEdge:
         edge = stretch.edges[0]
         sub_edge = edge.sub_edge(box(0.5, 0, 1, 1))
         assert isinstance(sub_edge, DirectEdge)
-        result = OffsetStrategy(sub_edge, Vector(0, 1)).do()
+        result = OffsetStrategy(sub_edge, Vector(0, 1)).do()[0]
         assert isinstance(result, DirectEdge)
         assert isinstance(result.closure, ClosureView)
         assert result.closure.shape.equals(loads('POLYGON ((0.5 1, 1 1, 1 0, 2 0, 2 2, 0 2, 0 0, 0.5 0, 0.5 1))'))
@@ -900,7 +971,7 @@ class TestOffsetStrategy:
         stretch = stretch_of_single_box
         edge = stretch.edges[0]
         assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
-        result = OffsetStrategy(edge, Vector(0, 1)).do()
+        result = OffsetStrategy(edge, Vector(0, 1)).do()[0]
         assert isinstance(result, DirectEdge)
         assert isinstance(result.closure, ClosureView)
         assert result.closure.shape.equals(box(0, 1, 2, 2))
@@ -967,8 +1038,44 @@ class TestOffsetStrategy:
         stretch = stretch_for_offset_edges_that_is_longer_than_body_width
         edge = stretch.edges[0]
         assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
-        result = OffsetStrategy(edge, Vector(0, 2)).do()
+        result = OffsetStrategy(edge, Vector(0, 2)).do()[0]
         assert result.shape.almost_equals(LineString([(0.2, 2), (5, 2)]))
+
+    def test_offset_for_potential_error(self, stretch_for_tricky_offset):
+        stretch = stretch_for_tricky_offset
+        origin_num_closures = len(stretch.closure_snapshot().closures)
+        edge = stretch.query_edges(Point(2, 6))[0]
+        assert edge.shape.equals(LineString([(0, 6), (4, 6)]))
+        OffsetStrategy(edge, Vector(0, -2)).do()
+        assert len(stretch.closure_snapshot().closures) == origin_num_closures
+
+    def test_offset_cut_on_ridge_roof(self, stretch_with_concave_ridge_roof):
+        stretch = stretch_with_concave_ridge_roof
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
+        result = OffsetStrategy(edge, Vector(0, 6)).do()
+        assert len(result) == 4
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+        closures.sort(key=attrgetter('shape.centroid.x'))
+        # below is what policy accept. offset only handle current shrinking closure
+        assert closures[0].shape.equals(Polygon([(0, 6), (4, 6), (0, 10)]))
+        assert closures[1].shape.equals(Polygon([(0, 10), (5, 5), (10, 10)]))
+        assert closures[2].shape.equals(Polygon([(6, 6), (10, 10), (10, 6)]))
+
+    def test_offset_cut_on_ridge_roof_peak(self, stretch_with_concave_ridge_roof):
+        stretch = stretch_with_concave_ridge_roof
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
+        result = OffsetStrategy(edge, Vector(0, 5)).do()
+        assert len(result) == 4
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+        closures.sort(key=attrgetter('shape.centroid.x'))
+        # below is what policy accept. offset only handle current shrinking closure
+        assert closures[0].shape.equals(Polygon([(0, 5), (5, 5), (0, 10)]))
+        assert closures[1].shape.equals(Polygon([(0, 10), (5, 5), (10, 10)]))
+        assert closures[2].shape.equals(Polygon([(5, 5), (10, 10), (10, 5)]))
 
 
 class TestCargo:
@@ -1076,7 +1183,7 @@ class TestCargo:
         assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
         result = edge.offset(dist=0.5,
                              side='left',
-                             edge_offset_strategy_clz=OffsetStrategy)
+                             edge_offset_strategy_clz=OffsetStrategy)[0]
         assert isinstance(result, DirectEdge)
         assert result.cargo.data_equals(cargo)
         # result's cargo should be different dict object
@@ -1097,7 +1204,7 @@ class TestCargo:
         result = edge.offset(dist=0.5,
                              side='left',
                              edge_offset_strategy_clz=OffsetStrategy,
-                             cargo_inherit_strategy=lambda cargo: deepcopy(new_cargo))
+                             cargo_inherit_strategy=lambda cargo: deepcopy(new_cargo))[0]
         assert isinstance(result, DirectEdge)
         assert not result.cargo.data_equals(cargo)
         assert result.cargo.data_equals(new_cargo)

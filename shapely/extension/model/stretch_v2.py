@@ -348,7 +348,7 @@ class DirectEdge:
                side: Literal['left', 'right'],
                edge_offset_strategy_clz: type,
                attaching_dist_tol: float = MATH_EPS,
-               cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> 'DirectEdge':
+               cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> List['DirectEdge']:
         """
         offset the current edge according to parameters given, and affect other resources(pivot/edges) to change
         accordingly
@@ -372,14 +372,14 @@ class DirectEdge:
         else:
             offset_vec = edge_vec.cw_perpendicular.unit(dist)
 
-        new_edge: DirectEdge = edge_offset_strategy_clz(
+        new_edges: List[DirectEdge] = edge_offset_strategy_clz(
             edge=self,
             offset_vector=offset_vec,
             attaching_dist_tol=attaching_dist_tol,
             edge_cargo_inherit_strategy=cargo_inherit_strategy,
             pivot_cargo_inherit_strategy=cargo_inherit_strategy).do()
 
-        return new_edge
+        return new_edges
 
     def expand(self, point: Point,
                endpoint_dist_tol: float = MATH_EPS,
@@ -1350,13 +1350,21 @@ class AttachingOffset:
                 ray_vec = offset_vector.ccw_perpendicular
             query_line = ray_vec.ray(pivot_position_after_offset_without_attaching, self._poly.length)
 
-        offset_edge_inside = offset_edge.intersection(self._poly)
+        # when offset_edge cuts on poly, the result might be a point(barely touch the poly),
+        # a linestring(cut inside poly) or none(go outside of poly)
+        offset_edge_inside: Optional[Union[Point, LineString]] = min(
+            offset_edge.intersection(self._poly)
+            .ext.flatten().to_list(),
+            key=pivot_position_after_offset_without_attaching.distance,
+            default=None)
+
         if not offset_edge_inside:
             return None
 
         if isinstance(offset_edge_inside, Point):
             return offset_edge_inside
 
+        assert isinstance(offset_edge_inside, LineString)
         offset_edge_opposite_endpoint: Point = (offset_edge_inside.ext.end() if handle_from_pivot
                                                 else offset_edge_inside.ext.start())
 
@@ -1596,10 +1604,10 @@ class BaseOffsetStrategy(ABC):
                                  handling_from_pivot=False)
 
     @abstractmethod
-    def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
+    def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
         raise NotImplementedError
 
-    def do(self) -> DirectEdge:
+    def do(self) -> List[DirectEdge]:
         """
         algorithm for offset
 
@@ -1621,13 +1629,13 @@ class BaseOffsetStrategy(ABC):
                                             offset_vector=self._offset_vector,
                                             shrinking_closure=self.shrinking_closure)
 
-        new_edge = self.create_new_edge(new_from_pivot, new_to_pivot)
+        new_edges = self.create_new_edges(new_from_pivot, new_to_pivot)
 
         self.stretch._force_remove_edges([self._edge], delete_reverse=True)
         self.stretch.remove_dangling_edges()
         self.stretch.remove_dangling_pivots()
 
-        return new_edge
+        return new_edges
 
 
 class OffsetStrategy(BaseOffsetStrategy):
@@ -1635,18 +1643,33 @@ class OffsetStrategy(BaseOffsetStrategy):
     simple offset strategy that will choose attaching mode or perpendicular mode for calculating offset
     """
 
-    def create_new_edge(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> DirectEdge:
-        new_edges = [DirectEdge(from_pivot=new_from_pivot,
-                                to_pivot=new_to_pivot,
-                                stretch=self.stretch,
-                                cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo))]
-        if self._edge.reverse:
-            new_edges.append(DirectEdge(from_pivot=new_to_pivot,
-                                        to_pivot=new_from_pivot,
-                                        stretch=self.stretch,
-                                        cargo_dict=self._edge_cargo_inherit_strategy(self._edge.reverse.cargo)))
-        self.stretch.edges.extend(new_edges)
-        return new_edges[0]
+    def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
+        if self.shrinking_closure:
+            new_edges = (
+                LineString([new_from_pivot.shape, new_to_pivot.shape])
+                .intersection(self.shrinking_closure.shape)
+                .ext.decompose(LineString)
+                .flat_map(lambda seg: self.stretch._add_edge(
+                    line=seg,
+                    add_reverse=True,
+                    pivot_cargo_dict=dict(new_from_pivot.cargo),
+                    edge_cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo),
+                    dist_tol=self._attaching_dist_tol))
+                .to_list())
+
+        else:
+            new_edges = [DirectEdge(from_pivot=new_from_pivot,
+                                    to_pivot=new_to_pivot,
+                                    stretch=self.stretch,
+                                    cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo))]
+            if self._edge.reverse:
+                new_edges.append(DirectEdge(from_pivot=new_to_pivot,
+                                            to_pivot=new_from_pivot,
+                                            stretch=self.stretch,
+                                            cargo_dict=self._edge_cargo_inherit_strategy(self._edge.reverse.cargo)))
+
+            self.stretch.edges.extend(new_edges)
+        return new_edges
 
     @staticmethod
     def does_from_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
