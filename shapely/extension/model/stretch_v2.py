@@ -23,7 +23,7 @@ from weakref import ref, ReferenceType
 
 from toolz import concat
 
-from shapely.extension.constant import MATH_EPS
+from shapely.extension.constant import MATH_EPS, MATH_MIDDLE_EPS
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.cargo import Cargo, ConsensusCargo
@@ -914,14 +914,14 @@ class Stretch:
         deleting_edges = lfilter(lambda edge: edge not in valid_edges, self.edges)
         self._force_remove_edges(deleting_edges, delete_reverse=False)
 
-    def simplify_edges(self, angle_tol: float = 0.1,
+    def simplify_edges(self, dist_tol: float = MATH_MIDDLE_EPS,
                        cargo_union_strategy: EdgeCargoUnionStrategy = default_edge_cargo_union_strategy,
                        consider_cargo_equality: bool = True) -> None:
         """
         union collinear direct edges and reduce the number of pivots
         Parameters
         ----------
-        angle_tol: angle degree tolerance for checking collinear of 2 direct edges
+        dist_tol: distance tolerance for checking mergeable of 2 direct edges
         cargo_union_strategy: how to union the 2 simplify candidates' cargo into 1 and pass to the newly created edge
         consider_cargo_equality: bool, if True, edges that are adjacent, collinear and with same cargo can be simplified.
             otherwise, only consider adjacent, collinear edges
@@ -931,13 +931,18 @@ class Stretch:
         None
         """
 
-        def mergeable(edge0: DirectEdge, edge1: DirectEdge) -> bool:
-            collinear = edge0.shape.ext.angle().parallel_to(edge1.shape.ext.angle(), angle_tol=angle_tol)
-            if consider_cargo_equality:
-                cargo_data_equal = edge0.cargo.data_equals(edge1.cargo)
-                return collinear and cargo_data_equal
+        def mergeable(in_edge_: DirectEdge, out_edge_: DirectEdge) -> bool:
+            within_dist_tol = (
+                    LineString([in_edge_.shape.ext.start(), out_edge_.shape.ext.end()]).distance(
+                        in_edge_.shape.ext.end()) <= dist_tol
+                    or LineString([Vector.from_endpoints_of(in_edge_.shape).apply(in_edge_.shape.ext.end()),
+                                   out_edge_.shape.ext.end()]).distance(in_edge_.shape.ext.end()) <= dist_tol)
 
-            return collinear
+            if consider_cargo_equality:
+                cargo_data_equal = in_edge_.cargo.data_equals(out_edge_.cargo)
+                return within_dist_tol and cargo_data_equal
+
+            return within_dist_tol
 
         def removable_pivot(pivot: Pivot) -> bool:
             # pivot that satisfies conditions below should be considered a removable pivot
@@ -953,7 +958,8 @@ class Stretch:
             if len(set(concat([(edge.from_pivot, edge.to_pivot) for edge in pivot.in_edges + pivot.out_edges]))) != 3:
                 return False
 
-            return all(mergeable(edge0, edge1) for edge0, edge1 in product(pivot.in_edges, pivot.out_edges))
+            return all(
+                mergeable(in_edge_, out_edge_) for in_edge_, out_edge_ in product(pivot.in_edges, pivot.out_edges))
 
         for pivot in filter(removable_pivot, self.pivots):
             in_edge: DirectEdge = pivot.in_edges[0]
