@@ -273,8 +273,8 @@ class Angle:
         -------
         bool
         """
-        return (isclose(self.including_angle(angle).degree, 0, abs_tol=angle_tol)
-                or isclose(self.including_angle(angle).degree, 180, abs_tol=angle_tol))
+        including_angle = Angle(self.including_angle(angle).degree, range_=(0, 360)).degree
+        return isclose(including_angle, 0, abs_tol=angle_tol) or isclose(including_angle, 180, abs_tol=angle_tol)
 
     def perpendicular_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
         """
@@ -288,8 +288,8 @@ class Angle:
         -------
         bool
         """
-        return (isclose(self.including_angle(angle).degree, 90, abs_tol=angle_tol)
-                or isclose(self.including_angle(angle).degree, 270, abs_tol=angle_tol))
+        including_angle = Angle(self.including_angle(angle).degree, range_=(0, 360)).degree
+        return isclose(including_angle, 90, abs_tol=angle_tol) or isclose(including_angle, 270, abs_tol=angle_tol)
 
     def __float__(self):
         return float(self._angle_degree)

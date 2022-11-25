@@ -243,6 +243,11 @@ class AngleTest(TestCase):
         self.assertTrue(angle.parallel_to(Angle(361)))
         self.assertTrue(angle.parallel_to(Angle(361.5), angle_tol=2))
 
+    def test_parallel_when_2_angle_have_different_range(self):
+        angle0 = Angle(90, range_=(-360, 0))
+        angle1 = Angle(-90, range_=(0, 360))
+        self.assertTrue(angle0.parallel_to(angle1))
+
     def test_perpendicular_to(self):
         angle = Angle(181)
         self.assertTrue(angle.perpendicular_to(91))
@@ -251,6 +256,11 @@ class AngleTest(TestCase):
 
         self.assertTrue(Angle(0).perpendicular_to(Angle(270)))
         self.assertTrue(Angle(270).perpendicular_to(Angle(0)))
+
+    def test_perpendicular_when_2_angle_have_different_range(self):
+        angle0 = Angle(45, range_=(-90, 90))
+        angle1 = Angle(135, range_=(0, 360))
+        self.assertTrue(angle0.perpendicular_to(angle1))
 
     def test_angle_of_multiline(self):
         case = loads(
@@ -263,4 +273,3 @@ class AngleTest(TestCase):
         case = loads('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))')
         angle = case.ext.angle().degree
         self.assertTrue(angle == 0)
-
