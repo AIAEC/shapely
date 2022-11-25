@@ -717,6 +717,26 @@ class TestStretch:
         assert len(stretch.pivots) == 6
         assert len(stretch.edges) == 8
 
+    def test_simplify_edges_2(self):
+        eps = 0.001
+        stretch = Stretch([], [])
+        pivot_0_0 = Pivot(Point(0, 0), stretch)
+        pivot_100_0 = Pivot(Point(100, 0), stretch)
+        pivot_100_100 = Pivot(Point(100, 100), stretch)
+        pivot_50_100eps = Pivot(Point(50, 100 + eps), stretch)
+        pivot_0_100 = Pivot(Point(0, 100), stretch)
+        edges = [DirectEdge(pivot_0_0, pivot_100_0, stretch),
+                 DirectEdge(pivot_100_0, pivot_100_100, stretch),
+                 DirectEdge(pivot_100_100, pivot_50_100eps, stretch),
+                 DirectEdge(pivot_50_100eps, pivot_0_100, stretch),
+                 DirectEdge(pivot_0_100, pivot_0_0, stretch)]
+        stretch.pivots = [pivot_0_0, pivot_100_0, pivot_100_100, pivot_50_100eps, pivot_0_100]
+        stretch.edges = edges
+        stretch.simplify_edges(dist_tol=eps * 0.9)
+        assert len(stretch.edges) == 5
+        stretch.simplify_edges(dist_tol=eps * 1.1)
+        assert len(stretch.edges) == 4
+
 
 class TestStretchFactory:
     def test_create(self):
