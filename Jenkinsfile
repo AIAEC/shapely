@@ -18,11 +18,9 @@ pipeline {
   stages {
     stage('testing') {
       steps {
-        container('python') {
-          // copy shapely's geos library to shapely repository in order to use it during test
-          sh 'cp -r /usr/local/lib/python3.10/site-packages/Shapely.libs shapely/.libs'
-          sh 'pip install -r requirements-dev.txt'
-          sh 'pytest'
+        container('builder') {
+          sh '/opt/python/cp39-cp39/bin/python3 -m pip install -r requirements-test.txt'
+          sh '/opt/python/cp39-cp39/bin/python3 -m pytest'
         }
       }
     }
