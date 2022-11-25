@@ -914,7 +914,7 @@ class Stretch:
         deleting_edges = lfilter(lambda edge: edge not in valid_edges, self.edges)
         self._force_remove_edges(deleting_edges, delete_reverse=False)
 
-    def simplify_edges(self, angle_tol: float = 0.1,
+    def simplify_edges(self, angle_tol: float = 0.05,  # TODO 不应该使用角度融合?在足够长的边上会导致足够大的误差
                        cargo_union_strategy: EdgeCargoUnionStrategy = default_edge_cargo_union_strategy,
                        consider_cargo_equality: bool = True) -> None:
         """
