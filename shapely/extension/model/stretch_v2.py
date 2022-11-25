@@ -932,8 +932,12 @@ class Stretch:
         """
 
         def mergeable(in_edge_: DirectEdge, out_edge_: DirectEdge) -> bool:
-            within_dist_tol = LineString([in_edge_.shape.ext.start(), out_edge_.shape.ext.end()]).distance(
-                in_edge_.shape.ext.end()) <= dist_tol
+            within_dist_tol = (
+                    LineString([in_edge_.shape.ext.start(), out_edge_.shape.ext.end()]).distance(
+                        in_edge_.shape.ext.end()) <= dist_tol
+                    or LineString([Vector.from_endpoints_of(in_edge_.shape).apply(in_edge_.shape.ext.end()),
+                                   out_edge_.shape.ext.end()]).distance(in_edge_.shape.ext.end()) <= dist_tol)
+
             if consider_cargo_equality:
                 cargo_data_equal = in_edge_.cargo.data_equals(out_edge_.cargo)
                 return within_dist_tol and cargo_data_equal
