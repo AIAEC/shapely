@@ -1345,8 +1345,11 @@ class AttachingOffset:
             query_line = ray_vec.ray(pivot_position_after_offset_without_attaching, self._poly.length)
 
         offset_edge_inside = offset_edge.intersection(self._poly)
-        if not (offset_edge_inside and isinstance(offset_edge_inside, LineString)):
+        if not offset_edge_inside:
             return None
+
+        if isinstance(offset_edge_inside, Point):
+            return offset_edge_inside
 
         offset_edge_opposite_endpoint: Point = (offset_edge_inside.ext.end() if handle_from_pivot
                                                 else offset_edge_inside.ext.start())
