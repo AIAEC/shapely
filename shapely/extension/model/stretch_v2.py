@@ -16,7 +16,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, cached_property
 from itertools import combinations, product
-from operator import truth, attrgetter
+from operator import truth, attrgetter, itemgetter
 from typing import Union, List, Optional, Set, Sequence, Literal, Iterable, Dict, Tuple, Callable
 from uuid import uuid4
 from weakref import ref, ReferenceType
@@ -1649,12 +1649,13 @@ class OffsetStrategy(BaseOffsetStrategy):
                 LineString([new_from_pivot.shape, new_to_pivot.shape])
                 .intersection(self.shrinking_closure.shape)
                 .ext.decompose(LineString)
-                .flat_map(lambda seg: self.stretch._add_edge(
+                .map(lambda seg: self.stretch._add_edge(
                     line=seg,
                     add_reverse=True,
                     pivot_cargo_dict=dict(new_from_pivot.cargo),
                     edge_cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo),
                     dist_tol=self._attaching_dist_tol))
+                .map(itemgetter(0))
                 .to_list())
 
         else:
@@ -1662,13 +1663,15 @@ class OffsetStrategy(BaseOffsetStrategy):
                                     to_pivot=new_to_pivot,
                                     stretch=self.stretch,
                                     cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo))]
+            self.stretch.edges.append(new_edges[0])
             if self._edge.reverse:
-                new_edges.append(DirectEdge(from_pivot=new_to_pivot,
-                                            to_pivot=new_from_pivot,
-                                            stretch=self.stretch,
-                                            cargo_dict=self._edge_cargo_inherit_strategy(self._edge.reverse.cargo)))
+                # reverse new edge do not return, thus won't be added to new_edges
+                self.stretch.edges.append(
+                    DirectEdge(from_pivot=new_to_pivot,
+                               to_pivot=new_from_pivot,
+                               stretch=self.stretch,
+                               cargo_dict=self._edge_cargo_inherit_strategy(self._edge.reverse.cargo)))
 
-            self.stretch.edges.extend(new_edges)
         return new_edges
 
     @staticmethod

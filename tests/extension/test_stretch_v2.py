@@ -1054,7 +1054,7 @@ class TestOffsetStrategy:
         edge = stretch.edges[0]
         assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
         result = OffsetStrategy(edge, Vector(0, 6)).do()
-        assert len(result) == 4
+        assert len(result) == 2
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 3
         closures.sort(key=attrgetter('shape.centroid.x'))
@@ -1068,7 +1068,7 @@ class TestOffsetStrategy:
         edge = stretch.edges[0]
         assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
         result = OffsetStrategy(edge, Vector(0, 5)).do()
-        assert len(result) == 4
+        assert len(result) == 2
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 3
         closures.sort(key=attrgetter('shape.centroid.x'))
