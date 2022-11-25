@@ -1655,6 +1655,7 @@ class OffsetStrategy(BaseOffsetStrategy):
                     pivot_cargo_dict=dict(new_from_pivot.cargo),
                     edge_cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo),
                     dist_tol=self._attaching_dist_tol))
+                .filter(truth)
                 .map(itemgetter(0))
                 .to_list())
 
