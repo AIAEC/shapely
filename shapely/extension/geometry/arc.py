@@ -16,7 +16,7 @@ class Arc(LineString):
     child type of Linestring that represent one segment of circle exterior
     """
 
-    def __init__(self, center: Union[Point, CoordType],
+    def __init__(self, center: Union[Point, CoordType] = (0, 0),
                  radius: float = 1,
                  start_angle: float = 0,
                  rotate_angle: float = 90,

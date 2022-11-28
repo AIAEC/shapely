@@ -1,3 +1,4 @@
+from copy import deepcopy
 from math import pi
 from unittest import TestCase
 
@@ -17,6 +18,17 @@ class ArcTest(TestCase):
         self.assertFalse(arc.is_prior_arc)
         self.assertFalse(arc.is_half_circle)
         self.assertTrue(arc.interpolate(0).equals(Point(1, 0)))
+
+        copy_arc = deepcopy(arc)
+        self.assertAlmostEqual(pi / 2, copy_arc.length)
+        self.assertTrue(copy_arc.centroid.equals(Point(0, 0)))
+        self.assertTrue(copy_arc.is_ccw)
+        self.assertTrue(copy_arc.reverse.is_cw)
+        self.assertEqual(90, copy_arc.angle)
+        self.assertTrue(copy_arc.is_minor_arc)
+        self.assertFalse(copy_arc.is_prior_arc)
+        self.assertFalse(copy_arc.is_half_circle)
+        self.assertTrue(copy_arc.interpolate(0).equals(Point(1, 0)))
 
     def test_complementary_arc(self):
         arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=91, angle_step=3).complementary
