@@ -33,7 +33,7 @@ from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap, separate
 from shapely.extension.util.iter_util import win_slice, first
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import Point, Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
+from shapely.geometry import Point, Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, LinearRing
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -591,6 +591,17 @@ class ClosureView:
             return False
 
     @cached_property
+    def shape(self) -> Polygon:
+        ring = LinearRing([pivot.shape for pivot in self.pivots])
+        if ring.is_ccw:
+            return Polygon([pivot.shape for pivot in self.pivots])
+
+        if boundary := self.pivots[0].stretch.boundary:
+            return boundary.difference(Polygon(ring.coords))
+
+        return Polygon()
+
+    @cached_property
     def edges(self) -> List[DirectEdgeView]:
         return [DirectEdgeView(from_pivot, to_pivot, from_pivot.stretch)
                 for from_pivot, to_pivot in win_slice(self.pivots, win_size=2, tail_cycling=True)]
@@ -604,10 +615,6 @@ class ClosureView:
     @cached_property
     def pivot_cargo(self) -> ConsensusCargo:
         return ConsensusCargo(lmap(attrgetter('cargo'), self.pivots))
-
-    @cached_property
-    def shape(self) -> Polygon:
-        return Polygon([pivot.shape for pivot in self.pivots])
 
     def shared_edges(self, closure: 'ClosureView') -> List[DirectEdgeView]:
         """
@@ -718,9 +725,18 @@ class Stretch:
     The core model that hold every pivots and edges
     """
 
-    def __init__(self, pivots: List[Pivot], edges: List[DirectEdge]):
+    def __init__(self, pivots: List[Pivot], edges: List[DirectEdge], boundary: Optional[Polygon] = None):
+        """
+        Parameters
+        ----------
+        pivots: pivots of the stretch
+        edges: direct edges of the stretch
+        boundary: boundary of the stretch, useful when there are ring closures. default to None. if not given, ring
+            closures will not be recognize
+        """
         self.pivots: List[Pivot] = pivots
         self.edges: List[DirectEdge] = edges
+        self.boundary = boundary
         self.id = uuid4()
 
     def dump(self, fp, with_cargo: bool = True):

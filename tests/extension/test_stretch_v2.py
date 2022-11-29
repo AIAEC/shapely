@@ -361,6 +361,61 @@ def stretch_with_concave_ridge_roof() -> Stretch:
     return stretch
 
 
+@fixture
+def stretch_with_ring_closure() -> Stretch:
+    stretch = Stretch([], [], box(-1, -1, 2, 2))
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_1_1 = Pivot(Point(1, 1), stretch)
+    pivot_0_1 = Pivot(Point(0, 1), stretch)
+
+    edges = [
+        DirectEdge(pivot_0_0, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_1_1, stretch),
+        DirectEdge(pivot_1_1, pivot_0_1, stretch),
+        DirectEdge(pivot_0_1, pivot_0_0, stretch),
+        DirectEdge(pivot_0_0, pivot_0_1, stretch),
+        DirectEdge(pivot_0_1, pivot_1_1, stretch),
+        DirectEdge(pivot_1_1, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_0_0, stretch),
+    ]
+    pivots = [pivot_0_0, pivot_1_0, pivot_1_1, pivot_0_1]
+    stretch.pivots = pivots
+    stretch.edges = edges
+    return stretch
+
+
+@fixture
+def stretch_of_2box_with_ring() -> Stretch:
+    stretch = Stretch([], [], boundary=box(-1, -1, 4, 3))
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_2_0 = Pivot(Point(2, 0), stretch)
+    pivot_2_2 = Pivot(Point(2, 2), stretch)
+    pivot_0_2 = Pivot(Point(0, 2), stretch)
+    pivot_3_0 = Pivot(Point(3, 0), stretch)
+    pivot_3_1 = Pivot(Point(3, 1), stretch)
+    pivot_2_1 = Pivot(Point(2, 1), stretch)
+    edges = [DirectEdge(pivot_0_0, pivot_2_0, stretch),
+             DirectEdge(pivot_2_0, pivot_2_1, stretch),
+             DirectEdge(pivot_2_1, pivot_2_2, stretch),
+             DirectEdge(pivot_2_2, pivot_0_2, stretch),
+             DirectEdge(pivot_0_2, pivot_0_0, stretch),
+             DirectEdge(pivot_2_0, pivot_3_0, stretch),
+             DirectEdge(pivot_3_0, pivot_3_1, stretch),
+             DirectEdge(pivot_3_1, pivot_2_1, stretch),
+             DirectEdge(pivot_2_1, pivot_2_0, stretch),
+             DirectEdge(pivot_0_2, pivot_2_2, stretch),
+             DirectEdge(pivot_2_2, pivot_2_1, stretch),
+             DirectEdge(pivot_2_1, pivot_3_1, stretch),
+             DirectEdge(pivot_3_1, pivot_3_0, stretch),
+             DirectEdge(pivot_3_0, pivot_2_0, stretch),
+             DirectEdge(pivot_2_0, pivot_0_0, stretch),
+             DirectEdge(pivot_0_0, pivot_0_2, stretch)]
+    stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2, pivot_3_0, pivot_3_1, pivot_2_1]
+    stretch.edges = edges
+    return stretch
+
+
 class TestPivot:
     def test_equality(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -516,6 +571,13 @@ class TestDirectEdge:
         edge = stretch.edges[-3]
         assert edge.shape.equals(LineString([(1, 0), (2, 1)]))
         assert edge.previous.shape.equals(LineString([(1, 1), (1, 0)]))
+
+    def test_reverse(self, stretch_of_2box_with_ring):
+        stretch = stretch_of_2box_with_ring
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (2, 0)]))
+        assert edge.reverse
+        assert edge.closure.shape.length < edge.reverse.closure.shape.length
 
 
 class TestDirectEdgeView:
@@ -818,6 +880,23 @@ class TestStretchFactory:
         assert len(closures) == 15
 
 
+class TestClosure:
+    def test_shape_of_closure(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        closures = stretch.closure_snapshot().closures
+        closures.sort(key=lambda closure: closure.shape.centroid.x)
+        assert closures[0].shape.equals(box(0, 0, 2, 2))
+        assert closures[1].shape.equals(box(2, 0, 3, 1))
+
+    def test_shape_of_ring_closure(self, stretch_with_ring_closure):
+        stretch = stretch_with_ring_closure
+        edge = stretch.edges[-1]
+        assert edge.shape.equals(LineString([(1, 0), (0, 0)]))
+        shape = edge.closure.shape
+        assert shape.equals(Polygon([(-1, -1), (2, -1), (2, 2), (-1, 2)], [[(1, 0), (0, 0), (0, 1), (1, 1)]]))
+        assert shape.interiors
+
+
 class TestClosureSnapshot:
     def test_create_closure_snapshot_from_stretch(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -832,10 +911,48 @@ class TestClosureSnapshot:
         closure_snapshot = ClosureSnapshot.create_from(stretch)
         assert len(closure_snapshot.closures) == 0
 
-    def test_create_closure_with_duplicate_pivots(self, stretch_of_single_box_with_duplicate_points):
+    def test_create_closure_snapshot_with_duplicate_pivots(self, stretch_of_single_box_with_duplicate_points):
         stretch = stretch_of_single_box_with_duplicate_points
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 0  # should not support stretch with duplicate pivots
+
+    def test_create_closure_snapshot_for_stretch_with_ring_case0(self, stretch_with_ring_closure):
+        stretch = stretch_with_ring_closure
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2
+        closures.sort(key=lambda closure: closure.shape.length)
+        assert closures[0].shape.equals(box(0, 0, 1, 1))
+        assert closures[1].shape.equals(
+            Polygon([(-1, -1), (2, -1), (2, 2), (-1, 2)], [[(1, 0), (0, 0), (0, 1), (1, 1)]]))
+
+        # remove dangling will not remove ring
+        stretch.remove_dangling_edges()
+        stretch.remove_dangling_pivots()
+        assert len(stretch.closure_snapshot().closures) == 2
+
+        # remove boundary, then the ring closure will become empty polygon
+        stretch.boundary = None
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2
+        closures = sorted(closures, key=lambda closure: closure.shape.area)
+        assert closures[0].shape.is_empty
+        assert closures[1].shape.equals(box(0, 0, 1, 1))
+
+        origin_pivot_num = len(stretch.pivots)
+        origin_edge_num = len(stretch.edges)
+
+        stretch.remove_dangling_edges()
+        stretch.remove_dangling_pivots()
+        assert origin_pivot_num == len(stretch.pivots)
+        assert origin_edge_num == len(stretch.edges)
+
+    def test_creat_closure_snapshot_for_stretch_with_ring_case1(self, stretch_of_2box_with_ring):
+        stretch = stretch_of_2box_with_ring
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+        closures.sort(key=lambda closure: closure.shape.length)
+        assert closures[-1].shape.equals(
+            loads('POLYGON ((-1 -1, -1 3, 4 3, 4 -1, -1 -1), (2 0, 3 0, 3 1, 2 1, 2 2, 0 2, 0 0, 2 0))'))
 
 
 class TestOffsetStrategy:
@@ -1076,6 +1193,33 @@ class TestOffsetStrategy:
         assert closures[0].shape.equals(Polygon([(0, 5), (5, 5), (0, 10)]))
         assert closures[1].shape.equals(Polygon([(0, 10), (5, 5), (10, 10)]))
         assert closures[2].shape.equals(Polygon([(5, 5), (10, 10), (10, 5)]))
+
+    def test_offset_edge_not_on_ring(self, stretch_of_2box_with_ring):
+        stretch = stretch_of_2box_with_ring
+        edge = stretch.query_edges(Point(2, 0.5))[0]
+        OffsetStrategy(edge, Vector(-1, 0)).do()
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+        closures.sort(key=lambda closure: closure.shape.length)
+        print(closures[-1].shape)
+
+    def test_offset_edge_on_ring(self, stretch_of_2box_with_ring):
+        stretch = stretch_of_2box_with_ring
+        reverse_edge = stretch.edges[0].reverse
+        assert reverse_edge.shape.ext.start().equals(Point(2, 0))
+        assert reverse_edge.shape.ext.end().equals(Point(0, 0))
+
+        results = OffsetStrategy(reverse_edge, Vector(0, -0.5)).do()
+        assert results
+        result = results[0]
+        assert isinstance(result, DirectEdge)
+        assert result.shape.equals(LineString([(2, -0.5), (0, -0.5)]))
+
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+        closures.sort(key=lambda closure: closure.shape.length)
+        assert closures[-1].shape.equals(loads(
+            'POLYGON ((-1 -1, -1 3, 4 3, 4 -1, -1 -1), (2 0, 3 0, 3 1, 2 1, 2 2, 0 2, 0 0, 0 -0.5, 2 -0.5, 2 0))'))
 
 
 class TestCargo:
