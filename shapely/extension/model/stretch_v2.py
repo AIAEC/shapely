@@ -1123,6 +1123,40 @@ class Stretch:
 
         return new_pivot
 
+    def add_ring(self, polygon: Polygon,
+                 dist_tol: float = MATH_EPS,
+                 edge_cargo_dict: Optional[dict] = None,
+                 pivot_cargo_dict: Optional[dict] = None) -> List[List[DirectEdge]]:
+        """
+
+        Parameters
+        ----------
+        polygon
+        dist_tol
+        edge_cargo_dict
+        pivot_cargo_dict
+
+        Returns
+        -------
+
+        """
+        if not (isinstance(polygon, Polygon) and polygon.is_valid and not polygon.is_empty):
+            raise ValueError('expect a non-empty, valid polygon')
+        if not polygon.interiors:
+            raise ValueError('given polygon has no interior, cannot add ring, use add_closure instead')
+
+        new_edge_groups: List[List[DirectEdge]] = []
+        for interior in polygon.interiors:
+            inner_edge = interior.ext.ccw().ext.inverse()
+            new_edge_groups.append(self._add_edge(inner_edge,
+                                                  add_reverse=False,
+                                                  edge_cargo_dict=edge_cargo_dict or {},
+                                                  pivot_cargo_dict=pivot_cargo_dict or {},
+                                                  dist_tol=dist_tol))
+        self.boundary = Polygon(polygon.exterior)
+        self.remove_dangling_edges()
+        return new_edge_groups
+
     def add_closure(self, polygon: Polygon,
                     dist_tol: float = MATH_EPS,
                     edge_cargo_dict: Optional[dict] = None,
@@ -1358,7 +1392,7 @@ class AttachingOffset:
         pivot_position_after_offset_without_attaching = offset_from_point if handle_from_pivot else offset_to_point
 
         query_line = offset_edge
-        if pivot_position_after_offset_without_attaching.intersects(self._poly):
+        if pivot_position_after_offset_without_attaching.intersects(self._poly.buffer(self._dist_tol)):
             # as diagrams above show
             if self._offset_to_left(edge, offset_vector) ^ handle_from_pivot:
                 ray_vec = offset_vector.cw_perpendicular
@@ -1369,7 +1403,7 @@ class AttachingOffset:
         # when offset_edge cuts on poly, the result might be a point(barely touch the poly),
         # a linestring(cut inside poly) or none(go outside of poly)
         offset_edge_inside: Optional[Union[Point, LineString]] = min(
-            offset_edge.intersection(self._poly)
+            offset_edge.intersection(self._poly.buffer(self._dist_tol))
             .ext.flatten().to_list(),
             key=pivot_position_after_offset_without_attaching.distance,
             default=None)

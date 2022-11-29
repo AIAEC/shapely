@@ -1,4 +1,6 @@
+from decimal import Decimal
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
+from operator import attrgetter
 from typing import Union, Sequence, Tuple, Literal
 
 from shapely.extension.constant import MATH_EPS
@@ -85,19 +87,30 @@ class Angle:
         -------
         float
         """
+        degree_range = Decimal(self._range[1] - self._range[0])
+
         # denote angle_degree as angle, range as (lower, upper)
         # special case: for conveniency in angle or side predication case, sometimes we want to return upper directly.
-        # we return upper directly, iff angle != lower and angle mod range === upper.
-        if (self._angle_degree == self._range[1]) or (
-                self._angle_degree != self._range[0]
-                and ((self._angle_degree - self._range[1]) / (self._range[1] - self._range[0])).is_integer()):
+        # we return upper directly, if angle == upper or angle != lower and angle mod range === upper.
+        # here in order to handle the float precision limit(e.g. -1e-14 - 360 returns an integer), we use Decimal to
+        # expand the precision digits
+        if self._angle_degree == self._range[1]:
+            # angle == upper case
             return self._range[1]
+
+        if self._angle_degree != self._range[0]:
+            mod = (Decimal(self._angle_degree) - Decimal(self._range[1])) / degree_range
+
+            if float(mod).is_integer():
+                # angle != lower and angle mode range == upper
+                return self._range[1]
 
         # normal case: in most case, we calculate the value modulo
         # then modulo = (angle - lower) % (upper - lower) + lower, in which (upper - lower) is the mod range,
         # (angle - lower) move the origin angle to fit mod space (0, (upper - lower)), and + lower recover result
         # to [lower, upper].
-        return (self._angle_degree - self._range[0]) % (self._range[1] - self._range[0]) + self._range[0]
+        # no need to handle precision here. since above code has done that
+        return (self._angle_degree - self._range[0]) % float(degree_range) + self._range[0]
 
     @property
     def radian(self) -> float:
@@ -258,7 +271,7 @@ class Angle:
         """
         ccw_including = self.rotating_angle(angle)
         cw_including = self.rotating_angle(angle, direct='cw')
-        including = min(ccw_including, cw_including)
+        including = min(ccw_including, cw_including, key=attrgetter('degree'))
         return Angle(self._range[0], range_=self._range) if including == self._range[1] else including
 
     def parallel_to(self, angle: Union['Angle', float], angle_tol: float = MATH_EPS) -> bool:
@@ -380,7 +393,8 @@ class Angle:
         -------
         bool
         """
-        return abs(self.including_angle(Angle(other, self._range))) <= angle_tol
+        including_angle = self.including_angle(Angle(other, self._range))
+        return abs(including_angle.degree) <= angle_tol
 
     def __lt__(self, other: Union['Angle', float]) -> bool:
         other_angle = self._angle_degree_of_other(other)

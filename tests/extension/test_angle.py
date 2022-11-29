@@ -222,6 +222,10 @@ class AngleTest(TestCase):
         angle4 = Angle(180, range_=(0, 180))
         self.assertTrue(angle4.almost_equal(0, angle_tol=0.1))
 
+        angle5 = Angle(0)
+        angle6 = Angle(4e-14)
+        self.assertTrue(angle5.almost_equal(angle6, angle_tol=5))
+
     def test_bool(self):
         self.assertTrue(Angle(1))
         self.assertFalse(Angle(float('nan')))

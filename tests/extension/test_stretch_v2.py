@@ -710,6 +710,22 @@ class TestStretch:
         closures = stretch.closure_snapshot().closures
         assert len(closures) == 2
 
+    def test_add_ring(self, stretch_of_two_box):
+        stretch = stretch_of_two_box
+        with pytest.raises(ValueError):
+            stretch.add_ring(box(0, 0, 1, 1))
+
+        assert len(stretch.closure_snapshot().closures) == 2
+
+        ring = box(-1, -1, 4, 3).difference(Polygon([(0, 0), (3, 0), (3, 1), (2, 1), (2, 2), (0, 2)]))
+        result = stretch.add_ring(ring)
+        assert len(result) == 1
+        assert len(result[0]) > 0
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 3
+        closures.sort(key=lambda closure: closure.shape.length)
+        assert closures[-1].shape.equals(ring)
+
     def test_remove_closure(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         closures = sorted(stretch.closure_snapshot().closures,
