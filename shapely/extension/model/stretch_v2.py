@@ -1392,7 +1392,7 @@ class AttachingOffset:
         pivot_position_after_offset_without_attaching = offset_from_point if handle_from_pivot else offset_to_point
 
         query_line = offset_edge
-        if pivot_position_after_offset_without_attaching.intersects(self._poly.buffer(self._dist_tol)):
+        if pivot_position_after_offset_without_attaching.intersects(self._poly):
             # as diagrams above show
             if self._offset_to_left(edge, offset_vector) ^ handle_from_pivot:
                 ray_vec = offset_vector.cw_perpendicular
@@ -1403,7 +1403,7 @@ class AttachingOffset:
         # when offset_edge cuts on poly, the result might be a point(barely touch the poly),
         # a linestring(cut inside poly) or none(go outside of poly)
         offset_edge_inside: Optional[Union[Point, LineString]] = min(
-            offset_edge.intersection(self._poly.buffer(self._dist_tol))
+            offset_edge.intersection(self._poly)
             .ext.flatten().to_list(),
             key=pivot_position_after_offset_without_attaching.distance,
             default=None)
