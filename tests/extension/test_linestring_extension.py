@@ -141,9 +141,11 @@ class LineStringExtensionTest(TestCase):
         line0 = LineString([(0, 0), (1, 0)])
         line1 = LineString([(0, 1), (-1, 1.001)])
         line2 = LineString([(1, 0), (2, 0.001)])
+        line3 = LineString([(0, 0), (-1, 0)])
         self.assertFalse(line0.ext.is_collinear_to(line1))
         self.assertFalse(line0.ext.is_collinear_to(line2))
         self.assertTrue(line0.ext.is_collinear_to(line2, angle_tol=1))
+        self.assertTrue(line0.ext.is_collinear_to(line3))
 
     def test_is_collinear_for_overlapping_lines(self):
         line0 = LineString([(0, 0), (1, 0)])

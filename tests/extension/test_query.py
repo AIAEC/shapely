@@ -34,3 +34,94 @@ def test_query_covers():
 
     result = query.covers(box(-0.1, -0.1, 1.1, 1.1))
     assert len(result) == 0
+
+
+def test_query_add():
+    query = Query([box(0, 0, 1, 1), box(1, 1, 2, 2)])
+    query._db._deleted = [box(2, 2, 3, 3), box(3, 3, 4, 4)]
+    assert len(query._db._added) == 0
+    assert len(query._db._deleted) == 2
+
+    query.add(box(0, 0, 1, 1))
+    assert len(query._db._added) == 0
+    assert len(query._db._deleted) == 2
+    query.add(box(0, 0, 2, 2))
+    assert len(query._db._added) == 1
+    assert len(query._db._deleted) == 2
+
+    query.add(box(2, 2, 3, 3))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 1
+
+    query._db._deleted.append(box(0, 0, 1, 1))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 2
+
+    query.add(box(0, 0, 1, 1))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 1
+
+    query._db._deleted.append(box(2, 2, 3, 3))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 2
+
+    query.add(box(2, 2, 3, 3))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 1
+
+    query._db._deleted.extend([box(2, 2, 3, 3), box(2, 2, 3, 3), box(2, 2, 3, 3)])
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 4
+
+    query.add(box(2, 2, 3, 3))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 1
+
+
+def test_query_remove():
+    query = Query([box(0, 0, 1, 1), box(1, 1, 2, 2), box(2, 2, 3, 3), box(3, 3, 4, 4)])
+    query._db._added = [box(0, 0, 1, 1), box(1, 1, 2, 2)]
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 0
+
+    query.remove(box(3, 3, 4, 4))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 1
+
+    query.remove(box(4, 4, 5, 5))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 1
+
+    query._db._added.append(box(3, 3, 4, 4))
+    assert len(query._db._added) == 3
+    assert len(query._db._deleted) == 1
+
+    query.remove(box(3, 3, 4, 4))
+    assert len(query._db._added) == 2
+    assert len(query._db._deleted) == 1
+
+    query.remove(box(1, 1, 2, 2))
+    assert len(query._db._added) == 1
+    assert len(query._db._deleted) == 2
+
+    query._db._added.extend([box(3, 3, 4, 4), box(3, 3, 4, 4), box(3, 3, 4, 4)])
+    assert len(query._db._added) == 4
+    assert len(query._db._deleted) == 2
+
+    query.remove(box(3, 3, 4, 4))
+    assert len(query._db._added) == 1
+    assert len(query._db._deleted) == 2
+
+
+def test_query_query():
+    query = Query([box(0, 0, 1, 1), box(1, 1, 2, 2), box(2, 2, 3, 3), box(3, 3, 4, 4)])
+    result = query.intersects(box(0, 0, 0.9, 0.9))
+    assert len(result) == 1
+
+    query.remove(box(0, 0, 1, 1))
+    result = query.intersects(box(0, 0, 0.9, 0.9))
+    assert len(result) == 0
+
+    query.add(box(0, 0, 1, 1))
+    result = query.intersects(box(0, 0, 0.9, 0.9))
+    assert len(result) == 1

@@ -50,14 +50,17 @@ class RTreeQueryContainer(GeomQueryContainer):
         return lfilter(lambda candidate: candidate not in self._deleted, result)
 
     def add(self, geom: BaseGeometry):
-        existed = self.query(geom)
+        existed = self._db.query(geom)
+        if geom in self._deleted:
+            self._deleted = lfilter(lambda candidate: not geom.equals(candidate), self._deleted)
         if geom not in existed and geom not in self._added:
             self._added.append(geom)
-        if geom in self._deleted:
-            self._deleted.remove(geom)
 
     def remove(self, geom: BaseGeometry):
-        if geom not in self._deleted:
+        existed = self._db.query(geom)
+        if geom in self._added:
+            self._added = lfilter(lambda candidate: not geom.equals(candidate), self._added)
+        if geom in existed and geom not in self._deleted:
             self._deleted.append(geom)
 
 
