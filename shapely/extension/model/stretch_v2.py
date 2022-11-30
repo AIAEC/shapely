@@ -1403,8 +1403,7 @@ class AttachingOffset:
         # when offset_edge cuts on poly, the result might be a point(barely touch the poly),
         # a linestring(cut inside poly) or none(go outside of poly)
         offset_edge_inside: Optional[Union[Point, LineString]] = min(
-            offset_edge.intersection(self._poly)
-            .ext.flatten().to_list(),
+            offset_edge.intersection(self._poly).ext.flatten().to_list(),
             key=pivot_position_after_offset_without_attaching.distance,
             default=None)
 
@@ -1433,10 +1432,13 @@ class AttachingOffset:
 
         # pick the closest candidate points that have distance larger than half-length of offset edge inside(candidate
         # points on another_point side)
+        query_line = max(query_line.intersection(self._poly).ext.decompose(StraightSegment),
+                         key=attrgetter('length'), default=None) or query_line
         candidate_points: List[Point] = (
             candidate_projection
             .ext.decompose(Point)
             .filter(lambda pt: pt.distance(offset_edge_opposite_endpoint) > offset_edge_inside.length / 2)
+            .filter(lambda pt: pt.ext.almost_intersects(query_line, dist_tol=self._dist_tol))
             .to_list())
 
         return min(candidate_points, key=offset_edge_opposite_endpoint.distance)
