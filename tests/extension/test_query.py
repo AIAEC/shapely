@@ -125,3 +125,38 @@ def test_query_query():
     query.add(box(0, 0, 1, 1))
     result = query.intersects(box(0, 0, 0.9, 0.9))
     assert len(result) == 1
+
+
+def test_query_items():
+    query = Query([box(0, 0, 1, 1), box(1, 1, 2, 2), box(2, 2, 3, 3), box(3, 3, 4, 4)])
+    result = query.items()
+    assert len(result) == 4
+
+    query._db._deleted = [box(0, 0, 1, 1)]
+    result = query.items()
+    assert len(result) == 3
+
+    query._db._deleted.append(box(0, 0, 1, 1))
+    result = query.items()
+    assert len(result) == 3
+
+    query._db._added.append(box(0, 0, 1, 1))
+    result = query.items()
+    assert len(result) == 4
+
+    query._db._added.append(box(0, 0, 1, 1))
+    result = query.items()
+    assert len(result) == 4
+
+    query._db._deleted = []
+    result = query.items()
+    assert len(result) == 4
+
+    query._db._added = [box(4, 4, 5, 5)]
+    result = query.items()
+    assert len(result) == 5
+
+    query._db._added = [box(4, 4, 5, 5), box(5, 5, 6, 6)]
+    result = query.items()
+    assert len(result) == 6
+

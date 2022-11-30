@@ -20,6 +20,10 @@ class GeomQueryContainer(ABC):
     def remove(self, geom: BaseGeometry):
         raise NotImplementedError
 
+    @abstractmethod
+    def items(self):
+        raise NotImplementedError
+
 
 class SeqQueryContainer(GeomQueryContainer):
     def __init__(self, geoms: List[BaseGeometry]):
@@ -36,9 +40,13 @@ class SeqQueryContainer(GeomQueryContainer):
     def query(self, geom: BaseGeometry) -> List[BaseGeometry]:
         return lfilter(lambda candidate: candidate.intersects(geom), self._geoms)
 
+    def items(self):
+        return self._geoms
+
 
 class RTreeQueryContainer(GeomQueryContainer):
     def __init__(self, geoms: List[BaseGeometry]):
+        self._geoms = geoms
         self._db = STRtree(geoms)
         self._added: List[BaseGeometry] = []
         self._deleted: List[BaseGeometry] = []
@@ -63,6 +71,14 @@ class RTreeQueryContainer(GeomQueryContainer):
         if geom in existed and geom not in self._deleted:
             self._deleted.append(geom)
 
+    def items(self):
+        result = self._geoms
+        result = lfilter(lambda candidate: candidate not in self._deleted, result)
+        for add_candidate in self._added:
+            if add_candidate not in result:
+                result.append(add_candidate)
+        return result
+
 
 class Query:
     def __init__(self, geoms: Sequence[BaseGeometry], container_type: type = RTreeQueryContainer):
@@ -76,6 +92,9 @@ class Query:
 
     def remove(self, geom):
         self._db.remove(geom)
+
+    def items(self):
+        return self._db.items()
 
     @classmethod
     def from_flatten(cls, geoms: Sequence[BaseGeometry], container_type: type = STRtree) -> 'Query':
