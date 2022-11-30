@@ -96,7 +96,7 @@ class GeomOffsetTest(TestCase):
     # 1. coordinates
     def test_offset_0_dist(self):
         line = LineString([(0, 0), (1, 0)])
-        for side in product(('left', 'right')):
+        for side in ('left', 'right'):
             self.assertEqual(line, offset(line, dist=0, side=side, invert_coords=False))
             self.assertEqual(line.ext.inverse(), offset(line, dist=0, side=side, invert_coords=True))
 
@@ -105,6 +105,13 @@ class GeomOffsetTest(TestCase):
         for side, dist in product(('left', 'right'), (1e6, -1e6)):
             result = offset(line, side=side, dist=dist)
             self.assertTrue(isinstance(result, LineString))
+
+    def test_offset_with_super_tiny_dist(self):
+        line = loads('LINESTRING (-4.136927339512939 -21.152175300273925, -19.19339422150756 -19.366230835335905)')
+        for side in ('left', 'right'):
+            result = offset(line, side=side, dist=8.881784197001251e-16)
+            self.assertTrue(isinstance(result, LineString))
+            self.assertFalse(result.is_empty)
 
     def test_offset_empty_line(self):
         line = LineString()
@@ -120,7 +127,7 @@ class GeomOffsetTest(TestCase):
         for dist, side, reversed in product((-1, 1, 1e6), ('left', 'right'), (True, False)):
             result = offset(line, dist=dist, side=side, invert_coords=reversed)
             self.assertTrue(isinstance(result, LineString))
-            self.assertFalse(line.intersects(result))
+            self.assertFalse(line.intersects(result) and not line.equals(result))
 
     def test_offset_straight_line_without_redundant_point(self):
         line = LineString([(1.11, 1.11), (sqrt(2), sqrt(3))])

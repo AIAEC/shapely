@@ -9,7 +9,6 @@ from shapely.extension.typing import CoordType
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lmap
 from shapely.geometry import LineString, JOIN_STYLE, Point, LinearRing, Polygon, MultiLineString
-from shapely.geos import geos_version_string
 from shapely.ops import unary_union
 
 __all__ = ['offset']
@@ -112,8 +111,8 @@ def offset(line: LineString,
     # thus if the native parallel_offset gives a linestring, then that's the answer
     def parallel_offset_with_coord_order_kept(line, dist, side, join_style):
         offset_line = line.parallel_offset(distance=dist, side=side, join_style=join_style)
-        if not offset_line or not isinstance(offset_line, LineString):
-            return offset_line
+        if not offset_line or not isinstance(offset_line, LineString) or offset_line.is_empty:
+            return line
 
         # try to check the coordinates order
         # for GEOS <= 3.9 on Darwin(macos), the parallel_offset might reverse the order of coordinates of result line
