@@ -63,6 +63,8 @@ class ProjectionTest(TestCase):
         segments = result_1.segments
         positive_intervals = result_1.positive_intervals(normalized=True)
         negative_intervals = result_1.negative_intervals(normalized=True)
+        positive_length = result_1.positive_length(normalized=True)
+        negative_length = result_1.negative_length(normalized=True)
 
         self.assertEqual(1, len(segments))
         self.assertEqual(1, len(positive_intervals))
@@ -72,6 +74,8 @@ class ProjectionTest(TestCase):
         self.assertEqual(0.4, positive_intervals[0].right)
         self.assertEqual(0.4, negative_intervals[0].left)
         self.assertEqual(1, negative_intervals[0].right)
+        self.assertEqual(0.5, positive_length)
+        self.assertEqual(0.6, negative_length)
 
         projector_2 = LineString([(80, 10), (120, 10)])
         result_2 = Projection(projector_2).onto(target_line, is_out_of_target=True)

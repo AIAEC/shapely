@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
 from itertools import combinations
+from operator import attrgetter
 from typing import Union, List, Optional
 
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS, MATH_MIDDLE_EPS
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
-from shapely.extension.util.func_util import lfilter, min_max, lconcat
+from shapely.extension.util.func_util import lfilter, min_max, lconcat, lmap
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon, MultiLineString, GeometryCollection, LinearRing
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry, JOIN_STYLE, CAP_STYLE
 from shapely.ops import unary_union, substring
@@ -165,6 +166,16 @@ class ProjectionOnLine:
                                    for coord in projected_segment.coords]))
                 for projected_segment in self.segments] or [Interval.empty()]
 
+    def positive_length(self, normalized: bool = False) -> float:
+        """
+        目标线上被投影到的区间长度总和
+
+        :param normalized: 是否按目标线的长度归一化
+        :return:
+        """
+        positive_intervals = self.positive_intervals(normalized=normalized)
+        return sum(lmap(attrgetter('length'), positive_intervals))
+
     def negative_intervals(self, normalized=False, eps: float = MATH_EPS) -> List[Interval]:
         """
         目标线上未被投影到的区间
@@ -175,6 +186,16 @@ class ProjectionOnLine:
         overall_interval = Interval(0, 1 if normalized else self.target_line.length)
         return lfilter(lambda interval: interval.length >= eps,
                        overall_interval.minus(self.positive_intervals(normalized)))
+
+    def negative_length(self, normalized: bool = False) -> float:
+        """
+        目标线上未被投影到的区间长度总和
+
+        :param normalized: 是否按目标线的长度归一化
+        :return:
+        """
+        negative_intervals = self.negative_intervals(normalized=normalized)
+        return sum(lmap(attrgetter('length'), negative_intervals))
 
     def _location(self, point: Point, normalized: bool = False) -> float:
         """
