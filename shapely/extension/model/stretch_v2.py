@@ -1391,15 +1391,6 @@ class AttachingOffset:
 
         pivot_position_after_offset_without_attaching = offset_from_point if handle_from_pivot else offset_to_point
 
-        query_line = offset_edge
-        if pivot_position_after_offset_without_attaching.intersects(self._poly):
-            # as diagrams above show
-            if self._offset_to_left(edge, offset_vector) ^ handle_from_pivot:
-                ray_vec = offset_vector.cw_perpendicular
-            else:
-                ray_vec = offset_vector.ccw_perpendicular
-            query_line = ray_vec.ray(pivot_position_after_offset_without_attaching, self._poly.length)
-
         # when offset_edge cuts on poly, the result might be a point(barely touch the poly),
         # a linestring(cut inside poly) or none(go outside of poly)
         offset_edge_inside: Optional[Union[Point, LineString]] = min(
@@ -1417,6 +1408,17 @@ class AttachingOffset:
         offset_edge_opposite_endpoint: Point = (offset_edge_inside.ext.end() if handle_from_pivot
                                                 else offset_edge_inside.ext.start())
 
+        inside_line = offset_edge_inside
+        query_line = offset_edge
+        if pivot_position_after_offset_without_attaching.intersects(self._poly):
+            # as diagrams above show
+            if self._offset_to_left(edge, offset_vector) ^ handle_from_pivot:
+                ray_vec = offset_vector.cw_perpendicular
+            else:
+                ray_vec = offset_vector.ccw_perpendicular
+            query_line = ray_vec.ray(pivot_position_after_offset_without_attaching, self._poly.length)
+            inside_line = query_line
+
         # candidate_projection is for covering 2 cases below
         # 1. line projects onto poly.exterior as a single point and no other points should be considered candidates
         # 2. line projects onto poly.exterior as a linestring(consisted of many points) or there are some other points
@@ -1432,13 +1434,11 @@ class AttachingOffset:
 
         # pick the closest candidate points that have distance larger than half-length of offset edge inside(candidate
         # points on another_point side)
-        query_line = max(query_line.intersection(self._poly).ext.decompose(StraightSegment),
-                         key=attrgetter('length'), default=None) or query_line
         candidate_points: List[Point] = (
             candidate_projection
             .ext.decompose(Point)
             .filter(lambda pt: pt.distance(offset_edge_opposite_endpoint) > offset_edge_inside.length / 2)
-            .filter(lambda pt: pt.ext.almost_intersects(query_line, dist_tol=self._dist_tol))
+            .filter(lambda pt: pt.ext.almost_intersects(inside_line, dist_tol=self._dist_tol))
             .to_list())
 
         return min(candidate_points, key=offset_edge_opposite_endpoint.distance)
@@ -1606,15 +1606,17 @@ class BaseOffsetStrategy(ABC):
         attaching_offset = AttachingOffset(shrinking_closure.shape, dist_tol=self._attaching_dist_tol)
         if handling_from_pivot:
             target_point = attaching_offset.for_from_pivot(edge, offset_vector)
+            inherited_cargo = edge.from_pivot.cargo
         else:
             target_point = attaching_offset.for_to_pivot(edge, offset_vector)
+            inherited_cargo = edge.to_pivot.cargo
 
         if not target_point:
             raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
 
         return self.stretch.add_pivot(target_point,
                                       dist_tol=self._attaching_dist_tol,
-                                      cargo_dict=self._pivot_cargo_inherit_strategy(edge.from_pivot.cargo))
+                                      cargo_dict=self._pivot_cargo_inherit_strategy(inherited_cargo))
 
     def offset_from_pivot(self, edge: DirectEdge,
                           offset_vector: Vector,
