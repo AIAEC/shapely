@@ -4,6 +4,7 @@ from unittest import TestCase
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.alignment import AlignLineString
 from shapely.extension.model.angle import Angle
+from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.vector import Vector
 
 from shapely.geometry import Polygon, LineString, MultiLineString, box, Point
@@ -126,3 +127,10 @@ class BaseGeomExtensionTest(TestCase):
         # similar
         self.assertTrue(polygon.ext.similar(polygon.buffer(1e-13), area_diff_tol=1e-10))
         self.assertFalse(polygon.ext.similar(polygon.buffer(1e-10), area_diff_tol=1e-10))
+
+        # skeleton
+        skeleton = polygon.ext.skeleton()
+        self.assertTrue(isinstance(skeleton, Skeleton))
+        self.assertEqual(4, len(skeleton.full_segments()))
+        self.assertFalse(skeleton.trunk_segments())
+        self.assertFalse(skeleton.trunks())
