@@ -12,6 +12,7 @@ from shapely.extension.model.angle import Angle
 from shapely.extension.model.buffer import Buffer
 from shapely.extension.model.envelope import EnvelopeCreator
 from shapely.extension.model.projection import Projection, ProjectionTowards
+from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.alignment_predicator_creator import AlignmentPredicatorCreator
 from shapely.extension.predicator.angle_predicator_creator import AnglePredicatorCreator
@@ -465,3 +466,12 @@ class BaseGeomExtension:
         bool
         """
         return similar(self._geom, geom, area_diff_tol=area_diff_tol)
+
+    def skeleton(self) -> Skeleton:
+        """
+        generate the skeleton of given geometry
+        Returns
+        -------
+        skeleton object
+        """
+        return Skeleton(self._geom)

@@ -1,3 +1,4 @@
 toolz==0.12.*
 pyfunctional==1.4.*
+euclid3 == 0.1
 pytest==7.2.*

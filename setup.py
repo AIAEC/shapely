@@ -170,7 +170,7 @@ extra_reqs['all'] = list(it.chain.from_iterable(extra_reqs.values()))
 # Make a dict of setup arguments. Some items will be updated as
 # the script progresses.
 setup_args = dict(
-    install_requires    = ['pyfunctional==1.4.3', 'toolz==0.12.0'],
+    install_requires    = ['pyfunctional==1.4.3', 'toolz==0.12.0', 'euclid3 == 0.1'],
     name                = 'Shapely',
     version             = str(shapely_version),
     description         = 'Geometric objects, predicates, and operations',
