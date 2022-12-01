@@ -44,7 +44,7 @@ class ArcParser:
 
         if not center_candidates:
             # should never happen
-            raise ValueError('given linestring is probably empty')
+            raise ValueError('given linestring is probably empty, or straight, which cannot deduce to arc')
 
         x = sum([center.x for center in center_candidates]) / len(center_candidates)
         y = sum([center.y for center in center_candidates]) / len(center_candidates)
