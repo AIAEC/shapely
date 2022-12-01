@@ -39,7 +39,7 @@ class TestSkeleton:
         assert len(trunk_segments) == 2
         assert all(seg.within(poly) for seg in trunk_segments)
 
-    def tets_trunks_of_polygon(self):
+    def test_trunks_of_polygon(self):
         poly = loads('POLYGON ((100 300, 100 200, 200 200, 200 100, 300 100, 300 300, 100 300))')
         skeleton = Skeleton(poly)
         trunks = skeleton.trunks()
