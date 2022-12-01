@@ -1,4 +1,3 @@
-from math import ceil
 from typing import List, Optional
 
 from functional import seq
@@ -14,18 +13,17 @@ class ArcParser:
     recognize the inner arc from a given linestring
     """
 
-    def __init__(self, linestring: LineString, accurate_ratio: float = 0.5):
+    def __init__(self, linestring: LineString, num_repr_points: int = 3):
         if not linestring or not linestring.is_valid or linestring.is_empty:
             raise ValueError('expect valid, non-empty linestring')
 
         self._linestring = linestring
-        self._repr_points = self.repr_points(linestring, accurate_ratio)
+        self._repr_points = self.repr_points(linestring, num_repr_points)
         self._segments = [LineString([*points]) for points in win_slice(self._repr_points, win_size=2)]
 
     @staticmethod
-    def repr_points(line: LineString, accurate_ratio: float = 0.5) -> List[Point]:
+    def repr_points(line: LineString, num_repr_points: int) -> List[Point]:
         points = [Point(coord) for coord in line.coords]
-        num_repr_points: int = max(3, ceil(len(points) * accurate_ratio))
         sample_step: int = int(len(points) / (num_repr_points - 1))
         return points[::sample_step] + points[-1:]
 
@@ -115,12 +113,12 @@ class ArcParser:
 
     @classmethod
     def is_arc(cls, linestring: LineString,
-               accurate_ratio: float = 0.5,
+               num_repr_points: int = 3,
                length_overlapping_ratio: float = 0.9) -> bool:
         if len(linestring.coords) <= 2:
             return False
 
-        arc_parser = cls(linestring, accurate_ratio=accurate_ratio)
+        arc_parser = cls(linestring, num_repr_points=num_repr_points)
 
         try:
             fitting_arc = arc_parser.arc()
