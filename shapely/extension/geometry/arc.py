@@ -205,3 +205,23 @@ class Arc(LineString):
 
         return Point(self._center.x + self._radius * Angle(angle).cos(),
                      self._center.y + self._radius * Angle(angle).sin())
+
+    @property
+    def start_radius_line(self) -> LineString:
+        """
+        linestring from center to start point of the arc
+        Returns
+        -------
+        linestring
+        """
+        return LineString([self.centroid, self.ext.start()])
+
+    @property
+    def end_radius_line(self) -> LineString:
+        """
+        linestring from center to end point of the arc
+        Returns
+        -------
+        linestring
+        """
+        return LineString([self.centroid, self.ext.end()])

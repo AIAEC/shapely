@@ -78,3 +78,8 @@ class ArcTest(TestCase):
         self.assertFalse(arc.tangent_point(Polygon([(0, -1), (1, -1), (0, -2)])))
         self.assertFalse(arc.tangent_point(LineString([(-1, -1), (1, -1)])))
         self.assertFalse(arc.tangent_point(Point(0, -1)))
+
+    def test_radius_line(self):
+        arc = Arc((0, 0), radius=1, start_angle=0, rotate_angle=180)
+        self.assertTrue(arc.start_radius_line.almost_equals(LineString([(0, 0), (1, 0)])))
+        self.assertTrue(arc.end_radius_line.almost_equals(LineString([(0, 0), (-1, 0)])))
