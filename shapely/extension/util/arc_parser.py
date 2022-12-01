@@ -105,6 +105,9 @@ class ArcParser:
 
     @classmethod
     def is_arc(cls, linestring: LineString, length_overlapping_ratio: float = 0.9) -> bool:
+        if len(linestring.coords) <= 2:
+            return False
+
         arc_parser = cls(linestring)
         try:
             fitting_arc = arc_parser.arc()
