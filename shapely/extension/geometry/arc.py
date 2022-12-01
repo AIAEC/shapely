@@ -69,6 +69,27 @@ class Arc(LineString):
         from shapely.extension.util.arc_creator import ArcCreator
         return ArcCreator
 
+    @classmethod
+    def from_line(cls, linestring: LineString, fitting_angle_step: bool = False) -> 'Arc':
+        """
+        calculate the fitting arc from given linestring
+        Parameters
+        ----------
+        linestring: linestring
+        fitting_angle_step: whether fitting the angle_step of given linestring, if not use default angle_step of arc
+
+        Returns
+        -------
+        arc instance
+        """
+        from shapely.extension.util.arc_parser import ArcParser
+        parser = ArcParser(linestring)
+
+        if fitting_angle_step:
+            return parser.arc(parser.angle_step)
+
+        return parser.arc()
+
     @property
     def rotate_angle(self) -> float:
         return self._rotate_angle
@@ -131,7 +152,7 @@ class Arc(LineString):
     def reverse(self) -> "Arc":
         return Arc(center=self._center,
                    radius=self.radius,
-                   start_angle=self._start_angle + self._rotate_angle,
+                   start_angle=float(self._start_angle + self._rotate_angle),
                    rotate_angle=-float(self._rotate_angle),
                    angle_step=self._resolution)
 

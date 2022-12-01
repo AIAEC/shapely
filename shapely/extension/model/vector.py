@@ -406,7 +406,7 @@ class Vector:
                 and isinstance(seq[0], Num)
                 and isinstance(seq[1], Num))
 
-    def multiply(self, multiple: float):
+    def multiply(self, multiple: float) -> 'Vector':
         """
         multiple vector by scalar number
 
