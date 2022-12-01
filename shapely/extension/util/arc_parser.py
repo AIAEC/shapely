@@ -12,6 +12,7 @@ class ArcParser:
     """
     recognize the inner arc from a given linestring
     """
+
     def __init__(self, linestring: LineString):
         if not linestring or not linestring.is_valid or linestring.is_empty:
             raise ValueError('expect valid, non-empty linestring')
@@ -101,3 +102,14 @@ class ArcParser:
                    start_angle=start_angle.degree,
                    rotate_angle=rotate_angle.degree,
                    angle_step=angle_step or self.angle_step)
+
+    @classmethod
+    def is_arc(cls, linestring: LineString, length_overlapping_ratio: float = 0.9) -> bool:
+        arc_parser = cls(linestring)
+        try:
+            fitting_arc = arc_parser.arc()
+        except ValueError:
+            return False
+        buffer_dist = arc_parser.radius / 100
+        overlapping_arc = linestring.buffer(buffer_dist).intersection(fitting_arc)
+        return overlapping_arc.length / fitting_arc.length > length_overlapping_ratio
