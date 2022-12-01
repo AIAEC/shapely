@@ -1,3 +1,4 @@
+from math import ceil
 from typing import List, Optional
 
 from functional import seq
@@ -13,11 +14,20 @@ class ArcParser:
     recognize the inner arc from a given linestring
     """
 
-    def __init__(self, linestring: LineString):
+    def __init__(self, linestring: LineString, accurate_ratio: float = 0.5):
         if not linestring or not linestring.is_valid or linestring.is_empty:
             raise ValueError('expect valid, non-empty linestring')
 
         self._linestring = linestring
+        self._repr_points = self.repr_points(linestring, accurate_ratio)
+        self._segments = [LineString([*points]) for points in win_slice(self._repr_points, win_size=2)]
+
+    @staticmethod
+    def repr_points(line: LineString, accurate_ratio: float = 0.5) -> List[Point]:
+        points = [Point(coord) for coord in line.coords]
+        num_repr_points: int = max(3, ceil(len(points) * accurate_ratio))
+        sample_step: int = int(len(points) / (num_repr_points - 1))
+        return points[::sample_step] + points[-1:]
 
     @property
     def center(self) -> Point:
@@ -28,7 +38,7 @@ class ArcParser:
         point
         """
         center_candidates: List[Point] = []
-        for seg, next_seg in win_slice(self._linestring.ext.segments(), win_size=2):
+        for seg, next_seg in win_slice(self._segments, win_size=2):
             if seg.is_empty or next_seg.is_empty:
                 continue
 
@@ -61,7 +71,7 @@ class ArcParser:
         float
         """
         center = self.center
-        return self._linestring.ext.decompose(Point).map(center.distance).average()
+        return seq(self._repr_points).map(center.distance).average()
 
     @property
     def angle_step(self) -> float:
@@ -72,7 +82,7 @@ class ArcParser:
         float
         """
         angles = []
-        for seg, next_seg in win_slice(self._linestring.ext.segments(), win_size=2):
+        for seg, next_seg in win_slice(self._segments, win_size=2):
             if seg.is_empty or next_seg.is_empty:
                 continue
 
@@ -104,15 +114,19 @@ class ArcParser:
                    angle_step=angle_step or self.angle_step)
 
     @classmethod
-    def is_arc(cls, linestring: LineString, length_overlapping_ratio: float = 0.9) -> bool:
+    def is_arc(cls, linestring: LineString,
+               accurate_ratio: float = 0.5,
+               length_overlapping_ratio: float = 0.9) -> bool:
         if len(linestring.coords) <= 2:
             return False
 
-        arc_parser = cls(linestring)
+        arc_parser = cls(linestring, accurate_ratio=accurate_ratio)
+
         try:
             fitting_arc = arc_parser.arc()
         except ValueError:
             return False
+
         buffer_dist = arc_parser.radius / 100
         overlapping_arc = linestring.buffer(buffer_dist).intersection(fitting_arc)
         return overlapping_arc.length / fitting_arc.length > length_overlapping_ratio
