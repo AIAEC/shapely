@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Sequence, List
+from typing import Sequence, List, Any, Union, Callable
+
+from toolz import identity
 
 from shapely.extension.util.flatten import flatten
-from shapely.extension.util.func_util import lfilter
+from shapely.extension.util.func_util import lfilter, lmap
 from shapely.geometry.base import BaseGeometry
 from shapely.strtree import STRtree
 
@@ -81,10 +83,24 @@ class RTreeQueryContainer(GeomQueryContainer):
 
 
 class Query:
-    def __init__(self, geoms: Sequence[BaseGeometry], container_type: type = RTreeQueryContainer):
-        if any(not isinstance(geom, BaseGeometry) for geom in geoms):
-            raise TypeError('expect given geoms are all geometry objects')
-        self._geoms = list(geoms)
+    def __init__(self, geoms: Sequence[Union[BaseGeometry, Any]],
+                 container_type: type = RTreeQueryContainer,
+                 key: Callable[[Any], BaseGeometry] = identity):
+
+        self._key = key
+
+        inner_geoms = geoms
+
+        if self._key != identity:
+            inner_geoms = lmap(key, geoms)
+            for geom, inner_geom in zip(geoms, inner_geoms):
+                # TODO: possibly introduce cycling reference, check it later
+                inner_geom.ext.cargo['_inner'] = geom
+
+        if any(not isinstance(inner_geom, BaseGeometry) for inner_geom in inner_geoms):
+            raise TypeError('expect inner geoms are all geometry objects')
+
+        self._geoms = inner_geoms
         self._db = container_type(self._geoms)
 
     def add(self, geom):
@@ -96,36 +112,36 @@ class Query:
     def items(self):
         return self._db.items()
 
+    def unpack(self, geoms):
+        if self._key is identity:
+            return geoms
+
+        return lmap(lambda geom: geom.ext.cargo['_inner'], geoms)
+
     @classmethod
     def from_flatten(cls, geoms: Sequence[BaseGeometry], container_type: type = STRtree) -> 'Query':
         return cls(geoms=flatten(geoms).to_list(), container_type=container_type)
 
     def intersects(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.intersects(geom), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.intersects(geom), self._db.query(geom)))
 
     def contains(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.contains(geom), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.contains(geom), self._db.query(geom)))
 
     def covers(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.covers(geom), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.covers(geom), self._db.query(geom)))
 
     def covered_by(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.covered_by(geom), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.covered_by(geom), self._db.query(geom)))
 
     def crosses(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.crosses(geom), self._db.query(geom))
-
-    def disjoint(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.disjoint(geom), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.crosses(geom), self._db.query(geom)))
 
     def overlaps(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.overlaps(geom), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.overlaps(geom), self._db.query(geom)))
 
     def touches(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.touches(geom), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.touches(geom), self._db.query(geom)))
 
     def within(self, geom: BaseGeometry) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: candidate.within(geom), self._db.query(geom))
-
-    def relate_pattern(self, geom: BaseGeometry, pattern: str) -> List[BaseGeometry]:
-        return lfilter(lambda candidate: geom.relate_pattern(candidate, pattern), self._db.query(geom))
+        return self.unpack(lfilter(lambda candidate: candidate.within(geom), self._db.query(geom)))

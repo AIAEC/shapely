@@ -1,5 +1,10 @@
+from dataclasses import dataclass
+
+import pytest
+
 from shapely.extension.model.query import Query, SeqQueryContainer
-from shapely.geometry import Point, box
+from shapely.extension.util.func_util import lmap
+from shapely.geometry import Point, box, Polygon
 from shapely.strtree import STRtree
 
 
@@ -160,3 +165,19 @@ def test_query_items():
     result = query.items()
     assert len(result) == 6
 
+
+def test_query_from_obj():
+    @dataclass
+    class Test:
+        a: Polygon
+
+    tests = lmap(Test, [box(0, 0, 1, 1), box(2, 0, 3, 1)])
+
+    with pytest.raises(TypeError):
+        Query(tests)
+
+    query = Query(tests, key=lambda t: t.a)
+    result = query.intersects(Point(0, 0))
+    assert len(result) == 1
+    assert isinstance(result[0], Test)
+    assert box(0, 0, 1, 1).equals(result[0].a)
