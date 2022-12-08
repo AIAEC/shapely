@@ -416,6 +416,56 @@ def stretch_of_2box_with_ring() -> Stretch:
     return stretch
 
 
+@fixture
+def stretch_of_3_region_with_one_wrapped_by_the_other_2() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_1_0 = Pivot(Point(1, 0), stretch)
+    pivot_n1_0 = Pivot(Point(-1, 0), stretch)
+    pivot_1_5 = Pivot(Point(1, 5), stretch)
+    pivot_n1_5 = Pivot(Point(-1, 5), stretch)
+    pivot_1_n5 = Pivot(Point(1, -5), stretch)
+    pivot_n1_n5 = Pivot(Point(-1, -5), stretch)
+    pivot_10_0 = Pivot(Point(10, 0), stretch)
+    pivot_n10_0 = Pivot(Point(-10, 0), stretch)
+    pivot_10_10 = Pivot(Point(10, 10), stretch)
+    pivot_n10_10 = Pivot(Point(-10, 10), stretch)
+    pivot_10_n10 = Pivot(Point(10, -10), stretch)
+    pivot_n10_n10 = Pivot(Point(-10, -10), stretch)
+
+    edges = [
+        DirectEdge(pivot_1_n5, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_1_5, stretch),
+        DirectEdge(pivot_1_5, pivot_n1_5, stretch),
+        DirectEdge(pivot_n1_5, pivot_n1_0, stretch),
+        DirectEdge(pivot_n1_0, pivot_n1_n5, stretch),
+        DirectEdge(pivot_n1_n5, pivot_1_n5, stretch),
+
+        DirectEdge(pivot_1_0, pivot_10_0, stretch),
+        DirectEdge(pivot_10_0, pivot_10_10, stretch),
+        DirectEdge(pivot_10_10, pivot_n10_10, stretch),
+        DirectEdge(pivot_n10_10, pivot_n10_0, stretch),
+        DirectEdge(pivot_n10_0, pivot_n1_0, stretch),
+        DirectEdge(pivot_n1_0, pivot_n1_5, stretch),
+        DirectEdge(pivot_n1_5, pivot_1_5, stretch),
+        DirectEdge(pivot_1_5, pivot_1_0, stretch),
+
+        DirectEdge(pivot_n10_0, pivot_n10_n10, stretch),
+        DirectEdge(pivot_n10_n10, pivot_10_n10, stretch),
+        DirectEdge(pivot_10_n10, pivot_10_0, stretch),
+        DirectEdge(pivot_10_0, pivot_1_0, stretch),
+        DirectEdge(pivot_1_0, pivot_1_n5, stretch),
+        DirectEdge(pivot_1_n5, pivot_n1_n5, stretch),
+        DirectEdge(pivot_n1_n5, pivot_n1_0, stretch),
+        DirectEdge(pivot_n1_0, pivot_n10_0, stretch)
+    ]
+
+    stretch.pivots = [pivot_1_0, pivot_n1_0, pivot_1_5, pivot_n1_5, pivot_1_n5, pivot_n1_n5, pivot_10_0, pivot_n10_0,
+                      pivot_10_10, pivot_n10_10, pivot_10_n10, pivot_n10_n10]
+
+    stretch.edges = edges
+    return stretch
+
+
 class TestPivot:
     def test_equality(self, stretch_of_two_box):
         stretch = stretch_of_two_box
@@ -750,6 +800,20 @@ class TestStretch:
         assert origin_num_pivots == len(stretch.pivots)
         closures = stretch.closure_snapshot().closures
         assert 1 == len(closures)
+
+    def test_union_2_closures_which_left_a_hole_like_region(self, stretch_of_3_region_with_one_wrapped_by_the_other_2):
+        stretch = stretch_of_3_region_with_one_wrapped_by_the_other_2
+        closures = sorted(stretch.closure_snapshot().closures, key=lambda closure: closure.shape.area, reverse=True)
+
+        stretch.union_closures(closures[:2])
+        new_closures = sorted(stretch.closure_snapshot().closures, key=lambda closure: closure.shape.area)
+        assert len(new_closures) == 3
+        assert new_closures[0].shape.is_empty
+        assert new_closures[0].complementary_shape.equals(box(-1, -5, 1, 5))
+        assert new_closures[1].shape.equals(box(-1, -5, 1, 5))
+        assert new_closures[1].complementary_shape.is_empty
+        assert new_closures[2].shape.equals(box(-10, -10, 10, 10))
+        assert new_closures[2].complementary_shape.is_empty
 
     def test_split_by_failing_splitter(self, stretch_of_two_box):
         stretch = stretch_of_two_box

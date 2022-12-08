@@ -592,13 +592,45 @@ class ClosureView:
 
     @cached_property
     def shape(self) -> Polygon:
+        """
+        the polygon that closure covers
+        Returns
+        -------
+        an non-empty polygon if pivots are in ccw order;
+        a polygon with one hole if pivots are in cw order and boundary are given
+        an empty polygon if pivots are in cw order and boundary not given
+        """
         ring = LinearRing([pivot.shape for pivot in self.pivots])
         if ring.is_ccw:
-            return Polygon([pivot.shape for pivot in self.pivots])
+            return Polygon(ring.coords)
 
+        # ring is in cw order, meaning the closure is the outer area of the closure
+        # thus the shape should be boundary.difference(closure-poly), if given boundary, otherwise return empty polygon
         if boundary := self.pivots[0].stretch.boundary:
             return boundary.difference(Polygon(ring.coords))
 
+        # boundary not given and ring in cw order
+        return Polygon()
+
+    @cached_property
+    def complementary_shape(self) -> Polygon:
+        """
+        the complementary polygon that representing the outer space of current closure
+        Returns
+        -------
+        an non-empty polygon if pivots are in cw order;
+        a polygon with one hole if pivots are in ccw order and boundary are given
+        an empty polygon if pivots are in ccw order and boundary not given
+        """
+        ring = LinearRing([pivot.shape for pivot in self.pivots])
+        if not ring.is_ccw:
+            return Polygon(ring.coords)
+
+        # ring is in ccw order, the complementary should be polygon with one hole if boundary given
+        if boundary := self.pivots[0].stretch.boundary:
+            return boundary.difference(Polygon(ring.coords))
+
+        # the boundary not given and ring in ccw order
         return Polygon()
 
     @cached_property
