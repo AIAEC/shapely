@@ -6,9 +6,11 @@ import pytest
 from pytest import fixture
 
 from shapely.extension.constant import MATH_EPS
+from shapely.extension.model.cargo import Cargo
 from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
     OffsetStrategy, ClosureView, StretchFactory
 from shapely.extension.model.vector import Vector
+from shapely.extension.util.iter_util import first
 from shapely.geometry import Point, box, LineString, CAP_STYLE, JOIN_STYLE, Polygon, MultiLineString
 from shapely.wkt import loads
 
@@ -1461,3 +1463,74 @@ class TestCargo:
 
         for other_edge in stretch.query_edges(Point(1.7, 0)):
             assert other_edge.cargo.get('test') == 0
+
+    def test_deepcopy_stretch_edge_cargo(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        stretch_edge = stretch.edges[0]
+        assert stretch_edge.cargo.data_equals({})
+        assert stretch_edge.next.previous.cargo.data_equals({})
+        assert id(stretch_edge.next.previous.cargo) == id(stretch_edge.cargo)
+
+        stretch_copy = deepcopy(stretch)
+        assert id(stretch) != id(stretch_copy)
+
+        stretch_copy_edge = first(stretch_edge.almost_equal_with, stretch_copy.edges)
+        stretch_copy_edge.cargo.update({'width': 1234})
+        assert stretch_edge.cargo.data_equals({})
+        assert stretch_edge.next.previous.cargo.data_equals({})
+        assert stretch_copy_edge.cargo.data_equals({'width': 1234})
+        assert stretch_copy_edge.next.previous.cargo.data_equals({'width': 1234})
+        assert id(stretch_edge) != id(stretch_copy_edge)
+        assert id(stretch_edge.cargo) != id(stretch_copy_edge.cargo)
+        assert id(stretch_copy_edge.next.previous.cargo) == id(stretch_copy_edge.cargo)
+
+        stretch_copy_copy = deepcopy(stretch_copy)
+        assert id(stretch_copy_copy) != id(stretch)
+        assert id(stretch_copy_copy) != id(stretch_copy)
+
+        stretch_copy_copy_edge = first(stretch_edge.almost_equal_with, stretch_copy_copy.edges)
+        assert stretch_copy_copy_edge.cargo.data_equals({'width': 1234})
+        assert stretch_copy_copy_edge.next.previous.cargo.data_equals({'width': 1234})
+
+        stretch_copy_copy_edge.cargo.update({'width': 4321})
+        assert stretch_edge.cargo.data_equals({})
+        assert stretch_edge.next.previous.cargo.data_equals({})
+        assert stretch_copy_edge.cargo.data_equals({'width': 1234})
+        assert stretch_copy_edge.next.previous.cargo.data_equals({'width': 1234})
+        assert stretch_copy_copy_edge.cargo.data_equals({'width': 4321})
+        assert stretch_copy_copy_edge.next.previous.cargo.data_equals({'width': 4321})
+        assert id(stretch_copy_copy_edge) != id(stretch_copy_edge)
+        assert id(stretch_copy_copy_edge) != id(stretch_edge)
+        assert id(stretch_copy_copy_edge.cargo) != id(stretch_edge.cargo)
+        assert id(stretch_copy_copy_edge.cargo) != id(stretch_copy_edge.cargo)
+        assert id(stretch_copy_copy_edge.cargo) == id(stretch_copy_copy_edge.next.previous.cargo)
+
+    def test_deepcopy_stretch_pivot_cargo(self, stretch_of_single_box):
+        stretch = stretch_of_single_box
+        stretch_pivot = stretch.pivots[0]
+        assert stretch_pivot.cargo.data_equals({})
+
+        stretch_copy = deepcopy(stretch)
+        assert id(stretch) != id(stretch_copy)
+
+        stretch_copy_pivot = first(stretch_pivot.almost_equal_with, stretch_copy.pivots)
+        stretch_copy_pivot.cargo.update({'position': 'center'})
+        assert stretch_pivot.cargo.data_equals({})
+        assert stretch_copy_pivot.cargo.data_equals({'position': 'center'})
+        assert id(stretch_copy_pivot) != id(stretch_pivot)
+        assert id(stretch_copy_pivot.cargo) != id(stretch_pivot.cargo)
+
+        stretch_copy_copy = deepcopy(stretch_copy)
+        assert id(stretch_copy_copy) != id(stretch)
+        assert id(stretch_copy_copy) != id(stretch_copy)
+
+        stretch_copy_copy_pivot = first(stretch_pivot.almost_equal_with, stretch_copy_copy.pivots)
+        assert stretch_copy_pivot.cargo.data_equals({'position': 'center'})
+
+        stretch_copy_copy_pivot.cargo.update({'position': 'left'})
+        assert stretch_pivot.cargo.data_equals({})
+        assert stretch_copy_pivot.cargo.data_equals({'position': 'center'})
+        assert stretch_copy_copy_pivot.cargo.data_equals({'position': 'left'})
+        assert id(stretch_copy_copy_pivot.cargo) != id(stretch_pivot.cargo)
+        assert id(stretch_copy_copy_pivot.cargo) != id(stretch_copy_pivot.cargo)
+

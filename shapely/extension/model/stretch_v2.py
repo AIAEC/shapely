@@ -119,6 +119,12 @@ class Pivot:
         """
         return len(self.in_edges) + len(self.out_edges) < 2
 
+    def almost_equal_with(self, other: 'Pivot', tol: float = MATH_EPS) -> bool:
+        """"
+        if the distance between the pivot and other pivot is less than the tol, return true
+        """
+        return self.shape.distance(other.shape) < tol
+
     def distance(self, point: Union[Point, 'Pivot']) -> float:
         """
         distance to given point or pivot
@@ -555,6 +561,13 @@ class DirectEdge:
         return first(lambda edge: edge.from_pivot == new_pivots[0] and edge.to_pivot == new_pivots[1],
                      self.stretch.edges)
 
+    def almost_equal_with(self, other: 'DirectEdge', tol: float = MATH_EPS) -> bool:
+        """
+        if from pivot and to pivot of the direct edge are almost equal other direct edge, return true
+        """
+        return (self.from_pivot.almost_equal_with(other.from_pivot, tol) and
+                self.to_pivot.almost_equal_with(other.to_pivot, tol))
+
 
 class DirectEdgeView(DirectEdge):
     """
@@ -770,6 +783,23 @@ class Stretch:
         self.edges: List[DirectEdge] = edges
         self.boundary = boundary
         self.id = uuid4()
+
+    def __deepcopy__(self, memodict={}):
+        new_stretch = Stretch([], [])
+        closures = self.closure_snapshot().closures
+        for closure in closures:
+            new_stretch.add_closure(closure.shape)
+        for pivot in self.pivots:
+            new_pivot: Pivot = min(new_stretch.query_pivots(pivot.shape, MATH_EPS),
+                                   key=lambda new_stretch_pivot: new_stretch_pivot.shape.distance(pivot.shape))
+            new_pivot.cargo.clear()
+            new_pivot.cargo.update(pivot.cargo.items())
+
+        for edge in self.edges:
+            new_edge = first(edge.almost_equal_with, new_stretch.query_edges(edge.shape, MATH_EPS))
+            new_edge.cargo.clear()
+            new_edge.cargo.update(edge.cargo.items())
+        return new_stretch
 
     def dump(self, fp, with_cargo: bool = True):
         """
