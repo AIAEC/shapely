@@ -1,10 +1,11 @@
+import math
 from collections.abc import Iterable
 from typing import Union, List
 
 from shapely.extension.geometry.arc import Arc
 from shapely.extension.typing import CoordType
 from shapely.extension.util.iter_util import win_slice
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point, LineString, Polygon
 
 
 class Circle(Arc):
@@ -45,3 +46,14 @@ class Circle(Arc):
                             angle_step=self._resolution))
 
         return arcs
+
+    @property
+    def polygon(self) -> Polygon:
+        return Point(self._center).buffer(self._radius)
+
+    @property
+    def area(self) -> float:
+        """
+        :return: 面积
+        """
+        return math.pi * self._radius * self._radius
