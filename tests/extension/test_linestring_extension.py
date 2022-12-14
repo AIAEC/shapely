@@ -55,6 +55,32 @@ class LineStringExtensionTest(TestCase):
         result = line.ext.projected_point(point, on_extension=True)
         self.assertTrue(result.almost_equals(Point(-29.57617211884179, 5.776949283250175)))
 
+    def test_projected_point_by_straight_segment(self):
+        straight_segment = StraightSegment([(0, 0), (1, 0)])
+        result = straight_segment.ext.projected_point(Point(0, 0))
+        self.assertTrue(result.equals(Point(0, 0)))
+
+        result = straight_segment.ext.projected_point(Point(1, 0))
+        self.assertTrue(result.equals(Point(1, 0)))
+
+        result = straight_segment.ext.projected_point(Point(100, 1))
+        self.assertTrue(result.equals(Point(100, 0)))
+
+        # projected point not on extension
+        result = straight_segment.ext.projected_point(Point(100, 1), on_extension=False)
+        self.assertTrue(result.equals(Point(1, 0)))
+
+        result = straight_segment.ext.projected_point(Point(0.6, 2), on_extension=False)
+        self.assertTrue(result.equals(Point(0.6, 0)))
+
+        straight_segment = StraightSegment([(-29.57617211884179, 5.776949283250175), (-35.18104156096024, -13.72944278524371)])
+        point = Point(-29.57617211884179, 5.776949283250175)
+        result = straight_segment.ext.projected_point(point, on_extension=False)
+        self.assertTrue(result.almost_equals(point))
+
+        result = straight_segment.ext.projected_point(point, on_extension=True)
+        self.assertTrue(result.almost_equals(Point(-29.57617211884179, 5.776949283250175)))
+
     def test_getitem(self):
         line = LineString([(i, 0) for i in range(0, 100)])
         self.assertEqual(line.ext[0], Point(0, 0))

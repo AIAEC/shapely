@@ -271,6 +271,8 @@ class LineStringExtension(BaseGeomExtension):
         """
 
         def project_on_straight_line(line, point: Union[Point, CoordType]) -> Point:
+            if point.equals(self.start()) or point.equals(self.end()):
+                return point
             vec_start_to_pt = Vector.from_origin_to_target(self.start(), point)
             vec_line = Vector.from_endpoints_of(line)
             including_angle_cos = vec_start_to_pt.angle.including_angle(vec_line.angle).cos()
@@ -282,7 +284,7 @@ class LineStringExtension(BaseGeomExtension):
         if not on_extension:
             return native_project(self._geom, point_or_coord)
 
-        if isinstance(self._geom, StraightSegment):
+        if isinstance(self._geom, StraightSegment):  # speed up
             return project_on_straight_line(self._geom, point_or_coord)
 
         native_projected_pt = native_project(self._geom, point_or_coord)
