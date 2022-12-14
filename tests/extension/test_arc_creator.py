@@ -31,4 +31,12 @@ class FixedRadiusArcCreatorTest(TestCase):
         self.assertTrue(Point(6, 6).almost_equals(result[1]._center))
         self.assertTrue(Point(6, 6).almost_equals(result[2]._center))
 
+    def test_arcs_returned_given_2_perpendicular_lines(self):
+        line0 = LineString([(0, 0), (10, 0)])
+        line1 = LineString([(0, 0), (0, 10)])
+
+        creator = FixedRadiusArcCreator(2.5)
+        creator = creator.intersects_with(line1, dist_tol=1e-2).intersects_with(line0, dist_tol=1e-2)
+        arcs = creator.create_arcs()
+        self.assertEqual(4, len(arcs))
 

@@ -270,7 +270,6 @@ class _SLAV:
         event.vertex.next.prev = v2
         y.next = v2
 
-        new_lavs = None
         self._lavs.remove(lav)
         if lav != x.lav:
             # the split event actually merges two lavs
@@ -367,19 +366,13 @@ class _LAV:
 
     def __iter__(self):
         cur = self.head
-        while True:
+        seen = set()  # add guard to prevent infinite loop
+        while cur not in seen:
+            seen.add(cur)
             yield cur
             cur = cur.next
             if cur == self.head:
                 return
-
-    def _show(self):
-        cur = self.head
-        while True:
-            print(cur.__repr__())
-            cur = cur.next
-            if cur == self.head:
-                break
 
 
 class _EventQueue:
@@ -480,6 +473,8 @@ def skeletonize(polygon: Polygon) -> List[LineString]:
     polygon = polygon.ext.ccw()
     assert isinstance(polygon, Polygon)
 
+    # though description in origin repo says exterior should be in ccw order and interiors should be in cw order,
+    # the _skeletonize is actually working in the reverse manner.
     exterior = list(polygon.exterior.coords)[:-1][::-1]
     interiors = [list(interior.coords)[:-1][::-1] for interior in polygon.interiors]
 
