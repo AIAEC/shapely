@@ -95,9 +95,14 @@ class FixedRadiusArcCreator:
 
         return self
 
-    def create_circles(self) -> List[Circle]:
+    def create_circles(self, touched_every_geoms: bool = False, dist_tol: float = MATH_EPS) -> List[Circle]:
         """
         create circles according to given constraints
+        Parameters
+        ----------
+        touched_every_geoms: whether return circles that touched every given geometries, default to False
+        dist_tol: distance tolerance for touching predicator.
+
         Returns
         -------
         list of circles
@@ -111,11 +116,22 @@ class FixedRadiusArcCreator:
                                'meaning not enough constrains set')
 
         centers: List[Point] = decompose(self.constraint, Point)
-        return lmap(lambda pt: Circle(center=pt, radius=self._radius), centers)
+        circles = lmap(lambda pt: Circle(center=pt, radius=self._radius), centers)
 
-    def create_arcs(self) -> List[Arc]:
+        if touched_every_geoms:
+            return lfilter(lambda circle: all(circle.distance(geom) <= dist_tol for geom in self._geoms), circles)
+
+        return circles
+
+    def create_arcs(self, touched_every_geoms: bool = False, dist_tol: float = MATH_EPS) -> List[Arc]:
         """
         create arcs according to given constraints, arcs come from circles, cut by intersection points
+
+        Parameters
+        ----------
+        touched_every_geoms: whether return arcs that touched every given geometries, default to False
+        dist_tol: distance tolerance for touching predicator.
+
         Returns
         -------
         list of arcs
@@ -126,6 +142,9 @@ class FixedRadiusArcCreator:
             # magic number 1e-4 here, it's related to the resolution of arc and circle, and relatively stable
             tangent_pts = lfilter(truth, [circle.tangent_point(geom, 1e-4) for geom in self._geoms])
             arcs.extend(circle.arc(tangent_pts))
+
+        if touched_every_geoms:
+            return lfilter(lambda arc: all(arc.distance(geom) <= dist_tol for geom in self._geoms), arcs)
 
         return arcs
 
@@ -207,9 +226,15 @@ class FixedCenterArcCreator:
 
         return self
 
-    def create_circles(self) -> List[Circle]:
+    def create_circles(self, touched_every_geoms: bool = False, dist_tol: float = MATH_EPS) -> List[Circle]:
         """
         create circles according to given constraints
+
+        Parameters
+        ----------
+        touched_every_geoms: whether return circles that touched every given geometries, default to False
+        dist_tol: distance tolerance for touching predicator.
+
         Returns
         -------
         list of circles
@@ -217,11 +242,22 @@ class FixedCenterArcCreator:
         if not self._radius_candidates:
             raise RuntimeError('no radius candidates exists, probably because given too many constraints or no'
                                'constraint at all')
-        return lmap(lambda radius: Circle(center=self._center, radius=radius), self._radius_candidates)
+        circles = lmap(lambda radius: Circle(center=self._center, radius=radius), self._radius_candidates)
 
-    def create_arcs(self) -> List[Arc]:
+        if touched_every_geoms:
+            return lfilter(lambda circle: all(circle.distance(geom) <= dist_tol for geom in self._geoms), circles)
+
+        return circles
+
+    def create_arcs(self, touched_every_geoms: bool = False, dist_tol: float = MATH_EPS) -> List[Arc]:
         """
         create arcs according to given constraints, arcs come from circles, cut by intersection points
+
+        Parameters
+        ----------
+        touched_every_geoms: whether return arcs that touched every given geometries, default to False
+        dist_tol: distance tolerance for touching predicator.
+
         Returns
         -------
         list of arcs
@@ -231,6 +267,9 @@ class FixedCenterArcCreator:
         for circle in circles:
             tangent_pts = filter(truth, [circle.tangent_point(geom) for geom in self._geoms])
             arcs.extend(circle.arc(tangent_pts))
+
+        if touched_every_geoms:
+            return lfilter(lambda arc: all(arc.distance(geom) <= dist_tol for geom in self._geoms), arcs)
 
         return arcs
 
