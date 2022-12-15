@@ -56,6 +56,7 @@ class LineStringExtensionTest(TestCase):
         self.assertTrue(result.almost_equals(Point(-29.57617211884179, 5.776949283250175)))
 
     def test_projected_point_by_straight_segment(self):
+        # projected point on extension
         straight_segment = StraightSegment([(0, 0), (1, 0)])
         result = straight_segment.ext.projected_point(Point(0, 0))
         self.assertTrue(result.equals(Point(0, 0)))
@@ -211,6 +212,25 @@ class LineStringExtensionTest(TestCase):
         arc = Point(0, 0).buffer(10).exterior
         result = arc.ext.perpendicular_line(Point(0, 11), 2)
         self.assertTrue(LineString([(0, 9), (0, 11)]).buffer(1e-6).contains(result))
+
+        line = LineString([(0, 0), (1, 0)])
+        result = line.ext.perpendicular_line(Point(0, 0), 1, 'left')
+        self.assertTrue(LineString([(0, 0), (0, 1)]).equals(result))
+
+        result = line.ext.perpendicular_line(Point(0, 0), 1, 'right')
+        self.assertTrue(LineString([(0, 0), (0, -1)]).equals(result))
+
+        result = line.ext.perpendicular_line(Point(1, 0), 1, 'left')
+        self.assertTrue(LineString([(1, 0), (1, 1)]).equals(result))
+
+        result = line.ext.perpendicular_line(Point(1, 0), 1, 'right')
+        self.assertTrue(LineString([(1, 0), (1, -1)]).equals(result))
+
+        result = line.ext.perpendicular_line(Point(0.5, 0), 1, 'left')
+        self.assertTrue(LineString([(0.5, 0), (0.5, 1)]).equals(result))
+
+        result = line.ext.perpendicular_line(Point(0.5, 0), 1, 'right')
+        self.assertTrue(LineString([(0.5, 0), (0.5, -1)]).equals(result))
 
     def test_tangent_line(self):
         arc = Point(0, 0).buffer(10).exterior
