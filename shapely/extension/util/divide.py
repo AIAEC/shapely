@@ -132,7 +132,8 @@ def divide(geom_or_geoms: Union[BaseGeometry, List[BaseGeometry]],
 
     if isinstance(divider, LineString):
         if polygons:
-            polygons = split(MultiPolygon(polygons), divider).ext.flatten(Polygon).to_list()
+            polygons = (split(MultiPolygon(polygons), divider.ext.prolong().from_ends(dist_tol))
+                        .ext.flatten(Polygon).to_list())
     else:  # MultiLineString
         # the shapely split method can only handle linestring as splitter, and they do so for reason as that,
         # when splitting by a multi-linestring, the order of splitting by each linestring affects the result

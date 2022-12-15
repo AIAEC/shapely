@@ -52,13 +52,13 @@ class DivideTest(TestCase):
         self.assertTrue(isinstance(result[0], Polygon))
 
     def test_divide_by_boundary(self):
-        poly = Polygon([(0, 0), (1, 1), (0, 2), (-1, 1)])
-        line = LineString([(0, 0), (1, 1)])
+        poly = box(0, 0, 1, 1)
+        line = LineString([(0, 0), (1, 0)])
         result = divide(poly, line)
         self.assertEqual(1, len(result))
         self.assertTrue(result[0].equals(poly))
 
-        line = LineString([(0, 0), (1, 1), (0, 2)])
+        line = LineString([(0, 0), (1, 0), (1, 1)])
         result = divide(poly, line)
         self.assertEqual(1, len(result))
         self.assertTrue(result[0].equals(poly))
