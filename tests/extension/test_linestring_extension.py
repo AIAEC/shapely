@@ -327,3 +327,25 @@ class LineStringExtensionTest(TestCase):
         line = LineString([(0, 0), (1, 0)])
         result = line.ext.merge(LineString([(0.5, -0.1), (-1, 0)]), as_longest_straight_line)
         self.assertTrue(LineString([(1, 0), (-1, 0)]).equals(result))
+
+    def test_substring_(self):
+        line = LineString([(10, 0), (10, 10), (0, 10), (0, 0), (10, 0)])
+        a = line.project(Point(5, 0))
+        b = line.project(Point(10, 5))
+        result = line.ext.substring([a, b], allow_circle=True)
+        self.assertTrue(LineString([(5, 0), (10, 0), (10, 5)]).equals(result))
+
+        result = line.ext.substring([a, b])
+        self.assertTrue(LineString([(5, 0), (0, 0), (0, 10), (10, 10), (10, 5)]).equals(result))
+
+        result = line.ext.substring([0, b], allow_circle=True)
+        self.assertTrue(LineString([(10, 0), (10, 5)]).equals(result))
+
+        result = line.ext.substring([0, a], allow_circle=True)
+        self.assertTrue(LineString([(10, 0), (10, 10), (0, 10), (0, 0), (5, 0)]).equals(result))
+
+        result = line.ext.substring([b, 0], allow_circle=True)
+        self.assertTrue(LineString([(10, 5), (10, 10), (0, 10), (0, 0), (10, 0)]).equals(result))
+
+        result = line.ext.substring([a, 0], allow_circle=True)
+        self.assertTrue(LineString([(5, 0), (10, 0)]).equals(result))

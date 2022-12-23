@@ -32,3 +32,20 @@ class CoordTest(TestCase):
             self.assertTrue(Point(coord).equals(Point(0, 0)))
         except:
             self.fail()
+
+    def test_insertion_coord(self):
+        coords = [Coord(0, 0), Coord(10, 0)]
+        result = Coord.get_insertion_coord_index_in_list(Coord(5, 0), coords, tail_cycling=True)
+        self.assertTrue(result == 1)
+
+        coords = [Coord(0, 0), Coord(10, 0), Coord(10, 10)]
+        result = Coord.get_insertion_coord_index_in_list(Coord(5, 5), coords, tail_cycling=True)
+        self.assertTrue(result == 3)
+
+        coords = [(0, 0), (10, 0)]
+        result = Coord.get_insertion_coord_index_in_list((5, 0), coords, tail_cycling=True)
+        self.assertTrue(result == 1)
+
+        coords = [(0, 0), (10, 0), (10, 10)]
+        result = Coord.get_insertion_coord_index_in_list((5, 5), coords, tail_cycling=True)
+        self.assertTrue(result == 3)

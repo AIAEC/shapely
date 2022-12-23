@@ -15,7 +15,7 @@ from shapely.extension.strategy.linemerge_strategy import MergeLineStrategy, nat
 from shapely.extension.strategy.offset_strategy import BaseOffsetStrategy, OffsetStrategy
 from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.func_util import min_max
-from shapely.extension.util.iter_util import win_slice
+from shapely.extension.util.iter_util import win_slice, first
 from shapely.extension.util.line_extent import LineExtent
 from shapely.extension.util.prolong import Prolong
 from shapely.geometry import Point, LineString
@@ -41,21 +41,50 @@ class LineStringExtension(BaseGeomExtension):
             return LineString(list(self._geom.coords).__getitem__(item))
         raise TypeError(f'{item} is not supported index')
 
-    def substring(self, interval: Union[Tuple[float, float], Interval], absolute: bool = True):
+    def substring(self, interval: Union[Tuple[float, float], Interval],
+                  absolute: bool = True,
+                  allow_circle: bool = False):
         """
         calculate the substring of current linestring
         Parameters
         ----------
         interval
         absolute
+        allow_circle: allow to cross the starting point if true
 
         Returns
         -------
         LineString
         """
+
+        def new_start_point_line(distance: float, absolute: bool = True) -> LineString:
+
+            is_valid_line_length: bool = ((absolute and 0 - MATH_EPS < distance < self._geom.length + MATH_EPS) or
+                                          (not absolute and (0 - MATH_EPS < distance < 1 - MATH_EPS)))
+
+            if not self._geom.is_closed or not is_valid_line_length or self._geom.length < MATH_EPS:
+                return self._geom
+
+            new_start_coord: Coord = self._geom.interpolate(distance=distance, normalized=not absolute).coords[0]
+            origin_coords = list(self._geom.coords)
+            new_start_index = Coord.get_insertion_coord_index_in_list(new_start_coord, origin_coords, tail_cycling=True)
+            sorted_coords = ([new_start_coord] +
+                             origin_coords[new_start_index:] +
+                             origin_coords[:new_start_index] +
+                             [new_start_coord])
+            return LineString(sorted_coords).simplify(0)
+
         if isinstance(interval, Sequence):
             interval = Interval(interval[0], interval[1])
-        return substring(self._geom,
+        origin_line = self._geom
+        if allow_circle and origin_line.is_closed and interval.left > interval.right:
+            origin_line = new_start_point_line(interval.left, absolute)
+            if absolute:
+                interval.right = self._geom.length - interval.left + interval.right
+            else:
+                interval.right = 1 - interval.left + interval.right
+            interval.left = 0
+        return substring(origin_line,
                          start_dist=float(interval.left),
                          end_dist=float(interval.right),
                          normalized=not absolute)

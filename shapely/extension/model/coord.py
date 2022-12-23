@@ -1,11 +1,13 @@
+from cmath import isclose
 from dataclasses import dataclass
 from math import hypot
-from typing import List, Tuple, Sequence, Union
+from typing import List, Tuple, Sequence, Union, Optional
 
+from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.angle import Angle
 from shapely.extension.typing import Num, CoordType
 from shapely.extension.util.iter_util import win_slice
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString
 
 
 @dataclass
@@ -137,3 +139,17 @@ class Coord:
             angles.append(180 - coord01_angle.rotating_angle(coord12_angle, direct='ccw'))
 
         return angles
+
+    @staticmethod
+    def get_insertion_coord_index_in_list(insertion_coord: CoordType,
+                                          coords: List[CoordType],
+                                          tail_cycling: bool = False,
+                                          tol: float = MATH_EPS) -> Optional[int]:
+        for coord_index0, coord_index1 in win_slice(range(len(coords)), win_size=2, tail_cycling=tail_cycling):
+            first_segment_dist = Coord.dist(coords[coord_index0], insertion_coord)
+            second_segment_dist = Coord.dist(coords[coord_index1], insertion_coord)
+            if isclose(first_segment_dist + second_segment_dist,
+                       Coord.dist(coords[coord_index0], coords[coord_index1]),
+                       abs_tol=tol):
+                return coord_index0 + 1
+        return None
