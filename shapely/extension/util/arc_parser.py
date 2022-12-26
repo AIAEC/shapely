@@ -1,7 +1,6 @@
 from typing import List, Optional
 
-from functional import seq
-
+from shapely.extension.functional import seq
 from shapely.extension.geometry.arc import Arc
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.iter_util import win_slice

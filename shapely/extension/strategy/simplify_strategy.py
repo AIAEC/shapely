@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import List, Optional, Union
 
-from functional.streams import seq
-
+from shapely.extension.functional import seq
 from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lconcat

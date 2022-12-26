@@ -1,9 +1,9 @@
 from operator import attrgetter
 from typing import List, Set, Union
 
-from functional import seq
 from numpy import argmin
 
+from shapely.extension.functional import seq
 from shapely.extension.model.coord import Coord
 from shapely.extension.typing import CoordType
 from shapely.extension.util.flatten import flatten
