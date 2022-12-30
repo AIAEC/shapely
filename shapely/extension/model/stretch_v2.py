@@ -1330,8 +1330,9 @@ class Stretch:
                                                     .intersection(line)
                                                     .ext.decompose(Point)
                                                     .to_set())
-        points: Set[Point] = points_on_line.union(points_intersects_with_edges)
-        lmap(add_pivot, points)
+        set_of_points: Set[Point] = points_on_line.union(points_intersects_with_edges)
+        sorted_points = sorted(set_of_points, key=lambda p: (p.x, p.y))  # CAUTION 不能直接使用set_of_points, 将引入随机性
+        lmap(add_pivot, sorted_points)
 
         new_edges: List[DirectEdge] = []
 
