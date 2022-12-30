@@ -1239,7 +1239,9 @@ class Stretch:
         if not (isinstance(polygon, Polygon) and polygon.is_valid and not polygon.is_empty):
             raise ValueError('expect a non-empty, valid polygon')
 
-        add_reverse = unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures)).covers(polygon)
+        add_reverse = (unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures))
+                       .ext.buffer().rect(dist_tol)
+                       .covers(polygon))
         new_edges = self._add_edge(polygon.exterior.ext.ccw(),
                                    add_reverse=add_reverse,
                                    edge_cargo_dict=edge_cargo_dict or {},
