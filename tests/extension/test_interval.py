@@ -95,3 +95,18 @@ class IntervalTest(TestCase):
         interval3 = Interval(11, 20)
         result = Interval.intersection_of({interval0, interval1, interval3})
         self.assertEqual(Interval.empty(), result)
+
+
+def test_buffer():
+    interval = Interval(0, 10)
+
+    assert interval.buffer(5).length == 5 * 2 + interval.length
+    assert interval.buffer(-2).length == -2 * 2 + interval.length
+
+    assert Interval(-5, 15) == interval.buffer(5)
+    assert Interval(2, 8) == interval.buffer(-2)
+
+    assert not (interval.buffer(-5))
+
+    assert not Interval.empty().buffer(5)
+    assert not Interval.empty().buffer(-2)
