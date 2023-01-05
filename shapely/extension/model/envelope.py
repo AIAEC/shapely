@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from itertools import product
-from typing import Tuple, Optional, Union, Callable
+from typing import Tuple, Optional, Union, Callable, List
 
 from shapely.affinity import rotate
 from shapely.extension.model.angle import Angle
@@ -72,16 +72,21 @@ class HalfDiagonalPosition(EasyEnum):
 class Envelope:
     def __init__(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
                  angle: Optional[Union[float, Angle]] = None):
-        self._angle = self._setup_angle(geom_or_geoms, angle)
+        self._geom_or_geoms = geom_or_geoms
+        self._angle = self._setup_angle(self._geom_or_geoms, angle)
         (self.left_bottom,
          self.right_bottom,
          self.right_top,
-         self.left_top) = self._setup_endpoints(geom_or_geoms, self._angle)
+         self.left_top) = self._setup_endpoints(self._geom_or_geoms, self._angle)
         self.mid_bottom = self._mid_point(self.left_bottom, self.right_bottom)
         self.left_horizon = self._mid_point(self.left_top, self.left_bottom)
         self.right_horizon = self._mid_point(self.right_top, self.right_bottom)
         self.mid_horizon = self._mid_point(self.left_horizon, self.right_horizon)
         self.mid_top = self._mid_point(self.left_top, self.right_top)
+
+    @property
+    def geoms(self) -> List[BaseGeometry]:
+        return list(self._geom_or_geoms) if isinstance(self._geom_or_geoms, Sequence) else [self._geom_or_geoms]
 
     def _setup_endpoints(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]], angle: Angle):
         geom = unary_union(geom_or_geoms) if isinstance(geom_or_geoms, Sequence) else geom_or_geoms

@@ -1239,7 +1239,9 @@ class Stretch:
         if not (isinstance(polygon, Polygon) and polygon.is_valid and not polygon.is_empty):
             raise ValueError('expect a non-empty, valid polygon')
 
-        add_reverse = unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures)).covers(polygon)
+        add_reverse = (unary_union(lmap(attrgetter('shape'), self.closure_snapshot().closures))
+                       .ext.buffer().rect(dist_tol)
+                       .covers(polygon))
         new_edges = self._add_edge(polygon.exterior.ext.ccw(),
                                    add_reverse=add_reverse,
                                    edge_cargo_dict=edge_cargo_dict or {},
@@ -1330,8 +1332,9 @@ class Stretch:
                                                     .intersection(line)
                                                     .ext.decompose(Point)
                                                     .to_set())
-        points: Set[Point] = points_on_line.union(points_intersects_with_edges)
-        lmap(add_pivot, points)
+        set_of_points: Set[Point] = points_on_line.union(points_intersects_with_edges)
+        sorted_points = sorted(set_of_points, key=lambda p: (p.x, p.y))  # CAUTION 不能直接使用set_of_points, 将引入随机性
+        lmap(add_pivot, sorted_points)
 
         new_edges: List[DirectEdge] = []
 

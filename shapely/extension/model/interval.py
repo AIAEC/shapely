@@ -166,6 +166,20 @@ class Interval:
     def __and__(self, other: 'Interval') -> 'Interval':
         return self.intersection(other)
 
+    def buffer(self, dist: float) -> 'Interval':
+        if not self:
+            return self.empty()
+
+        left = self.left - dist
+        right = self.right + dist
+
+        if left > right:
+            return self.empty()
+        return Interval(left, right)
+
+    def move(self, dist: float) -> 'Interval':
+        return Interval(self.left + dist, self.right + dist)
+
     @classmethod
     def union_of(cls, intervals: Union['Interval', Sequence['Interval']]) -> List['Interval']:
         """
