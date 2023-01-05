@@ -110,3 +110,10 @@ def test_buffer():
 
     assert not Interval.empty().buffer(5)
     assert not Interval.empty().buffer(-2)
+
+
+def test_move():
+    interval = Interval(0, 10)
+    assert Interval(5, 15) == interval.move(5)
+    assert Interval(-5, 5) == interval.move(-5)
+    assert Interval(5, 5) == Interval.empty().move(5)

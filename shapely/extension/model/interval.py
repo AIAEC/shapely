@@ -177,6 +177,9 @@ class Interval:
             return self.empty()
         return Interval(left, right)
 
+    def move(self, dist: float) -> 'Interval':
+        return Interval(self.left + dist, self.right + dist)
+
     @classmethod
     def union_of(cls, intervals: Union['Interval', Sequence['Interval']]) -> List['Interval']:
         """
