@@ -1533,15 +1533,7 @@ class BaseOffsetStrategy(ABC):
         if not self._edge.shape.ext.angle().perpendicular_to(offset_vector.angle):
             raise ValueError(f'expect offset vector perpendicular to edge, given {edge} and {offset_vector}')
 
-    @staticmethod
-    @abstractmethod
-    def does_from_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
-        raise NotImplementedError
 
-    @staticmethod
-    @abstractmethod
-    def does_to_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
-        raise NotImplementedError
 
     @property
     def stretch(self) -> Stretch:
@@ -1578,6 +1570,158 @@ class BaseOffsetStrategy(ABC):
 
         return ClosureView.create_from(edge.consecutive)
 
+    @abstractmethod
+    def offset_pivot(self, edge: DirectEdge,
+                     offset_vector: Vector,
+                     shrinking_closure: Optional[ClosureView],
+                     handling_from_pivot: bool) -> Pivot:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
+        raise NotImplementedError
+
+    def offset_from_pivot(self, edge: DirectEdge,
+                          offset_vector: Vector,
+                          shrinking_closure: Optional[ClosureView]) -> Pivot:
+        """
+        Parameters
+        ----------
+        edge
+        offset_vector
+        shrinking_closure
+
+        Returns
+        -------
+        position point of from_pivot after offset
+        """
+        return self.offset_pivot(edge=edge,
+                                 offset_vector=offset_vector,
+                                 shrinking_closure=shrinking_closure,
+                                 handling_from_pivot=True)
+
+    def offset_to_pivot(self, edge: DirectEdge,
+                        offset_vector: Vector,
+                        shrinking_closure: Optional[ClosureView]) -> Pivot:
+        """
+
+        Parameters
+        ----------
+        edge
+        offset_vector
+        shrinking_closure
+
+        Returns
+        -------
+        position point of to_pivot after offset
+        """
+        return self.offset_pivot(edge=edge,
+                                 offset_vector=offset_vector,
+                                 shrinking_closure=shrinking_closure,
+                                 handling_from_pivot=False)
+
+    def do(self) -> List[DirectEdge]:
+        """
+        algorithm for offset
+
+        Each offset process includes 4 generic steps:
+        1. calculate the new from-pivot and to-pivot after offset
+        2. create new direct edge(and its reverse if needed) according to offset vector
+        3. remove old edge before offset
+        4. clean the mess, including removing dangling pivots and edges
+
+        Returns
+        -------
+        newly created direct edge
+        """
+        new_from_pivot = self.offset_from_pivot(edge=self._edge,
+                                                offset_vector=self._offset_vector,
+                                                shrinking_closure=self.shrinking_closure)
+
+        new_to_pivot = self.offset_to_pivot(edge=self._edge,
+                                            offset_vector=self._offset_vector,
+                                            shrinking_closure=self.shrinking_closure)
+
+        new_edges = self.create_new_edges(new_from_pivot, new_to_pivot)
+
+        self.stretch._force_remove_edges([self._edge], delete_reverse=True)
+        self.stretch.remove_dangling_edges()
+        self.stretch.remove_dangling_pivots()
+
+        return new_edges
+
+
+class OffsetStrategy(BaseOffsetStrategy):
+    """
+    simple offset strategy that will choose attaching mode or perpendicular mode for calculating offset
+    """
+
+    def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
+        if self.shrinking_closure:
+            new_edges = (
+                LineString([new_from_pivot.shape, new_to_pivot.shape])
+                .intersection(self.shrinking_closure.shape)
+                .ext.decompose(LineString)
+                .map(lambda seg: self.stretch._add_edge(
+                    line=seg,
+                    add_reverse=True,
+                    pivot_cargo_dict=dict(new_from_pivot.cargo),
+                    edge_cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo),
+                    dist_tol=self._attaching_dist_tol))
+                .filter(truth)
+                .map(itemgetter(0))
+                .to_list())
+
+        else:
+            new_edges = [DirectEdge(from_pivot=new_from_pivot,
+                                    to_pivot=new_to_pivot,
+                                    stretch=self.stretch,
+                                    cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo))]
+            self.stretch.edges.append(new_edges[0])
+            if self._edge.reverse:
+                # reverse new edge do not return, thus won't be added to new_edges
+                self.stretch.edges.append(
+                    DirectEdge(from_pivot=new_to_pivot,
+                               to_pivot=new_from_pivot,
+                               stretch=self.stretch,
+                               cargo_dict=self._edge_cargo_inherit_strategy(self._edge.reverse.cargo)))
+
+        return new_edges
+
+    @staticmethod
+    def does_from_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
+        if not edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').almost_equal(90, angle_tol=1):
+            # if offset vector does not point to edge's ccw perpendicular, we should use edge.reverse to
+            # deduct the mode
+            if not edge.reverse:
+                # if no edge has no reverse, meaning that we are trying to offset a boundary edge to make closure larger
+                # in this case for current strategy, we just use perpendicular mode
+                return True
+            return OffsetStrategy.does_to_pivot_use_perpendicular_mode(edge.reverse, offset_vector)
+
+        previous_inversion_angle = edge.previous.shape.ext.inverse().ext.angle()
+        # policy here: can be modified or inherit to a new policy
+        # TODO: draw diagram here
+        perpendicular_mode: bool = offset_vector.angle.including_angle(previous_inversion_angle).degree > 89
+
+        return perpendicular_mode
+
+    @staticmethod
+    def does_to_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
+        if not edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').almost_equal(90, angle_tol=1):
+            # if offset vector does not point to edge's ccw perpendicular,
+            # we should use edge.reverse to deduct the mode
+            if not edge.reverse:
+                # if no edge has no reverse, meaning that we are trying to offset a boundary edge to make closure larger
+                # in this case for current strategy, we just use perpendicular mode
+                return True
+            return OffsetStrategy.does_from_pivot_use_perpendicular_mode(edge.reverse, offset_vector)
+
+        # policy here: can be modified or inherit to a new policy
+        # TODO: draw diagram here
+        perpendicular_mode: bool = offset_vector.angle.including_angle(edge.next.shape.ext.angle()).degree > 89
+
+        return perpendicular_mode
     def offset_pivot(self, edge: DirectEdge,
                      offset_vector: Vector,
                      shrinking_closure: Optional[ClosureView],
@@ -1683,148 +1827,3 @@ class BaseOffsetStrategy(ABC):
                                       dist_tol=self._attaching_dist_tol,
                                       cargo_dict=self._pivot_cargo_inherit_strategy(inherited_cargo))
 
-    def offset_from_pivot(self, edge: DirectEdge,
-                          offset_vector: Vector,
-                          shrinking_closure: Optional[ClosureView]) -> Pivot:
-        """
-        Parameters
-        ----------
-        edge
-        offset_vector
-        shrinking_closure
-
-        Returns
-        -------
-        position point of from_pivot after offset
-        """
-        return self.offset_pivot(edge=edge,
-                                 offset_vector=offset_vector,
-                                 shrinking_closure=shrinking_closure,
-                                 handling_from_pivot=True)
-
-    def offset_to_pivot(self, edge: DirectEdge,
-                        offset_vector: Vector,
-                        shrinking_closure: Optional[ClosureView]) -> Pivot:
-        """
-
-        Parameters
-        ----------
-        edge
-        offset_vector
-        shrinking_closure
-
-        Returns
-        -------
-        position point of to_pivot after offset
-        """
-        return self.offset_pivot(edge=edge,
-                                 offset_vector=offset_vector,
-                                 shrinking_closure=shrinking_closure,
-                                 handling_from_pivot=False)
-
-    @abstractmethod
-    def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
-        raise NotImplementedError
-
-    def do(self) -> List[DirectEdge]:
-        """
-        algorithm for offset
-
-        Each offset process includes 4 generic steps:
-        1. calculate the new from-pivot and to-pivot after offset
-        2. create new direct edge(and its reverse if needed) according to offset vector
-        3. remove old edge before offset
-        4. clean the mess, including removing dangling pivots and edges
-
-        Returns
-        -------
-        newly created direct edge
-        """
-        new_from_pivot = self.offset_from_pivot(edge=self._edge,
-                                                offset_vector=self._offset_vector,
-                                                shrinking_closure=self.shrinking_closure)
-
-        new_to_pivot = self.offset_to_pivot(edge=self._edge,
-                                            offset_vector=self._offset_vector,
-                                            shrinking_closure=self.shrinking_closure)
-
-        new_edges = self.create_new_edges(new_from_pivot, new_to_pivot)
-
-        self.stretch._force_remove_edges([self._edge], delete_reverse=True)
-        self.stretch.remove_dangling_edges()
-        self.stretch.remove_dangling_pivots()
-
-        return new_edges
-
-
-class OffsetStrategy(BaseOffsetStrategy):
-    """
-    simple offset strategy that will choose attaching mode or perpendicular mode for calculating offset
-    """
-
-    def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
-        if self.shrinking_closure:
-            new_edges = (
-                LineString([new_from_pivot.shape, new_to_pivot.shape])
-                .intersection(self.shrinking_closure.shape)
-                .ext.decompose(LineString)
-                .map(lambda seg: self.stretch._add_edge(
-                    line=seg,
-                    add_reverse=True,
-                    pivot_cargo_dict=dict(new_from_pivot.cargo),
-                    edge_cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo),
-                    dist_tol=self._attaching_dist_tol))
-                .filter(truth)
-                .map(itemgetter(0))
-                .to_list())
-
-        else:
-            new_edges = [DirectEdge(from_pivot=new_from_pivot,
-                                    to_pivot=new_to_pivot,
-                                    stretch=self.stretch,
-                                    cargo_dict=self._edge_cargo_inherit_strategy(self._edge.cargo))]
-            self.stretch.edges.append(new_edges[0])
-            if self._edge.reverse:
-                # reverse new edge do not return, thus won't be added to new_edges
-                self.stretch.edges.append(
-                    DirectEdge(from_pivot=new_to_pivot,
-                               to_pivot=new_from_pivot,
-                               stretch=self.stretch,
-                               cargo_dict=self._edge_cargo_inherit_strategy(self._edge.reverse.cargo)))
-
-        return new_edges
-
-    @staticmethod
-    def does_from_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
-        if not edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').almost_equal(90, angle_tol=1):
-            # if offset vector does not point to edge's ccw perpendicular, we should use edge.reverse to
-            # deduct the mode
-            if not edge.reverse:
-                # if no edge has no reverse, meaning that we are trying to offset a boundary edge to make closure larger
-                # in this case for current strategy, we just use perpendicular mode
-                return True
-            return OffsetStrategy.does_to_pivot_use_perpendicular_mode(edge.reverse, offset_vector)
-
-        previous_inversion_angle = edge.previous.shape.ext.inverse().ext.angle()
-        # policy here: can be modified or inherit to a new policy
-        # TODO: draw diagram here
-        perpendicular_mode: bool = offset_vector.angle.including_angle(previous_inversion_angle).degree > 89
-
-        return perpendicular_mode
-
-    @staticmethod
-    def does_to_pivot_use_perpendicular_mode(edge: DirectEdge, offset_vector: Vector) -> bool:
-        if not edge.shape.ext.angle().rotating_angle(offset_vector.angle, direct='ccw').almost_equal(90, angle_tol=1):
-            # if offset vector does not point to edge's ccw perpendicular,
-            # we should use edge.reverse to deduct the mode
-            if not edge.reverse:
-                # if no edge has no reverse, meaning that we are trying to offset a boundary edge to make closure larger
-                # in this case for current strategy, we just use perpendicular mode
-                return True
-            return OffsetStrategy.does_from_pivot_use_perpendicular_mode(edge.reverse, offset_vector)
-
-        # policy here: can be modified or inherit to a new policy
-        # TODO: draw diagram here
-        perpendicular_mode: bool = offset_vector.angle.including_angle(edge.next.shape.ext.angle()).degree > 89
-
-        return perpendicular_mode
