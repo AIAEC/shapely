@@ -6,7 +6,6 @@ import pytest
 from pytest import fixture
 
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.model.cargo import Cargo
 from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
     OffsetStrategy, ClosureView, StretchFactory
 from shapely.extension.model.vector import Vector
@@ -1534,3 +1533,55 @@ class TestCargo:
         assert id(stretch_copy_copy_pivot.cargo) != id(stretch_pivot.cargo)
         assert id(stretch_copy_copy_pivot.cargo) != id(stretch_copy_pivot.cargo)
 
+
+class TestStrictOffset:
+
+    def test_scanned_segments(self):
+        poly = box(0, 0, 100, 100)
+        poly = poly.difference(box(50, 20, 150, 80))
+        edge_shape = LineString([(50, 20), (50, 80)])
+        scan = OffsetStrategy.scanned_attachment(edge_shape=edge_shape, handling_from_pivot=True,
+                                                 target_point=Point(20, 0), shrinking_closure_shape=poly)
+        assert scan == LineString([(50, 20), (100, 20), (100, 0), (20, 0)])
+        scan = OffsetStrategy.scanned_attachment(edge_shape=edge_shape, handling_from_pivot=False,
+                                                 target_point=Point(20, 100), shrinking_closure_shape=poly)
+
+        assert scan == LineString([(50, 80), (100, 80), (100, 100), (20, 100)])
+
+    def test_offset_colinear_segment(self, stretch_of_2box_for_offset):
+        stretch = stretch_of_2box_for_offset
+        edge = stretch.query_edges(Point(1.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 - 1e-4), strict_attach=True).do()
+
+        edge = stretch.query_edges(Point(-0.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 + 1e-4), strict_attach=True).do()
+
+        edge = stretch.query_edges(Point(0.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 - 1e-4), strict_attach=True).do()
+
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2
+
+    def test_offset_colinear_segment2(self, stretch_of_2box_for_offset):
+        stretch = stretch_of_2box_for_offset
+        edge = stretch.query_edges(Point(1.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 - 1e-4), strict_attach=True).do()
+
+        edge = stretch.query_edges(Point(-0.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -0.5 + 1e-4), strict_attach=True).do()
+
+        edge = stretch.query_edges(Point(0.5, 0))[0]
+        OffsetStrategy(edge, Vector(0, -1), strict_attach=True).do()
+
+        closures = stretch.closure_snapshot().closures
+        assert len(closures) == 2
+        assert all(
+            c.shape.area in [pytest.approx(2.5000999999999998, abs=0.01), pytest.approx(5.5001, abs=0.01)] for c in
+            closures)
+
+    def test_offset_edge_that_is_wider_than_closure_body(self, stretch_for_offset_edges_that_is_longer_than_body_width):
+        stretch = stretch_for_offset_edges_that_is_longer_than_body_width
+        edge = stretch.edges[0]
+        assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
+        result = OffsetStrategy(edge, Vector(0, 2), strict_attach=True).do()[0]
+        assert result.shape.almost_equals(LineString([(0.2, 2), (5, 2)]))

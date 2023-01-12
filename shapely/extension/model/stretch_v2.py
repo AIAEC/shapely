@@ -23,11 +23,12 @@ from weakref import ref, ReferenceType
 
 from toolz import concat
 
-from shapely.extension.constant import MATH_EPS, MATH_MIDDLE_EPS
+from shapely.extension.constant import MATH_EPS, MATH_MIDDLE_EPS, ANGLE_AROUND_EPS
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.cargo import Cargo, ConsensusCargo
 from shapely.extension.model.coord import Coord
+from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap, separate
@@ -1533,8 +1534,6 @@ class BaseOffsetStrategy(ABC):
         if not self._edge.shape.ext.angle().perpendicular_to(offset_vector.angle):
             raise ValueError(f'expect offset vector perpendicular to edge, given {edge} and {offset_vector}')
 
-
-
     @property
     def stretch(self) -> Stretch:
         return self._edge.stretch
@@ -1656,6 +1655,17 @@ class OffsetStrategy(BaseOffsetStrategy):
     simple offset strategy that will choose attaching mode or perpendicular mode for calculating offset
     """
 
+    def __init__(self, edge: DirectEdge, offset_vector: Vector,
+                 attaching_dist_tol: float = MATH_EPS,
+                 edge_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
+                 pivot_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
+                 strict_attach: bool = False):
+
+        super().__init__(edge, offset_vector, attaching_dist_tol=attaching_dist_tol,
+                         edge_cargo_inherit_strategy=edge_cargo_inherit_strategy,
+                         pivot_cargo_inherit_strategy=pivot_cargo_inherit_strategy)
+        self._strict_attach = strict_attach
+
     def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
         if self.shrinking_closure:
             new_edges = (
@@ -1722,6 +1732,7 @@ class OffsetStrategy(BaseOffsetStrategy):
         perpendicular_mode: bool = offset_vector.angle.including_angle(edge.next.shape.ext.angle()).degree > 89
 
         return perpendicular_mode
+
     def offset_pivot(self, edge: DirectEdge,
                      offset_vector: Vector,
                      shrinking_closure: Optional[ClosureView],
@@ -1766,42 +1777,19 @@ class OffsetStrategy(BaseOffsetStrategy):
             if handling_from_pivot:
                 target_point = offset_vector.apply(edge.from_pivot.shape)
                 target_point_cargo_dict = self._pivot_cargo_inherit_strategy(edge.from_pivot.cargo)
+                source_pivot = edge.from_pivot
             else:
                 target_point = offset_vector.apply(edge.to_pivot.shape)
                 target_point_cargo_dict = self._pivot_cargo_inherit_strategy(edge.to_pivot.cargo)
+                source_pivot = edge.to_pivot
 
             try:
-                if (shrinking_closure
-                        and not shrinking_closure.shape.buffer(self._attaching_dist_tol).covers(target_point)):
-                    # if perpendicular mode failed, try attaching mode instead
-                    raise RuntimeError
-
-                # process in perpendicular mode:
-                # 1. create dangling pivot
-                # 2. connect origin from_pivot/to_pivot to this dangling pivot
-                # 3. return the dangling pivot
-                dangling_pivot = self.stretch.add_pivot(target_point,
-                                                        dist_tol=self._attaching_dist_tol,
-                                                        cargo_dict=target_point_cargo_dict)
-                if handling_from_pivot:
-                    handling_from_pivot, to_pivot = edge.from_pivot, dangling_pivot
-                else:
-                    handling_from_pivot, to_pivot = dangling_pivot, edge.to_pivot
-
-                new_edge = DirectEdge(from_pivot=handling_from_pivot,
-                                      to_pivot=to_pivot,
-                                      stretch=self.stretch,
-                                      cargo_dict=self._edge_cargo_inherit_strategy(edge.cargo))
-                self.stretch.edges.append(new_edge)
-
-                if edge.reverse:
-                    new_reverse_edge = DirectEdge(from_pivot=to_pivot,
-                                                  to_pivot=handling_from_pivot,
-                                                  stretch=self.stretch,
-                                                  cargo_dict=self._edge_cargo_inherit_strategy(edge.reverse.cargo))
-                    self.stretch.edges.append(new_reverse_edge)
-
-                return dangling_pivot
+                return self.handle_perpendicular_target_point(edge=edge,
+                                                              shrinking_closure=shrinking_closure,
+                                                              handling_from_pivot=handling_from_pivot,
+                                                              target_point=target_point,
+                                                              target_point_cargo_dict=target_point_cargo_dict,
+                                                              source_pivot=source_pivot)
 
             except RuntimeError:
                 pass  # try attaching mode instead
@@ -1820,10 +1808,113 @@ class OffsetStrategy(BaseOffsetStrategy):
             target_point = attaching_offset.for_to_pivot(edge, offset_vector)
             inherited_cargo = edge.to_pivot.cargo
 
-        if not target_point:
+        if self._strict_attach:
+            scanned_attachment: LineString = self.scanned_attachment(edge_shape=edge.shape,
+                                                                     handling_from_pivot=handling_from_pivot,
+                                                                     target_point=target_point,
+                                                                     shrinking_closure_shape=shrinking_closure.shape)
+
+            if invalid_attached_segment := first(
+                    func=lambda seg: offset_vector.angle.including_angle(seg.ext.angle()) > 90 - ANGLE_AROUND_EPS,
+                    iter=scanned_attachment.ext.segments()):
+                try:
+                    return self.handle_strict_attach_target(target_point=target_point, edge=edge,
+                                                            handling_from_pivot=handling_from_pivot,
+                                                            offset_vector=offset_vector,
+                                                            shrinking_closure=shrinking_closure,
+                                                            inherited_cargo=inherited_cargo,
+                                                            invalid_attached_segment=invalid_attached_segment)
+
+                except RuntimeError:
+                    pass  # try attaching mode instead
+        if not target_point or not target_point.within(
+                shrinking_closure.shape.ext.buffer().rect(self._attaching_dist_tol)):
             raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
 
         return self.stretch.add_pivot(target_point,
                                       dist_tol=self._attaching_dist_tol,
                                       cargo_dict=self._pivot_cargo_inherit_strategy(inherited_cargo))
 
+    def handle_perpendicular_target_point(self, edge: DirectEdge,
+                                          shrinking_closure: Optional[ClosureView],
+                                          handling_from_pivot: bool,
+                                          target_point: Point,
+                                          target_point_cargo_dict: Dict,
+                                          source_pivot: Pivot) -> Pivot:
+        if (shrinking_closure
+                and not shrinking_closure.shape.buffer(self._attaching_dist_tol).covers(target_point)):
+            # if perpendicular mode failed, try attaching mode instead
+            raise RuntimeError
+
+        # process in perpendicular mode:
+        # 1. create dangling pivot
+        # 2. connect origin from_pivot/to_pivot to this dangling pivot
+        # 3. return the dangling pivot
+        dangling_pivot = self.stretch.add_pivot(target_point,
+                                                dist_tol=self._attaching_dist_tol,
+                                                cargo_dict=target_point_cargo_dict)
+        if handling_from_pivot:
+            from_pivot, to_pivot = source_pivot, dangling_pivot
+        else:
+            from_pivot, to_pivot = dangling_pivot, source_pivot
+
+        new_edge = DirectEdge(from_pivot=from_pivot,
+                              to_pivot=to_pivot,
+                              stretch=self.stretch,
+                              cargo_dict=self._edge_cargo_inherit_strategy(edge.cargo))
+        self.stretch.edges.append(new_edge)
+
+        if edge.reverse:
+            new_reverse_edge = DirectEdge(from_pivot=to_pivot,
+                                          to_pivot=from_pivot,
+                                          stretch=self.stretch,
+                                          cargo_dict=self._edge_cargo_inherit_strategy(edge.reverse.cargo))
+            self.stretch.edges.append(new_reverse_edge)
+
+        return dangling_pivot
+
+    def handle_strict_attach_target(self, target_point: Point, edge: DirectEdge, handling_from_pivot: bool,
+                                    offset_vector: Vector, shrinking_closure, inherited_cargo: Cargo,
+                                    invalid_attached_segment:LineString):
+        sloppy_target_point = deepcopy(target_point)
+
+        last_attachment_point: Point = invalid_attached_segment.ext.start()
+        already_offset: float = edge.shape.ext.distance(last_attachment_point, direction=offset_vector)
+        remained_dist_to_offset: float = offset_vector.length - already_offset
+        target_point = last_attachment_point
+
+        if abs(remained_dist_to_offset) > self._attaching_dist_tol:
+            target_point = offset_vector.unit(remained_dist_to_offset).apply(target_point)
+        if not target_point.within(
+                shrinking_closure.shape.ext.buffer().rect(self._attaching_dist_tol)):
+            target_point = sloppy_target_point
+            source_pivot = edge.from_pivot if handling_from_pivot else edge.to_pivot
+        else:
+            source_pivot = self.stretch.query_pivots(geom=last_attachment_point,
+                                                     buffer=self._attaching_dist_tol)[0]
+        return self.handle_perpendicular_target_point(edge=edge,
+                                                      shrinking_closure=shrinking_closure,
+                                                      handling_from_pivot=handling_from_pivot,
+                                                      target_point=target_point,
+                                                      target_point_cargo_dict=self._pivot_cargo_inherit_strategy(
+                                                          inherited_cargo),
+                                                      source_pivot=
+                                                      source_pivot)
+
+
+    @staticmethod
+    def scanned_attachment(edge_shape: LineString,
+                           handling_from_pivot: bool,
+                           target_point: Point,
+                           shrinking_closure_shape: Polygon) -> LineString:
+        handling_point = edge_shape.ext.start() if handling_from_pivot else edge_shape.ext.end()
+        closure_exterior = shrinking_closure_shape.exterior
+        scanned_interval = Interval(closure_exterior.project(handling_point),
+                                    closure_exterior.project(target_point))
+        attachment = closure_exterior.ext.substring(absolute=True, allow_circle=True, interval=scanned_interval)
+        if attachment.ext.buffer().rect(MATH_MIDDLE_EPS).contains(edge_shape):
+            attachment = (closure_exterior.
+                          ext.substring(absolute=True, allow_circle=True,
+                                        interval=(scanned_interval.right, scanned_interval.left))
+                          .ext.inverse())
+        return attachment
