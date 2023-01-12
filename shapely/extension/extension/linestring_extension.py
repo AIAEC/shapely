@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from copy import deepcopy
 from itertools import product, combinations
 from typing import Union, Tuple, Optional, Iterable, Callable, List, overload
 
@@ -15,7 +16,7 @@ from shapely.extension.strategy.linemerge_strategy import MergeLineStrategy, nat
 from shapely.extension.strategy.offset_strategy import BaseOffsetStrategy, OffsetStrategy
 from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.func_util import min_max
-from shapely.extension.util.iter_util import win_slice, first
+from shapely.extension.util.iter_util import win_slice
 from shapely.extension.util.line_extent import LineExtent
 from shapely.extension.util.prolong import Prolong
 from shapely.geometry import Point, LineString
@@ -56,6 +57,7 @@ class LineStringExtension(BaseGeomExtension):
         -------
         LineString
         """
+        interval = deepcopy(interval)
 
         def new_start_point_line(distance: float, absolute: bool = True) -> LineString:
 

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import List
 from unittest import TestCase
 
@@ -74,7 +75,8 @@ class LineStringExtensionTest(TestCase):
         result = straight_segment.ext.projected_point(Point(0.6, 2), on_extension=False)
         self.assertTrue(result.equals(Point(0.6, 0)))
 
-        straight_segment = StraightSegment([(-29.57617211884179, 5.776949283250175), (-35.18104156096024, -13.72944278524371)])
+        straight_segment = StraightSegment(
+            [(-29.57617211884179, 5.776949283250175), (-35.18104156096024, -13.72944278524371)])
         point = Point(-29.57617211884179, 5.776949283250175)
         result = straight_segment.ext.projected_point(point, on_extension=False)
         self.assertTrue(result.almost_equals(point))
@@ -92,6 +94,14 @@ class LineStringExtensionTest(TestCase):
         line = LineString([(0, 0), (100, 0)])
         result = line.ext.substring((0, 10))
         self.assertEqual(result, LineString([(0, 0), (10, 0)]))
+
+    def test_substring_wont_change_interval(self):
+        interval = Interval(100, 20)
+        old_interval = deepcopy(interval)
+        line = box(0, 0, 100, 100).exterior
+        result = line.ext.substring(interval=interval, allow_circle=True)
+        self.assertEqual(result, LineString([(100, 100), (0, 100), (0, 0), (100, 0), (100, 20)]))
+        self.assertEqual(interval, old_interval)
 
     def test_inverse(self):
         line = LineString([(0, 0), (100, 0)])
