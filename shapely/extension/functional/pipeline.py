@@ -1,6 +1,7 @@
 """
 The pipeline module contains the transformations and actions API of PyFunctional
 """
+from numbers import Real
 from operator import mul, add
 import collections
 from functools import reduce, wraps, partial
@@ -1026,23 +1027,30 @@ class Sequence(object):
         else:
             return self.reduce(mul)
 
-    def sum(self, projection=None):
+    def sum(self, projection=None, start: Real = 0):
         """
         Takes sum of elements in sequence.
 
         >>> seq([1, 2, 3, 4]).sum()
         10
 
+        >>> seq([1, 2, 3, 4]).sum(start=5)
+        15
+
         >>> seq([(1, 2), (1, 3), (1, 4)]).sum(lambda x: x[0])
         3
 
+        >>> seq([(1, 2), (1, 3), (1, 4)]).sum(lambda x: x[0], 5)
+        8
+
         :param projection: function to project on the sequence before taking the sum
+        :param start: initial value before taking the sum
         :return: sum of elements in sequence
         """
         if projection:
-            return sum(self.map(projection))
+            return sum(self.map(projection)) + start
         else:
-            return sum(self)
+            return sum(self) + start
 
     def average(self, projection=None):
         """
