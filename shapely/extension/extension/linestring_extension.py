@@ -57,7 +57,6 @@ class LineStringExtension(BaseGeomExtension):
         -------
         LineString
         """
-        interval = deepcopy(interval)
 
         def new_start_point_line(distance: float, absolute: bool = True) -> LineString:
 
@@ -78,6 +77,8 @@ class LineStringExtension(BaseGeomExtension):
 
         if isinstance(interval, Sequence):
             interval = Interval(interval[0], interval[1])
+        else:
+            interval = deepcopy(interval)
         origin_line = self._geom
         if allow_circle and origin_line.is_closed and interval.left > interval.right:
             origin_line = new_start_point_line(interval.left, absolute)
