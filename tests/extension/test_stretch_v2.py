@@ -1599,3 +1599,46 @@ class TestStrictOffset:
 
         assert len(scan) == 1
         assert scan[0].length == pytest.approx(2.009975124224176)
+
+
+@fixture
+def stretch_of_two_plugged_boxs() -> Stretch:
+    stretch = Stretch([], [])
+    pivot_0_0 = Pivot(Point(0, 0), stretch)
+    pivot_2_0 = Pivot(Point(200, 0), stretch)
+    pivot_2_2 = Pivot(Point(200, 200), stretch)
+    pivot_0_2 = Pivot(Point(0, 200), stretch)
+    pivot_1_0 = Pivot(Point(100, 0), stretch)
+    pivot_1_2 = Pivot(Point(100, 200), stretch)
+    pivot_15_5 = Pivot(Point(150, 50), stretch)
+    pivot_15_15 = Pivot(Point(150, 150), stretch)
+    pivot_1_5 = Pivot(Point(100, 50), stretch)
+    pivot_1_15 = Pivot(Point(100, 150), stretch)
+    edges = [DirectEdge(pivot_1_0, pivot_1_5, stretch),
+             DirectEdge(pivot_1_5, pivot_15_5, stretch),
+             DirectEdge(pivot_15_5, pivot_15_15, stretch),
+             DirectEdge(pivot_15_15, pivot_1_15, stretch),
+             DirectEdge(pivot_1_15, pivot_1_2, stretch),
+
+             DirectEdge(pivot_0_0, pivot_1_0, stretch),
+             DirectEdge(pivot_1_0, pivot_2_0, stretch),
+             DirectEdge(pivot_2_0, pivot_2_2, stretch),
+             DirectEdge(pivot_2_2, pivot_1_2, stretch),
+             DirectEdge(pivot_1_2, pivot_0_2, stretch),
+             DirectEdge(pivot_0_2, pivot_0_0, stretch), ]
+
+    for i in range(5):
+        edges.append(DirectEdge(edges[i].to_pivot, edges[i].from_pivot, stretch))
+    stretch.pivots = [pivot_0_0, pivot_2_0, pivot_2_2, pivot_0_2, pivot_1_0, pivot_1_2, pivot_15_5, pivot_15_15,
+                      pivot_1_5, pivot_1_15]
+    stretch.edges = edges
+    return stretch
+
+
+@pytest.mark.skip("TODO fix it")
+def test_offset_dist_very_small(stretch_of_two_plugged_boxs):
+    stretch = stretch_of_two_plugged_boxs
+    edges = stretch.query_edges(Point(150, 50), buffer=1)
+    edge: DirectEdge = first(func=lambda e: e.shape.ext.start() == Point(150, 50), iter=edges)
+    edge.offset(dist=0.009, side='right', attaching_dist_tol=0.01, edge_offset_strategy_clz=OffsetStrategy)
+    assert stretch.edges
