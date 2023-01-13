@@ -7,13 +7,14 @@ from pytest import fixture
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.stretch_v2 import Pivot, DirectEdge, Stretch, ClosureSnapshot, DirectEdgeView, \
-    OffsetStrategy, ClosureView, StretchFactory, StrictAttachOffsetStrategy
+    ClosureView, StretchFactory, StrictAttachOffsetStrategy, OffsetStrategy
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.iter_util import first
 from shapely.geometry import Point, box, LineString, CAP_STYLE, JOIN_STYLE, Polygon, MultiLineString
 from shapely.wkt import loads
 
 
+# OffsetStrategy = StrictAttachOffsetStrategy should also pass all these tests
 @fixture
 def stretch_of_single_box() -> Stretch:
     stretch = Stretch([], [])

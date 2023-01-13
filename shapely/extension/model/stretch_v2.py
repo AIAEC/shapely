@@ -1818,14 +1818,14 @@ class OffsetStrategy(BaseOffsetStrategy):
                     func=lambda seg: offset_vector.angle.including_angle(seg.ext.angle()) > 90 - ANGLE_AROUND_EPS,
                     iter=scanned_attachments):
                 try:
-                    return self.handle_strict_attach_target(target_point=target_point, edge=edge,
+                    return self.handle_strict_attach_target(edge=edge,
                                                             handling_from_pivot=handling_from_pivot,
                                                             offset_vector=offset_vector,
                                                             shrinking_closure=shrinking_closure,
                                                             inherited_cargo=inherited_cargo,
                                                             invalid_attached_segment=invalid_attached_segment)
 
-                except RuntimeError:
+                except ValueError:
                     pass  # try attaching mode instead
         if not target_point or not target_point.within(
                 shrinking_closure.shape.ext.buffer().rect(self._attaching_dist_tol)):
@@ -1873,11 +1873,9 @@ class OffsetStrategy(BaseOffsetStrategy):
 
         return dangling_pivot
 
-    def handle_strict_attach_target(self, target_point: Point, edge: DirectEdge, handling_from_pivot: bool,
+    def handle_strict_attach_target(self, edge: DirectEdge, handling_from_pivot: bool,
                                     offset_vector: Vector, shrinking_closure, inherited_cargo: Cargo,
                                     invalid_attached_segment: LineString):
-        sloppy_target_point = deepcopy(target_point)
-
         last_attachment_point: Point = invalid_attached_segment.ext.start()
         already_offset: float = (edge.shape
                                  .ext.prolong().from_ends(enough := 1e3)
