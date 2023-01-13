@@ -1658,13 +1658,12 @@ class OffsetStrategy(BaseOffsetStrategy):
     def __init__(self, edge: DirectEdge, offset_vector: Vector,
                  attaching_dist_tol: float = MATH_EPS,
                  edge_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
-                 pivot_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
-                 strict_attach: bool = False):
+                 pivot_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy):
 
         super().__init__(edge, offset_vector, attaching_dist_tol=attaching_dist_tol,
                          edge_cargo_inherit_strategy=edge_cargo_inherit_strategy,
                          pivot_cargo_inherit_strategy=pivot_cargo_inherit_strategy)
-        self._strict_attach = strict_attach
+        self._strict_attach = False
 
     def create_new_edges(self, new_from_pivot: Pivot, new_to_pivot: Pivot) -> List[DirectEdge]:
         if self.shrinking_closure:
@@ -1875,7 +1874,7 @@ class OffsetStrategy(BaseOffsetStrategy):
 
     def handle_strict_attach_target(self, target_point: Point, edge: DirectEdge, handling_from_pivot: bool,
                                     offset_vector: Vector, shrinking_closure, inherited_cargo: Cargo,
-                                    invalid_attached_segment:LineString):
+                                    invalid_attached_segment: LineString):
         sloppy_target_point = deepcopy(target_point)
 
         last_attachment_point: Point = invalid_attached_segment.ext.start()
@@ -1901,7 +1900,6 @@ class OffsetStrategy(BaseOffsetStrategy):
                                                       source_pivot=
                                                       source_pivot)
 
-
     @staticmethod
     def scanned_attachment(edge_shape: LineString,
                            handling_from_pivot: bool,
@@ -1918,3 +1916,18 @@ class OffsetStrategy(BaseOffsetStrategy):
                                         interval=(scanned_interval.right, scanned_interval.left))
                           .ext.inverse())
         return attachment
+
+
+class StrictAttachOffsetStrategy(OffsetStrategy):
+    """
+    simple offset strategy that will choose attaching mode or perpendicular mode for calculating offset
+    """
+
+    def __init__(self, edge: DirectEdge, offset_vector: Vector,
+                 attaching_dist_tol: float = MATH_EPS,
+                 edge_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy,
+                 pivot_cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy):
+        super().__init__(edge, offset_vector=offset_vector, attaching_dist_tol=attaching_dist_tol,
+                         edge_cargo_inherit_strategy=edge_cargo_inherit_strategy,
+                         pivot_cargo_inherit_strategy=pivot_cargo_inherit_strategy)
+        self._strict_attach = True
