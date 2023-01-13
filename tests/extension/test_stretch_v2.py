@@ -1540,13 +1540,15 @@ class TestStrictOffset:
         poly = box(0, 0, 100, 100)
         poly = poly.difference(box(50, 20, 150, 80))
         edge_shape = LineString([(50, 20), (50, 80)])
-        scan = OffsetStrategy.scanned_attachment(edge_shape=edge_shape, handling_from_pivot=True,
-                                                 target_point=Point(20, 0), shrinking_closure_shape=poly)
-        assert scan == LineString([(50, 20), (100, 20), (100, 0), (20, 0)])
-        scan = OffsetStrategy.scanned_attachment(edge_shape=edge_shape, handling_from_pivot=False,
-                                                 target_point=Point(20, 100), shrinking_closure_shape=poly)
+        scan = OffsetStrategy.scanned_attachments(edge_shape=edge_shape, handling_from_pivot=True,
+                                                  target_point=Point(20, 0), shrinking_closure_shape=poly,
+                                                  attaching_dist_tol=MATH_EPS)
+        assert scan == LineString([(50, 20), (100, 20), (100, 0), (20, 0)]).ext.segments()
+        scan = OffsetStrategy.scanned_attachments(edge_shape=edge_shape, handling_from_pivot=False,
+                                                  target_point=Point(20, 100), shrinking_closure_shape=poly,
+                                                  attaching_dist_tol=MATH_EPS)
 
-        assert scan == LineString([(50, 80), (100, 80), (100, 100), (20, 100)])
+        assert scan == LineString([(50, 80), (100, 80), (100, 100), (20, 100)]).ext.segments()
 
     def test_offset_colinear_segment(self, stretch_of_2box_for_offset):
         stretch = stretch_of_2box_for_offset
@@ -1585,3 +1587,14 @@ class TestStrictOffset:
         assert edge.shape.equals(LineString([(0, 0), (10, 0)]))
         result = OffsetStrategy(edge, Vector(0, 2), strict_attach=True).do()[0]
         assert result.shape.almost_equals(LineString([(0.2, 2), (5, 2)]))
+
+    def test_scanned_attachment_eps(self):
+        poly = Polygon([(0, 0), (10, 0), (10, 1), (5, 1), (5, 10), (1, 10), (0, 0)])
+
+        edge_shape = LineString([(0, 0), (10, 0)])
+        scan = OffsetStrategy.scanned_attachments(edge_shape=edge_shape, handling_from_pivot=True,
+                                                  target_point=Point(0.2, 2), shrinking_closure_shape=poly,
+                                                  attaching_dist_tol=MATH_EPS)
+
+        assert len(scan) == 1
+        assert scan[0].length == pytest.approx(2.009975124224176)

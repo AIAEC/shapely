@@ -1809,14 +1809,15 @@ class OffsetStrategy(BaseOffsetStrategy):
             inherited_cargo = edge.to_pivot.cargo
 
         if self._strict_attach:
-            scanned_attachment: LineString = self.scanned_attachment(edge_shape=edge.shape,
-                                                                     handling_from_pivot=handling_from_pivot,
-                                                                     target_point=target_point,
-                                                                     shrinking_closure_shape=shrinking_closure.shape)
+            scanned_attachments: List[LineString] = self.scanned_attachments(edge_shape=edge.shape,
+                                                                             handling_from_pivot=handling_from_pivot,
+                                                                             target_point=target_point,
+                                                                             shrinking_closure_shape=shrinking_closure.shape,
+                                                                             attaching_dist_tol=self._attaching_dist_tol)
 
             if invalid_attached_segment := first(
                     func=lambda seg: offset_vector.angle.including_angle(seg.ext.angle()) > 90 - ANGLE_AROUND_EPS,
-                    iter=scanned_attachment.ext.segments()):
+                    iter=scanned_attachments):
                 try:
                     return self.handle_strict_attach_target(target_point=target_point, edge=edge,
                                                             handling_from_pivot=handling_from_pivot,
@@ -1875,7 +1876,7 @@ class OffsetStrategy(BaseOffsetStrategy):
 
     def handle_strict_attach_target(self, target_point: Point, edge: DirectEdge, handling_from_pivot: bool,
                                     offset_vector: Vector, shrinking_closure, inherited_cargo: Cargo,
-                                    invalid_attached_segment:LineString):
+                                    invalid_attached_segment: LineString):
         sloppy_target_point = deepcopy(target_point)
 
         last_attachment_point: Point = invalid_attached_segment.ext.start()
@@ -1901,12 +1902,12 @@ class OffsetStrategy(BaseOffsetStrategy):
                                                       source_pivot=
                                                       source_pivot)
 
-
     @staticmethod
-    def scanned_attachment(edge_shape: LineString,
-                           handling_from_pivot: bool,
-                           target_point: Point,
-                           shrinking_closure_shape: Polygon) -> LineString:
+    def scanned_attachments(edge_shape: LineString,
+                            handling_from_pivot: bool,
+                            target_point: Point,
+                            shrinking_closure_shape: Polygon,
+                            attaching_dist_tol: float ) -> List[StraightSegment]:
         handling_point = edge_shape.ext.start() if handling_from_pivot else edge_shape.ext.end()
         closure_exterior = shrinking_closure_shape.exterior
         scanned_interval = Interval(closure_exterior.project(handling_point),
@@ -1917,4 +1918,6 @@ class OffsetStrategy(BaseOffsetStrategy):
                           ext.substring(absolute=True, allow_circle=True,
                                         interval=(scanned_interval.right, scanned_interval.left))
                           .ext.inverse())
-        return attachment
+
+        # some unexpected tiny attachments may occur due to floating point precision
+        return lfilter(lambda seg: seg.length > attaching_dist_tol, attachment.ext.segments())
