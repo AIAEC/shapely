@@ -14,7 +14,9 @@ from shapely.geometry import Point, box, LineString, CAP_STYLE, JOIN_STYLE, Poly
 from shapely.wkt import loads
 
 
-# OffsetStrategy = StrictAttachOffsetStrategy should also pass all these tests
+# OffsetStrategy = StrictAttachOffsetStrategy
+# StrictAttachOffsetStrategy should  pass all tests for OffsetStrategy
+
 @fixture
 def stretch_of_single_box() -> Stretch:
     stretch = Stretch([], [])
@@ -1635,7 +1637,6 @@ def stretch_of_two_plugged_boxs() -> Stretch:
     return stretch
 
 
-@pytest.mark.skip("TODO fix it")
 def test_offset_dist_very_small(stretch_of_two_plugged_boxs):
     stretch = stretch_of_two_plugged_boxs
     edges = stretch.query_edges(Point(150, 50), buffer=1)
