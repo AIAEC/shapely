@@ -1879,7 +1879,9 @@ class OffsetStrategy(BaseOffsetStrategy):
         sloppy_target_point = deepcopy(target_point)
 
         last_attachment_point: Point = invalid_attached_segment.ext.start()
-        already_offset: float = edge.shape.ext.distance(last_attachment_point, direction=offset_vector)
+        already_offset: float = (edge.shape
+                                 .ext.prolong().from_ends(enough := 1e3)
+                                 .ext.distance(last_attachment_point, direction=offset_vector))
         remained_dist_to_offset: float = offset_vector.length - already_offset
         target_point = last_attachment_point
 
@@ -1887,8 +1889,7 @@ class OffsetStrategy(BaseOffsetStrategy):
             target_point = offset_vector.unit(remained_dist_to_offset).apply(target_point)
         if not target_point.within(
                 shrinking_closure.shape.ext.buffer().rect(self._attaching_dist_tol)):
-            target_point = sloppy_target_point
-            source_pivot = edge.from_pivot if handling_from_pivot else edge.to_pivot
+            raise ValueError('offset_vector is too long, so that edge after offset extrudes outside the origin closure')
         else:
             source_pivot = self.stretch.query_pivots(geom=last_attachment_point,
                                                      buffer=self._attaching_dist_tol)[0]
@@ -1906,7 +1907,7 @@ class OffsetStrategy(BaseOffsetStrategy):
                             handling_from_pivot: bool,
                             target_point: Point,
                             shrinking_closure_shape: Polygon,
-                            attaching_dist_tol: float ) -> List[StraightSegment]:
+                            attaching_dist_tol: float) -> List[StraightSegment]:
         handling_point = edge_shape.ext.start() if handling_from_pivot else edge_shape.ext.end()
         closure_exterior = shrinking_closure_shape.exterior
         scanned_interval = Interval(closure_exterior.project(handling_point),
