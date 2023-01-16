@@ -671,6 +671,43 @@ class TestStretch:
         stretch = deepcopy(stretch_of_two_box)
         assert isinstance(stretch, Stretch)
 
+    def test_deep_copy_pivots(self):
+        stretch = Stretch([], [])
+        pivot_1_0 = Pivot(Point(1, 0), stretch)
+        stretch.pivots = [pivot_1_0]
+        new_stretch = deepcopy(stretch)
+        assert 1 == len(new_stretch.pivots)
+
+    def test_deep_copy_content(self):
+        stretch = Stretch([], [])
+        pivot_1 = Pivot(Point(0, 0), stretch, cargo_dict={'x': 0})
+        pivot_2 = Pivot(Point(1, 0), stretch, cargo_dict={'x': 1})
+        edge = DirectEdge(from_pivot=pivot_1, to_pivot=pivot_2, cargo_dict={"length": 1}, stretch=stretch)
+        stretch.pivots = [pivot_1, pivot_2]
+        stretch.edges = [edge]
+        stretch.boundary = box(0, 0, 100, 100)
+
+        new_stretch = deepcopy(stretch)
+        stretch.boundary = None
+        stretch.edges = []
+        stretch.pivots[0].cargo['x'] = 999
+        stretch.pivots[1]._origin = Point(3, 0)
+
+        assert 2 == len(new_stretch.pivots)
+        assert 1 == len(new_stretch.edges)
+        assert new_stretch.pivots[0].shape == Point(0, 0)
+        assert new_stretch.pivots[1].shape == Point(1, 0)
+        assert 1 == len(new_stretch.pivots[0].out_edges)
+        assert 1 == len(new_stretch.pivots[1].in_edges)
+
+        assert 0 == len(new_stretch.pivots[1].out_edges)
+        assert 0 == len(new_stretch.pivots[0].in_edges)
+
+        assert 0 == new_stretch.pivots[0].cargo['x']
+        assert 1 == new_stretch.pivots[1].cargo['x']
+        assert 1 == new_stretch.pivots[0].out_edges[0].cargo['length']
+        assert new_stretch.boundary == box(0, 0, 100, 100)
+
     def test_query_pivot(self, stretch_of_two_box):
         stretch = stretch_of_two_box
         result = stretch.query_pivots(Point(0, 0))

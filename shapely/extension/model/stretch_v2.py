@@ -780,28 +780,29 @@ class Stretch:
         pivots: pivots of the stretch
         edges: direct edges of the stretch
         boundary: boundary of the stretch, useful when there are ring closures. default to None. if not given, ring
-            closures will not be recognize
+            closures will not be recognized
         """
         self.pivots: List[Pivot] = pivots
         self.edges: List[DirectEdge] = edges
         self.boundary = boundary
         self.id = uuid4()
 
-    def __deepcopy__(self, memodict={}):
+    def __deepcopy__(self, memo=None):
         new_stretch = Stretch([], [])
-        closures = self.closure_snapshot().closures
-        for closure in closures:
-            new_stretch.add_closure(closure.shape)
-        for pivot in self.pivots:
-            new_pivot: Pivot = min(new_stretch.query_pivots(pivot.shape, MATH_EPS),
-                                   key=lambda new_stretch_pivot: new_stretch_pivot.shape.distance(pivot.shape))
-            new_pivot.cargo.clear()
-            new_pivot.cargo.update(pivot.cargo.items())
+        old_pivot_to_new_pivot: Dict[Pivot, Pivot] = {}
+        for old_pivot in self.pivots:
+            new_pivot: Pivot = Pivot(origin=old_pivot.shape, stretch=new_stretch,
+                                     cargo_dict=deepcopy(dict(old_pivot.cargo)))
+            old_pivot_to_new_pivot[old_pivot] = new_pivot
+            new_stretch.pivots.append(new_pivot)
 
-        for edge in self.edges:
-            new_edge = first(edge.almost_equal_with, new_stretch.query_edges(edge.shape, MATH_EPS))
-            new_edge.cargo.clear()
-            new_edge.cargo.update(edge.cargo.items())
+        for old_edge in self.edges:
+            new_edge = DirectEdge(from_pivot=old_pivot_to_new_pivot[old_edge.from_pivot],
+                                  to_pivot=old_pivot_to_new_pivot[old_edge.to_pivot],
+                                  stretch=new_stretch,
+                                  cargo_dict=deepcopy(dict(old_edge.cargo)))
+            new_stretch.edges.append(new_edge)
+        new_stretch.boundary = deepcopy(self.boundary)
         return new_stretch
 
     def dump(self, fp, with_cargo: bool = True):
