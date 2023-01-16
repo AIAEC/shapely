@@ -1643,3 +1643,11 @@ def test_offset_dist_very_small(stretch_of_two_plugged_boxs):
     edge: DirectEdge = first(func=lambda e: e.shape.ext.start() == Point(150, 50), iter=edges)
     edge.offset(dist=0.009, side='right', attaching_dist_tol=0.01, edge_offset_strategy_clz=OffsetStrategy)
     assert stretch.edges
+
+
+def test_negative_offset_dist_very_small(stretch_of_two_plugged_boxs):
+    stretch = stretch_of_two_plugged_boxs
+    edges = stretch.query_edges(Point(150, 50), buffer=1)
+    edge: DirectEdge = first(func=lambda e: e.shape.ext.start() == Point(150, 50), iter=edges)
+    edge.offset(dist=-1 * 0.009, side='right', attaching_dist_tol=0.01, edge_offset_strategy_clz=OffsetStrategy)
+    assert stretch.edges

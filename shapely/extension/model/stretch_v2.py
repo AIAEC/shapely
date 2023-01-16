@@ -372,7 +372,7 @@ class DirectEdge:
         -------
         newly created edge that appear to be the offset result
         """
-        if dist <= attaching_dist_tol:
+        if abs(dist) <= attaching_dist_tol:
             return [self]
 
         edge_vec = Vector.from_endpoints_of(self.shape)
