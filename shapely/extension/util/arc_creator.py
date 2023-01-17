@@ -24,13 +24,14 @@ class FixedRadiusArcCreator:
     helper class for arc or circle creation given fixed radius beforehand
     """
 
-    def __init__(self, radius: float):
+    def __init__(self, radius: float, angle_step: float = 1):
         """
         Parameters
         ----------
         radius: the radius of result arcs or circles
         """
         self._radius = float(radius)
+        self._angle_step = angle_step
         self._geoms: List[BaseGeometry] = []
         self.constraint = None
 
@@ -116,7 +117,7 @@ class FixedRadiusArcCreator:
                                'meaning not enough constrains set')
 
         centers: List[Point] = decompose(self.constraint, Point)
-        circles = lmap(lambda pt: Circle(center=pt, radius=self._radius), centers)
+        circles = lmap(lambda pt: Circle(center=pt, radius=self._radius, angle_step=self._angle_step), centers)
 
         if touched_every_geoms:
             return lfilter(lambda circle: all(circle.distance(geom) <= dist_tol for geom in self._geoms), circles)
@@ -154,13 +155,14 @@ class FixedCenterArcCreator:
     helper class for arc or circle creation given fixed center point beforehand
     """
 
-    def __init__(self, center: Union[Point, CoordType]):
+    def __init__(self, center: Union[Point, CoordType], angle_step: float = 1):
         """
         Parameters
         ----------
         center: the center of the result arcs or circles
         """
         self._center = Point(center)
+        self._angle_step = angle_step
         self._radius_candidates: List[float] = []
         self._geoms: List[BaseGeometry] = []
 
@@ -279,28 +281,30 @@ class ArcCreator:
     entry class for creat arc and circle
     """
 
-    def center(self, center: Union[Point, CoordType]) -> FixedCenterArcCreator:
+    def center(self, center: Union[Point, CoordType], angle_step: float = 1) -> FixedCenterArcCreator:
         """
         fix center beforehand and calculate the arc or circle with further intersected geometries given
         Parameters
         ----------
         center: Point | Coord | tuple[num, num]
+        angle_step: float
 
         Returns
         -------
         instance of FixedCenterArcCreator, enter the fix center arc creation process
         """
-        return FixedCenterArcCreator(center)
+        return FixedCenterArcCreator(center, angle_step)
 
-    def radius(self, radius: float) -> FixedRadiusArcCreator:
+    def radius(self, radius: float, angle_step: float = 1) -> FixedRadiusArcCreator:
         """
         fix the radius beforehand and calculate the arc or circle with further intersected geometries given
         Parameters
         ----------
         radius: number
+        angle_step: float
 
         Returns
         -------
         instance of FixedRadiusArcCreator, enter the fix radius arc creation process
         """
-        return FixedRadiusArcCreator(radius)
+        return FixedRadiusArcCreator(radius, angle_step)
