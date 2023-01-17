@@ -393,7 +393,7 @@ class DirectEdge:
     def expand(self, point: Point,
                endpoint_dist_tol: float = MATH_EPS,
                pivot_cargo_dict: Optional[dict] = None,
-               cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> Pivot:
+               cargo_inherit_strategy: CargoInheritStrategy = default_cargo_inherit_strategy) -> List['DirectEdge']:
         """
         for edge(A, B), insert the given point C between to expand the current edge into 2 new edges (A, C) and (C, B)
         Parameters
@@ -405,7 +405,7 @@ class DirectEdge:
 
         Returns
         -------
-        newly created pivot corresponding to given point
+        newly created edges (A, C) and (C, B) or (A, B) if point is too close to ends of the edge
         """
         reverse_existed = bool(self.reverse)
         closest_end_pivot = min([self.from_pivot, self.to_pivot], key=lambda pivot: pivot.distance(point))
@@ -413,7 +413,7 @@ class DirectEdge:
         if closest_end_pivot.distance(point) <= endpoint_dist_tol:
             # don't expand if given point is too close to the end pivots
             closest_end_pivot.cargo.update(pivot_cargo_dict)
-            return closest_end_pivot
+            return [self]
 
         # create insertion pivot
         insert_pivot = Pivot(point, self.stretch, cargo_dict=pivot_cargo_dict)
@@ -426,14 +426,16 @@ class DirectEdge:
             pass
 
         # delete edge record in stretch and add 2 new edges
-        self.stretch.edges.append(DirectEdge(from_pivot=self.from_pivot,
-                                             to_pivot=insert_pivot,
-                                             stretch=self.stretch,
-                                             cargo_dict=cargo_inherit_strategy(self.cargo)))
-        self.stretch.edges.append(DirectEdge(from_pivot=insert_pivot,
-                                             to_pivot=self.to_pivot,
-                                             stretch=self.stretch,
-                                             cargo_dict=cargo_inherit_strategy(self.cargo)))
+        start_edge = DirectEdge(from_pivot=self.from_pivot,
+                                to_pivot=insert_pivot,
+                                stretch=self.stretch,
+                                cargo_dict=cargo_inherit_strategy(self.cargo))
+        end_edge = DirectEdge(from_pivot=insert_pivot,
+                              to_pivot=self.to_pivot,
+                              stretch=self.stretch,
+                              cargo_dict=cargo_inherit_strategy(self.cargo))
+        self.stretch.edges.append(start_edge)
+        self.stretch.edges.append(end_edge)
         self.stretch.edges.remove(self)
 
         if reverse_existed:
@@ -458,7 +460,7 @@ class DirectEdge:
         # add new pivot ot stretch
         self.stretch.pivots.append(insert_pivot)
 
-        return insert_pivot
+        return [start_edge, end_edge]
 
     def sub_edge(self, overlapping_geom: BaseGeometry,
                  buffer: float = 0,
@@ -1182,7 +1184,14 @@ class Stretch:
                 return existed_pivot
 
             if attach_to_nearest_edge and (existed_edge := self._query_attachable_edge(point, dist_tol)):
-                return existed_edge.expand(point, endpoint_dist_tol=dist_tol, pivot_cargo_dict=cargo_dict)
+                expanded_edges: List[DirectEdge] = existed_edge.expand(point, endpoint_dist_tol=dist_tol,
+                                                                       pivot_cargo_dict=cargo_dict)
+                if len(expanded_edges) == 1:  # did not expand because point is too close to ends of the existed_edge
+                    return min([expanded_edges[0].from_pivot, expanded_edges[0].to_pivot],
+                               key=lambda pivot: point.distance(pivot.shape))
+                if len(expanded_edges) == 2:
+                    return expanded_edges[0].to_pivot
+                raise ValueError("Unexpected condition: len(expanded_edges) not in [1,2]")
 
         new_pivot = Pivot(point, stretch=self, cargo_dict=cargo_dict)
         self.pivots.append(new_pivot)

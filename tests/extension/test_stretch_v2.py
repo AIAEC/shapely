@@ -506,14 +506,18 @@ class TestDirectEdge:
         origin_num_edges = len(stretch.edges)
 
         # add to endpoints' pivot
-        new_pivot = edge.expand(Point(MATH_EPS / 10, 0))
+        new_edges = edge.expand(Point(MATH_EPS / 10, 0))
+        assert len(new_edges) == 1
+        new_pivot = min([new_edges[0].from_pivot, new_edges[0].to_pivot],
+                        key=lambda pivot: Point(MATH_EPS / 10, 0).distance(pivot.shape))
         assert new_pivot == stretch.pivots[0]
         assert origin_num_pivots == len(stretch.pivots)
         assert origin_num_edges == len(stretch.edges)
 
         edge = stretch.query_edges(Point(2, 0.5))[0]
         assert edge.shape.equals(LineString([(2, 0), (2, 1)]))
-        new_pivot = edge.expand(Point(2, 0.5))
+        new_edges = edge.expand(Point(2, 0.5))
+        new_pivot = new_edges[0].to_pivot
         assert new_pivot != stretch.pivots[0]
         assert new_pivot != stretch.pivots[1]
         assert new_pivot.shape.equals(Point(2, 0.5))
@@ -1366,7 +1370,9 @@ class TestCargo:
         edge_cargo = {'test': 0}
         pivot_cargo = {'test': 1}
         edge.cargo.update(edge_cargo)
-        new_pivot = edge.expand(Point(1, -1), pivot_cargo_dict=pivot_cargo)
+        new_edges = edge.expand(Point(1, -1), pivot_cargo_dict=pivot_cargo)
+        new_pivot = new_edges[0].to_pivot
+
         assert isinstance(new_pivot, Pivot)
         assert new_pivot.cargo.data_equals(pivot_cargo)
         assert new_pivot.in_edges[0].cargo.data_equals(edge_cargo)
