@@ -22,6 +22,12 @@ class TestVector(TestCase):
         self.assertFalse(Vector._is_coord(['a']))
         self.assertFalse(Vector._is_coord(['a', 1]))
 
+    def test_zero(self):
+        vector1 = Vector.zero()
+        self.assertTrue(isinstance(vector1, Vector))
+        self.assertEqual(0, vector1.x)
+        self.assertEqual(0, vector1.y)
+
     def test_from_tuple(self):
         vector1 = Vector.from_tuple([0, 1])
         self.assertTrue(isinstance(vector1, Vector))
@@ -152,6 +158,13 @@ class TestVector(TestCase):
         with self.assertRaises(ValueError):
             vector.apply(Test())
 
+    def test_apply_to_point(self):
+        vector = Vector(1, 1)
+        point = Point(0, 0)
+        point_list = [Point(1, 2), Point(3, 3), Point(9, 1)]
+        self.assertEqual(Point(1, 1), vector.apply(point))
+        self.assertListEqual([Point(2, 3), Point(4, 4), Point(10, 2)], vector.apply(point_list))
+
     def test_plus(self):
         vector1 = Vector(1, 3.14)
         vector2 = Vector(-1, -2)
@@ -205,6 +218,23 @@ class TestVector(TestCase):
         vector *= 3
         self.assertEqual(Vector(3, 3), vector)
 
+    def test_cross(self):
+        vector1 = Vector(1, 2)
+        vector2 = Vector(2, 1)
+        cross_vector = vector1.cross(vector2)
+        self.assertEqual(Vector(0, 0), cross_vector)
+
+    def test_cross_prod(self):
+        vector1 = Vector(1, 2)
+        vector2 = Vector(2, 1)
+        self.assertEqual(-3, vector1.cross_prod(vector2))
+        self.assertEqual(3, vector2.cross_prod(vector1))
+
+        vector3 = Vector(2.3, 1)
+        vector4 = Vector(1.2, 2)
+        self.assertAlmostEqual(3.4, vector3.cross_prod(vector4))
+        self.assertAlmostEqual(-3.4, vector4.cross_prod(vector3))
+
     def test_vector_div(self):
         vector = Vector(3, 3)
         self.assertEqual(Vector(1, 1), vector / 3)
@@ -222,6 +252,17 @@ class TestVector(TestCase):
         vector1 = Vector(2, 1)
         reversed_vec = vector1.invert()
         self.assertEqual(Vector(-2, -1), reversed_vec)
+
+    def test_slope(self):
+        vector1 = Vector(0, 0)
+        self.assertAlmostEqual(float('inf'), vector1.slope)
+
+        vector2 = Vector(1, 2)
+        slope_vector2 = vector2.slope
+        self.assertAlmostEqual(2 / 1, vector2.slope)
+
+        vector3 = Vector(2, 0)
+        self.assertAlmostEqual(0, vector3.slope)
 
     def test_angle(self):
         vector1 = Vector(1, 1)
@@ -242,6 +283,36 @@ class TestVector(TestCase):
         line = vector.ray(origin)
         self.assertEqual(1e9, line.length)
         self.assertEqual(LineString([(0, 0), (0, -1e9)]), line)
+
+    def test_ccw_perpendicular(self):
+        vector1 = Vector(1, 2)
+        degree1 = vector1.angle.degree
+        ccw_vector1 = vector1.ccw_perpendicular
+        self.assertEqual(-2, ccw_vector1.x)
+        self.assertEqual(1, ccw_vector1.y)
+        self.assertAlmostEqual((degree1 + 90) % 360, ccw_vector1.angle.degree)
+
+        vector2 = Vector(2, -1)
+        degree2 = vector2.angle.degree
+        ccw_vector2 = vector2.ccw_perpendicular
+        self.assertEqual(1, ccw_vector2.x)
+        self.assertEqual(2, ccw_vector2.y)
+        self.assertAlmostEqual((degree2 + 90) % 360, ccw_vector2.angle.degree)
+
+    def test_cw_perpendicular(self):
+        vector1 = Vector(1, 2)
+        degree1 = vector1.angle.degree
+        cw_vector1 = vector1.cw_perpendicular
+        self.assertEqual(2, cw_vector1.x)
+        self.assertEqual(-1, cw_vector1.y)
+        self.assertAlmostEqual((degree1 + 270) % 360, cw_vector1.angle.degree)
+
+        vector2 = Vector(-2, -1)
+        degree2 = vector2.angle.degree
+        cw_vector2 = vector2.cw_perpendicular
+        self.assertEqual(-1, cw_vector2.x)
+        self.assertEqual(2, cw_vector2.y)
+        self.assertAlmostEqual((degree2 + 270) % 360, cw_vector2.angle.degree)
 
     def test_from_angle(self):
         vector = Vector.from_angle()
@@ -299,13 +370,19 @@ class TestVector(TestCase):
         self.assertTrue(vector5.parallel_to(vector0, angle_tol=46))
         self.assertFalse(vector5.parallel_to(vector0, angle_tol=44))
 
+    def test_sub(self):
+        vector1 = Vector(3, 4)
+        vector2 = Vector(2, 6)
+        self.assertEqual(Vector(1, -2), vector1.sub(vector2))
+        self.assertEqual(Vector(-1, 2), vector2.sub(vector1))
+
     def test_sub_vector(self):
         vector0 = Vector(1, 1)
         direction0 = Vector(1, 0)
         result = vector0.sub_vector(direction0)
         self.assertEqual(Vector(1, 0), result)
 
-        direction1= Vector(0, 1)
+        direction1 = Vector(0, 1)
         result = vector0.sub_vector(direction1)
         self.assertEqual(Vector(0, 1), result)
 

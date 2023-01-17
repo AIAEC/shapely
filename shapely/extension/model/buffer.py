@@ -20,8 +20,7 @@ class Buffer:
     def rect(self, dist: float,
              cap_style=CAP_STYLE.flat,
              mitre_limit: float = 5.0) -> BaseGeometry:
-        if isinstance(self._geom, Point):
-            dist = abs(dist)
+        if isinstance(self._geom, Point) and dist > 0:
             x, y = self._geom.x, self._geom.y
             xmin, ymin, xmax, ymax = (x - dist / 2,
                                       y - dist / 2,
