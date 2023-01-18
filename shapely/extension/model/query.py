@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Sequence, List, Any, Union, Callable
 
 from toolz import identity
@@ -10,6 +11,10 @@ from shapely.strtree import STRtree
 
 
 class GeomQueryContainer(ABC):
+    @abstractmethod
+    def recover_to_init_state(self):
+        raise NotImplementedError
+
     @abstractmethod
     def query(self, geom: BaseGeometry) -> List[BaseGeometry]:
         raise NotImplementedError
@@ -30,6 +35,10 @@ class GeomQueryContainer(ABC):
 class SeqQueryContainer(GeomQueryContainer):
     def __init__(self, geoms: List[BaseGeometry]):
         self._geoms = geoms
+        self._origin_geoms = deepcopy(self._geoms)
+
+    def recover_to_init_state(self):
+        self._geoms = deepcopy(self._origin_geoms)
 
     def add(self, geom: BaseGeometry):
         if geom not in self._geoms:
@@ -45,6 +54,9 @@ class SeqQueryContainer(GeomQueryContainer):
     def items(self):
         return self._geoms
 
+    def __len__(self):
+        return len(self._geoms)
+
 
 class RTreeQueryContainer(GeomQueryContainer):
     def __init__(self, geoms: List[BaseGeometry]):
@@ -52,6 +64,10 @@ class RTreeQueryContainer(GeomQueryContainer):
         self._db = STRtree(geoms)
         self._added: List[BaseGeometry] = []
         self._deleted: List[BaseGeometry] = []
+
+    def recover_to_init_state(self):
+        self._added.clear()
+        self._deleted.clear()
 
     def query(self, geom: BaseGeometry) -> List[BaseGeometry]:
         result: List[BaseGeometry] = (
@@ -81,6 +97,9 @@ class RTreeQueryContainer(GeomQueryContainer):
                 result.append(add_candidate)
         return result
 
+    def __len__(self):
+        return len(self._geoms) - len(self._deleted) + len(self._added)
+
 
 class Query:
     def __init__(self, geoms: Sequence[Union[BaseGeometry, Any]],
@@ -102,6 +121,12 @@ class Query:
 
         self._geoms = inner_geoms
         self._db = container_type(self._geoms)
+
+    def __len__(self):
+        return len(self._db)
+
+    def recover_to_init_state(self):
+        self._db.recover_to_init_state()
 
     def add(self, geom):
         self._db.add(geom)

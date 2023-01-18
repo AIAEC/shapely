@@ -82,6 +82,9 @@ def test_query_add():
     assert len(query._db._added) == 2
     assert len(query._db._deleted) == 1
 
+    query.recover_to_init_state()
+    assert len(query) == 2
+
 
 def test_query_remove():
     query = Query([box(0, 0, 1, 1), box(1, 1, 2, 2), box(2, 2, 3, 3), box(3, 3, 4, 4)])
@@ -116,6 +119,9 @@ def test_query_remove():
     query.remove(box(3, 3, 4, 4))
     assert len(query._db._added) == 1
     assert len(query._db._deleted) == 2
+
+    query.recover_to_init_state()
+    assert len(query) == 4
 
 
 def test_query_query():
