@@ -2,6 +2,9 @@ from copy import deepcopy
 from typing import List
 from unittest import TestCase
 
+import pytest
+
+import shapely.wkt
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
@@ -208,6 +211,16 @@ class LineStringExtensionTest(TestCase):
         line1 = LineString([(3, 1), (4, 2)])
         result = line0.ext.extend_to_merge(line1)
         self.assertTrue(LineString([(0, 0), (2, 0), (4, 2)]).almost_equals(result))
+
+    def test_real_extend_to_merge(self):
+        line0 = shapely.wkt.loads(
+            "LINESTRING (40.19805392440635 -0.0013248190869355, 40.19805392440635 44.61139266384599, -40.205089850155204 44.61127537604853, -40.205089806597485 -44.61405404443773, 48.248053924451796 -44.61405404493709)")
+        line1 = shapely.wkt.loads(
+            "LINESTRING (40.19805392440635 -52.664054044937046, 40.19805392440635 -0.0013248190869319)")
+        result = line0.ext.extend_to_merge(line1)
+        assert isinstance(result, LineString)
+        expected_poly = box(-40.205089850155204, -44.61405404443773, 40.198053924406324, 44.61127537604853)
+        assert result.length == pytest.approx(expected_poly.exterior.length, abs=0.01)
 
     def test_projection_by(self):
         line0 = LineString([(i, 0) for i in range(100)])

@@ -1,10 +1,11 @@
-from math import isclose
+from operator import attrgetter
 from typing import Optional, List
 
 from shapely.extension.constant import LARGE_ENOUGH_DISTANCE, MATH_EPS
 from shapely.extension.model.coord import Coord
 from shapely.extension.typing import CoordType
 from shapely.extension.util.easy_enum import EasyEnum
+from shapely.extension.util.func_util import lmap
 from shapely.extension.util.prolong import prolong
 from shapely.geometry import LineString, Point, LinearRing
 from shapely.ops import substring
@@ -46,8 +47,10 @@ class LineExtent:
         if curve.ext.almost_intersects(joint, MATH_EPS):
             joint_pos_ratio = curve.project(joint, normalized=True)
             if direction == cls.ExtendingDirection.TO_END:
+                # TODO what if joint_pos_ratio == 0?
                 return list(substring(curve, 0.0, joint_pos_ratio, normalized=True).coords)
             else:  # TO_FRONT
+                # TODO what if joint_pos_ratio == 1?
                 return list(substring(curve, joint_pos_ratio, 1.0, normalized=True).coords)
 
         if direction == cls.ExtendingDirection.TO_FRONT:
@@ -231,13 +234,14 @@ class LineExtent:
             return None
 
         intersection = end_stretched_curve_ab.intersection(front_stretched_curve_cd)
-        if intersection.type == 'MultiPoint':
-            point_c = Point(coords_cd[0])
-            joint = min(intersection.geoms, key=lambda p: point_c.distance(p))
-        elif intersection.type == 'LineString':
+
+        if intersection.type == 'LineString':
             joint = LineString([curve_ab.coords[-1], curve_cd.coords[0]]).centroid
-        else:  # intersection is Point
+        elif intersection.type == 'Point':  # intersection is Point
             joint = intersection.centroid
+        else:  # if intersection.type == 'MultiPoint':
+            point_c = Point(coords_cd[0])
+            joint = min(lmap(attrgetter("centroid"), intersection.geoms), key=lambda p: point_c.distance(p))
 
         ab_extent_coords = cls._curve_coords_extending_in_curve_dir(curve=curve_ab,
                                                                     joint=joint,
