@@ -16,6 +16,11 @@ class PolygonExtension(BaseGeomExtension):
     def shell(self) -> Polygon:
         return Polygon(self._geom.exterior)
 
+    @property
+    def holes(self) -> Iterable[Polygon]:
+        for hole in self._geom.interiors:
+            yield Polygon(hole)
+
     def edge_pair_with(self, poly_or_line: Union[Polygon, LineString],
                        decompose_strategy: Optional[BaseDecomposeStrategy] = None
                        ) -> Iterable[Tuple[LineString, LineString]]:
