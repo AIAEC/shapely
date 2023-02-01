@@ -14,10 +14,13 @@ from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.bypassing_strategy import BaseBypassingStrategy, ShorterBypassingStrategy
 from shapely.extension.strategy.linemerge_strategy import MergeLineStrategy, native_linemerge
 from shapely.extension.strategy.offset_strategy import BaseOffsetStrategy, OffsetStrategy
+from shapely.extension.strategy.polygonize_strategy import (
+    ShapelyPolygonizeStrategy, ConvexHullStrategy, MouldStrategy, ClosingEndPointsStrategy)
 from shapely.extension.typing import CoordType, Num
 from shapely.extension.util.func_util import min_max
 from shapely.extension.util.iter_util import win_slice
 from shapely.extension.util.line_extent import LineExtent
+from shapely.extension.util.polygonize import Polygonize
 from shapely.extension.util.prolong import Prolong
 from shapely.geometry import Point, LineString
 from shapely.geometry.base import BaseGeometry
@@ -481,3 +484,25 @@ class LineStringExtension(BaseGeomExtension):
             raise TypeError(f'merge accept another linestring as parameter, given {line}')
 
         return merge_line_strategy(self._geom, line)
+
+    def polygonize(self, default_strategy=True) -> Polygonize:
+        """
+        poligonize the geom or geom list
+        Parameters
+        ----------
+        default_strategy: True for auto adding 4 strategies, False for no strategy
+
+        Returns
+        -------
+        Polygonize instance
+        """
+        geoms = self._geom
+        if isinstance(self._geom, BaseGeometry):
+            geoms = [self._geom]
+
+        if default_strategy:
+            return (Polygonize(geoms).add_strategy(ShapelyPolygonizeStrategy())
+                    .add_strategy(ConvexHullStrategy())
+                    .add_strategy(MouldStrategy())
+                    .add_strategy(ClosingEndPointsStrategy()))
+        return Polygonize(geoms)
