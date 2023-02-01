@@ -1,16 +1,14 @@
-from math import sqrt
-
 try:
     from descartes import PolygonPatch
     from matplotlib import pyplot
 except ImportError:
     raise ImportError('This module requires matplotlib and descartes')
 
-from shapely.geometry import LineString, Polygon, Point, MultiLineString
+from shapely.geometry import LineString, Polygon, Point
 
 
 class Draw:
-    SIZE = (8, 8 * (sqrt(5) - 1.0) / 2.0)
+    SIZE = (8, 8)
 
     BLUE = '#6699cc'
     GRAY = '#999999'
@@ -26,6 +24,7 @@ class Draw:
         self.fig = pyplot.figure(1, figsize=size, dpi=dpi)
         self.ax = self.fig.add_subplot(111)
         self.ax.set_facecolor(self.WHITE)
+        self.ax.set_aspect('equal')
 
     def save(self, filename):
         self.fig.savefig(filename)
