@@ -6,10 +6,10 @@ try:
 except ImportError:
     raise ImportError('This module requires matplotlib and descartes')
 
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Polygon, Point, MultiLineString
 
 
-class Figure:
+class Draw:
     SIZE = (8, 8 * (sqrt(5) - 1.0) / 2.0)
 
     BLUE = '#6699cc'
@@ -32,6 +32,17 @@ class Figure:
 
     def show(self):
         pyplot.show()
+
+    def draw(self, geometry, color=BLUE, edge_color=BLACK, alpha=0.5):
+        for geom in geometry.ext.flatten():
+            if isinstance(geom, LineString):
+                self.draw_line(geom, color)
+            elif isinstance(geom, Polygon):
+                self.draw_polygon(geom, color, edge_color, alpha)
+            elif isinstance(geom, Point):
+                self.draw_point(geom, color)
+
+        return self
 
     def draw_line(self, line: LineString, color=BLUE):
         x, y = line.xy
@@ -57,7 +68,7 @@ class Figure:
             self.ax.add_patch(patch)
         return self
 
-    def draw_point(self, point, color=RED):
+    def draw_point(self, point: Point, color=RED):
         self.ax.plot(point.x, point.y, 'o',
                      color=color,
                      alpha=0.7,
