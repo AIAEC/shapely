@@ -499,7 +499,9 @@ class Skeleton:
         elif isinstance(self._geom, LineString):
             self._skeleton_lines = [self._geom]
         elif isinstance(self._geom, Polygon):
-            self._skeleton_lines = skeletonize(self._geom)
+            # skeleton implement by botffy might return segments that goes outside of polygon
+            # take linestring's intersection with the polygon to correct the problematic algorithm implementation
+            self._skeleton_lines = [l.intersection(self._geom) for l in skeletonize(self._geom)]
 
     def trunk_segments(self) -> List[LineString]:
         if isinstance(self._geom, Polygon):
