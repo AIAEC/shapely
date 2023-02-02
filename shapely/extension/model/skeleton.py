@@ -13,6 +13,7 @@ from typing import List, Union
 from euclid3 import LineSegment2, Line2, Point2, Ray2
 from euclid3 import operator as euclid_operator
 
+from shapely.extension.functional import seq
 from shapely.extension.util.func_util import lfilter
 from shapely.geometry import Polygon, LineString, Point, MultiLineString
 from shapely.ops import linemerge, unary_union
@@ -501,7 +502,10 @@ class Skeleton:
         elif isinstance(self._geom, Polygon):
             # skeleton implement by botffy might return segments that goes outside of polygon
             # take linestring's intersection with the polygon to correct the problematic algorithm implementation
-            self._skeleton_lines = [l.intersection(self._geom) for l in skeletonize(self._geom)]
+            self._skeleton_lines = (seq(skeletonize(self._geom))
+                                    .map(self._geom.intersection)
+                                    .filter(lambda x: isinstance(x, LineString))
+                                    .list())
 
     def trunk_segments(self) -> List[LineString]:
         if isinstance(self._geom, Polygon):
