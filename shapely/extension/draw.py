@@ -33,13 +33,14 @@ class Draw:
 
     def save(self, filename):
         self.fig.savefig(filename)
+        return self
 
     def show(self):
         pyplot.show()
+        return self
 
     def free(self):
         pyplot.close(self.fig)
-        return self
 
     def draw(self, geometry, color=BLUE, edge_color=BLACK, alpha=0.5):
         for geom in geometry.ext.flatten():
