@@ -1,3 +1,5 @@
+from math import sqrt
+
 try:
     from descartes import PolygonPatch
     from matplotlib import pyplot
@@ -8,7 +10,10 @@ from shapely.geometry import LineString, Polygon, Point
 
 
 class Draw:
-    SIZE = (8, 8)
+    GM = (sqrt(5) - 1.0) / 2.0
+    W = 8.0
+    H = W * GM
+    SIZE = (W, H)
 
     BLUE = '#6699cc'
     GRAY = '#999999'
@@ -21,7 +26,7 @@ class Draw:
     PURPLE = '#660066'
 
     def __init__(self, size=SIZE, dpi=90):
-        self.fig = pyplot.figure(1, figsize=size, dpi=dpi)
+        self.fig = pyplot.figure(1, figsize=size, dpi=dpi, frameon=False)
         self.ax = self.fig.add_subplot(111)
         self.ax.set_facecolor(self.WHITE)
         self.ax.set_aspect('equal')
