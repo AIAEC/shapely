@@ -37,6 +37,10 @@ class Draw:
     def show(self):
         pyplot.show()
 
+    def free(self):
+        pyplot.close(self.fig)
+        return self
+
     def draw(self, geometry, color=BLUE, edge_color=BLACK, alpha=0.5):
         for geom in geometry.ext.flatten():
             if isinstance(geom, LineString):
