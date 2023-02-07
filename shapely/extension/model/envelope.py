@@ -134,7 +134,7 @@ class Envelope:
     def edge(self, position: EdgePosition) -> LineString:
         """
         返回矩形的边
-        注意：边的方向总是从矩形的左边开始到矩形右边结束
+        注意: 边的方向总是从矩形的左边开始到矩形右边结束, 从矩形的下边开始到矩形上边结束
         """
         vertical_choices = ['left', 'right', 'mid']
         horizontal_choices = ['bottom', 'top', 'horizon']
@@ -184,14 +184,14 @@ class Envelope:
     @property
     def longer_edges(self) -> Tuple[LineString, LineString]:
         if self.edge(EdgePosition.BOTTOM).length > self.edge(EdgePosition.LEFT).length:
-            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP)
-        return self.edge(EdgePosition.LEFT), self.edge(EdgePosition.RIGHT)
+            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP).ext.inverse()
+        return self.edge(EdgePosition.LEFT).ext.inverse(), self.edge(EdgePosition.RIGHT)
 
     @property
     def shorter_edges(self) -> Tuple[LineString, LineString]:
         if self.edge(EdgePosition.BOTTOM).length <= self.edge(EdgePosition.LEFT).length:
-            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP)
-        return self.edge(EdgePosition.LEFT), self.edge(EdgePosition.RIGHT)
+            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP).ext.inverse()
+        return self.edge(EdgePosition.LEFT).ext.inverse(), self.edge(EdgePosition.RIGHT)
 
     @property
     def longer_mid_line(self) -> LineString:

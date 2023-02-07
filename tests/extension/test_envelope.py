@@ -155,3 +155,9 @@ class EnvelopeCreatorTest(TestCase):
         self.assertTrue(LineString([envelope.left_top, envelope.right_top]).equals(envelope.edge(EdgePosition.TOP)))
         self.assertEqual(3, envelope.width)
         self.assertEqual(1, envelope.depth)
+
+        shorter_edges = envelope.shorter_edges
+        self.assertAlmostEqual(shorter_edges[0].ext.angle().degree, shorter_edges[1].ext.inverse().ext.angle().degree)
+
+        longer_edges = envelope.longer_edges
+        self.assertAlmostEqual(longer_edges[0].ext.angle().degree, longer_edges[1].ext.inverse().ext.angle().degree)
