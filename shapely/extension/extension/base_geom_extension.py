@@ -29,6 +29,7 @@ from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.extension.util.similar import similar
+from shapely.extension.util.legalize import legalize
 from shapely.geometry import Point, LineString, MultiLineString, Polygon
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 from shapely.ops import unary_union
@@ -475,3 +476,12 @@ class BaseGeomExtension:
         skeleton object
         """
         return Skeleton(self._geom)
+
+    def legalize(self) -> BaseGeometry:
+        """
+        make invalid geometry valid
+        Returns
+        ----------
+        valid geometry
+        """
+        return legalize(self._geom)
