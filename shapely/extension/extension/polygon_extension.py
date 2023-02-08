@@ -7,7 +7,8 @@ from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
 from shapely.extension.util.decompose import decompose
-from shapely.geometry import Polygon, LineString, JOIN_STYLE, CAP_STYLE, MultiPolygon
+from shapely.extension.util.polygon_cutter import PolygonCutter
+from shapely.geometry import Polygon, LineString, JOIN_STYLE, CAP_STYLE, MultiPolygon, Point
 from shapely.ops import unary_union
 
 
@@ -114,3 +115,23 @@ class PolygonExtension(BaseGeomExtension):
                                                                                     join_style=JOIN_STYLE.mitre,
                                                                                     cap_style=CAP_STYLE.flat)
         return unary_union([self._geom, poly, shadow])
+
+    def cut(self, point: Point,
+            vector: Vector,
+            target_area: float) -> Union[Polygon, MultiPolygon]:
+        """
+        cutting the given polygon to get specified area polygon by given vector
+
+        Parameters
+        ----------
+        point: a point for generating cutting line.
+            note that it cannot be too far away from polygon(less than polygon.length), or it will return empty polygon.
+        vector: specify the cutting direction, and used for generating cutting line
+            note that it cannot be opposite to the polygon，or it will return empty polygon.
+        target_area: specified cutting area
+
+        Returns
+        -------
+        specified area polygon or multipolygon
+        """
+        return PolygonCutter(self._geom, point, vector, target_area,).cut()
