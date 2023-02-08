@@ -4,11 +4,11 @@ from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import List, Optional, Union
 
-from shapely.extension.functional import seq
 from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.functional import seq
 from shapely.extension.util.flatten import flatten
-from shapely.extension.util.func_util import lconcat
-from shapely.geometry import Polygon, JOIN_STYLE, CAP_STYLE
+from shapely.extension.util.func_util import lconcat, lmap
+from shapely.geometry import Polygon, JOIN_STYLE, CAP_STYLE, LinearRing, LineString
 from shapely.geometry.base import BaseGeometry
 
 
@@ -27,7 +27,38 @@ class NativeSimplifyStrategy(BaseSimplifyStrategy):
         self._simplify_dist = simplify_dist
 
     def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
-        return [geom.simplify(self._simplify_dist) for geom in flatten(geom_or_geoms).to_list()]
+        return [geom.simplify(self._simplify_dist) for geom in flatten(geom_or_geoms)]
+
+
+class RingSimplifyStrategy(BaseSimplifyStrategy):
+    """
+    simplify strategy that simplifies LinearRing's ends if possible
+    """
+
+    def __init__(self, simplify_dist: float = 0):
+        self._simplify_dist = simplify_dist
+
+    def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
+        return [self._simplify_geom(geom) for geom in flatten(geom_or_geoms)]
+
+    def _simplify_geom(self, geom: BaseGeometry) -> BaseGeometry:
+        if isinstance(geom, Polygon):
+            return Polygon(shell=self._simplify_geom(geom.exterior).coords,
+                           holes=lmap(lambda ring: self._simplify_geom(ring).coords, geom.interiors))
+        if isinstance(geom, LinearRing):
+            return self._simplify_ring(geom)
+        return geom.simplify(self._simplify_dist)
+
+    def _simplify_ring(self, ring: LinearRing) -> LinearRing:
+        ring: BaseGeometry = ring.simplify(self._simplify_dist)
+
+        can_ends_simplify = (
+                isinstance(ring, LinearRing)
+                and ring.is_valid
+                and (2 == len(LineString([ring.coords[i] for i in [-2, 0, 1]]).simplify(self._simplify_dist).coords)))
+        if can_ends_simplify:
+            return LinearRing([ring.coords[-2]] + ring.coords[1:-2])
+        return ring
 
 
 class ConservativeSimplifyStrategy(BaseSimplifyStrategy):
