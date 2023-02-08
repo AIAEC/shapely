@@ -1,3 +1,4 @@
+from typing import List
 from unittest import TestCase
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
@@ -87,8 +88,13 @@ def test_ring_simplify_strategy():
                    holes=[small_ring, LinearRing([(50, 50), (60, 50), (60, 60), (40, 60), (40, 50)])])
     simplified = poly.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0))[0]
     assert 4 * 3 == len(simplified.ext.decompose(Point).to_list())
-    assert Polygon(shell=[(0, 0), (100, 0), (100, 100), (0, 100), (0, 0)],
-                   holes=[small_ring, [(40, 50), (60, 50), (60, 60), (40, 60)]]) == simplified
+    pol = Polygon(shell=[(0, 0), (100, 0), (100, 100), (0, 100), (0, 0)],
+                  holes=[small_ring, [(40, 50), (60, 50), (60, 60), (40, 60)]])
+    assert pol == simplified
     assert isinstance(simplified, type(poly))
 
-    multi_poly = MultiPolygon()
+    multi_poly = MultiPolygon([poly, poly])
+    simplified = multi_poly.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0))
+
+    assert [pol, pol] == simplified
+    assert isinstance(simplified, List)
