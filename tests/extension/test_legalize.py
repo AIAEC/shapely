@@ -1,13 +1,10 @@
 from unittest import TestCase
 
-import pytest
-
 from shapely.extension.util.legalize import legalize
 from shapely.geometry import (
     Polygon, MultiPolygon, LineString, GeometryCollection, Point, MultiLineString, MultiPoint, LinearRing)
 
 
-@pytest.mark.skip("TODO fix it")  # TODO
 class TestLegalize(TestCase):
     def test_legalize_polygon(self):
         poly1 = Polygon([(0, 0), (1, 0), (1, 1), (1, 0), (2, 0), (2, 2), (0, 2), (0, 0)])
