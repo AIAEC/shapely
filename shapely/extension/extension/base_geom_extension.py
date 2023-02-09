@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Iterable
 from operator import attrgetter
-from typing import Union, Optional, Tuple, Callable, Dict, Sequence
+from typing import Union, Optional, Tuple, Callable, Dict, Sequence, List
 
 from shapely.affinity import rotate, scale
 from shapely.extension.constant import MATH_EPS
@@ -27,9 +27,9 @@ from shapely.extension.util.ccw import ccw
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
+from shapely.extension.util.legalize import legalize
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.extension.util.similar import similar
-from shapely.extension.util.legalize import legalize
 from shapely.geometry import Point, LineString, MultiLineString, Polygon
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 from shapely.ops import unary_union
@@ -290,7 +290,7 @@ class BaseGeomExtension:
                         "LineString": LineAngleStrategy(0).end_to_end()}.get(self._geom.type, default_angle_strategy)
         return Angle(strategy(self._geom))
 
-    def simplify(self, strategy: Optional[BaseSimplifyStrategy] = None):
+    def simplify(self, strategy: Optional[BaseSimplifyStrategy] = None) -> List[BaseGeometry]:
         """
         return the simplified geometry
         Parameters
