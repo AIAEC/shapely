@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from operator import attrgetter
+from functools import partial
 from typing import List, Optional, Union
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
@@ -27,7 +27,8 @@ class NativeSimplifyStrategy(BaseSimplifyStrategy):
         self._simplify_dist = simplify_dist
 
     def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
-        return [geom.simplify(self._simplify_dist) for geom in flatten(geom_or_geoms)]
+        return [geom.simplify(self._simplify_dist) for geom in
+                flatten(geom_or_geoms, validate=False, filter_valid=False)]
 
 
 class RingSimplifyStrategy(BaseSimplifyStrategy):
@@ -39,7 +40,8 @@ class RingSimplifyStrategy(BaseSimplifyStrategy):
         self._simplify_dist = simplify_dist
 
     def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
-        return [self._simplify_geom(geom) for geom in flatten(geom_or_geoms)]
+        return [self._simplify_geom(geom) for geom in
+                flatten(geom_or_geoms, validate=False, filter_valid=False)]
 
     def _simplify_geom(self, geom: BaseGeometry) -> BaseGeometry:
         if isinstance(geom, Polygon):
@@ -54,7 +56,7 @@ class RingSimplifyStrategy(BaseSimplifyStrategy):
 
         can_ends_simplify = (
                 isinstance(ring, LinearRing)
-                and ring.is_valid
+                and len(ring.coords) > 3
                 and (2 == len(LineString([ring.coords[i] for i in [-2, 0, 1]]).simplify(self._simplify_dist).coords)))
         if can_ends_simplify:
             return LinearRing([ring.coords[-2]] + ring.coords[1:-2])
@@ -74,7 +76,7 @@ class ConservativeSimplifyStrategy(BaseSimplifyStrategy):
 
     def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
         return [self._conservative_simplify(geom, self._initial_simplify_dist, self._area_diff_tolerance)
-                for geom in flatten(geom_or_geoms)]
+                for geom in flatten(geom_or_geoms, validate=False, filter_valid=False)]
 
     @staticmethod
     def _conservative_simplify(geom: BaseGeometry, simplify_dist: float, area_diff_tolerance: float) -> BaseGeometry:
@@ -155,7 +157,7 @@ class BufferSimplifyStrategy(BaseSimplifyStrategy):
     def simplify(self, geom_or_geoms: Union[BaseGeometry, Sequence[BaseGeometry]]) -> List[BaseGeometry]:
         geoms = [geom_or_geoms] if isinstance(geom_or_geoms, BaseGeometry) else geom_or_geoms
 
-        result: List[BaseGeometry] = lconcat(map(flatten, geoms))
+        result: List[BaseGeometry] = lconcat(map(partial(flatten, validate=False, filter_valid=False), geoms))
         for _ in range(self._n_iter):
             for i, g in enumerate(result):
                 if isinstance(g, Polygon):
@@ -170,6 +172,5 @@ class BufferSimplifyStrategy(BaseSimplifyStrategy):
                     self._buffer_param.buffer_dist *= self._buffer_param.buffer_dist_decay
 
         return (seq(result)
-                .flat_map(flatten)
-                .filter(attrgetter('is_valid'))
+                .flat_map(partial(flatten, validate=False, filter_valid=False))
                 .to_list())

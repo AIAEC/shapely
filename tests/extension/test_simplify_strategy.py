@@ -2,8 +2,10 @@ from typing import List
 from unittest import TestCase
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
-from shapely.extension.strategy.simplify_strategy import ConservativeSimplifyStrategy, RingSimplifyStrategy
+from shapely.extension.strategy.simplify_strategy import ConservativeSimplifyStrategy, RingSimplifyStrategy, \
+    NativeSimplifyStrategy, BufferSimplifyStrategy
 from shapely.geometry import box, LinearRing, Point, Polygon, LineString, MultiPolygon
+from shapely.wkt import loads
 
 
 class SimplifyStrategyTest(TestCase):
@@ -98,3 +100,25 @@ def test_ring_simplify_strategy():
 
     assert [pol, pol] == simplified
     assert isinstance(simplified, List)
+
+
+def test_simplify_invalid_ring_no_raise():
+    self_intersection_ring: LinearRing = loads(
+        "LINEARRING (4.75 0.5, 4.75 0, 2 2.75, 198.860912703474 2.75, 293.360912703474 97.25, 197.25 97.25, 197.25 197.25, 102.75 197.25, 102.75 98.86091270347399, 4.75 0.8609127034739856, 4.75 0.5)")
+    assert not self_intersection_ring.is_valid
+    # assert no raise
+    ring = self_intersection_ring.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0.1))[0]
+    assert isinstance(ring, LinearRing)
+    assert len(ring.coords) == 10
+
+    ring = self_intersection_ring.ext.simplify(strategy=NativeSimplifyStrategy(simplify_dist=0.1))[0]
+    assert isinstance(ring, LinearRing)
+    assert len(ring.coords) == 11
+
+    ring = self_intersection_ring.ext.simplify(strategy=BufferSimplifyStrategy().round(buffer_dist=0.1))[0]
+    assert isinstance(ring, LinearRing)
+    assert len(ring.coords) == 11
+
+    ring = self_intersection_ring.ext.simplify(strategy=ConservativeSimplifyStrategy(area_diff_tolerance=0.1))[0]
+    assert isinstance(ring, LinearRing)
+    assert len(ring.coords) == 11
