@@ -58,4 +58,4 @@ class ProlongTest(TestCase):
         self.assertTrue(LineString([(2, 1), (2, 0)]).equals(result))
 
         result = prolong(line, front_prolong_len=-4, end_prolong_len=-4)
-        self.assertTrue(line.ext.inverse().equals(result))
+        self.assertTrue(line.ext.reverse().equals(result))

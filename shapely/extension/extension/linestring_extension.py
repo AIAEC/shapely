@@ -98,7 +98,7 @@ class LineStringExtension(BaseGeomExtension):
     def segments(self) -> List[StraightSegment]:
         return self.decompose(target_class=StraightSegment).to_list()
 
-    def inverse(self) -> LineString:
+    def reverse(self) -> LineString:
         """
         same linestring with inverted coordinates
         Returns
@@ -270,7 +270,7 @@ class LineStringExtension(BaseGeomExtension):
         if line_extent := LineExtent.of_sequence_curves(self._geom, line, float(extent_dist)):
             return line_extent.merged_curve
 
-        if line_extent := LineExtent.of_sequence_curves(self._geom, line.ext.inverse(), float(extent_dist)):
+        if line_extent := LineExtent.of_sequence_curves(self._geom, line.ext.reverse(), float(extent_dist)):
             return line_extent.merged_curve
 
         return None

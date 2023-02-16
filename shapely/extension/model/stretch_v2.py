@@ -283,7 +283,7 @@ class DirectEdge:
         if len(out_edges) == 1:  # for speed up
             return out_edges[0]
 
-        invert_edge_angle: Angle = self.shape.ext.inverse().ext.angle()
+        invert_edge_angle: Angle = self.shape.ext.reverse().ext.angle()
 
         def other_ccw_rotating_angle_to_inversion_of_given_edge(other_edge: DirectEdge):
             return other_edge.shape.ext.angle().rotating_angle(invert_edge_angle, direct='ccw')
@@ -308,7 +308,7 @@ class DirectEdge:
         self_angle: Angle = self.shape.ext.angle()
 
         def self_ccw_rotating_angle_to_inversion_of_other_edge(other_edge: DirectEdge):
-            return self_angle.rotating_angle(other_edge.shape.ext.inverse().ext.angle(), direct='ccw')
+            return self_angle.rotating_angle(other_edge.shape.ext.reverse().ext.angle(), direct='ccw')
 
         return min(in_edges, key=self_ccw_rotating_angle_to_inversion_of_other_edge, default=None)
 
@@ -1222,7 +1222,7 @@ class Stretch:
 
         new_edge_groups: List[List[DirectEdge]] = []
         for interior in polygon.interiors:
-            inner_edge = interior.ext.ccw().ext.inverse()
+            inner_edge = interior.ext.ccw().ext.reverse()
             new_edge_groups.append(self._add_edge(inner_edge,
                                                   add_reverse=False,
                                                   edge_cargo_dict=edge_cargo_dict or {},
@@ -1720,7 +1720,7 @@ class OffsetStrategy(BaseOffsetStrategy):
                 return True
             return OffsetStrategy.does_to_pivot_use_perpendicular_mode(edge.reverse, offset_vector)
 
-        previous_inversion_angle = edge.previous.shape.ext.inverse().ext.angle()
+        previous_inversion_angle = edge.previous.shape.ext.reverse().ext.angle()
         # policy here: can be modified or inherit to a new policy
         # TODO: draw diagram here
         perpendicular_mode: bool = offset_vector.angle.including_angle(previous_inversion_angle).degree > 89
@@ -1927,7 +1927,7 @@ class OffsetStrategy(BaseOffsetStrategy):
             attachment = (closure_exterior.
                           ext.substring(absolute=True, allow_circle=True,
                                         interval=(scanned_interval.right, scanned_interval.left))
-                          .ext.inverse())
+                          .ext.reverse())
 
         # some unexpected tiny attachments may occur due to floating point precision
         return lfilter(lambda seg: seg.length > attaching_dist_tol, attachment.ext.segments())

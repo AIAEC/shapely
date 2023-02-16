@@ -98,7 +98,7 @@ class GeomOffsetTest(TestCase):
         line = LineString([(0, 0), (1, 0)])
         for side in ('left', 'right'):
             self.assertEqual(line, offset(line, dist=0, side=side, invert_coords=False))
-            self.assertEqual(line.ext.inverse(), offset(line, dist=0, side=side, invert_coords=True))
+            self.assertEqual(line.ext.reverse(), offset(line, dist=0, side=side, invert_coords=True))
 
     def test_offset_with_super_large_dist(self):
         line = box(0, 0, 1, 1).exterior

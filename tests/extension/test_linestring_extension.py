@@ -106,9 +106,9 @@ class LineStringExtensionTest(TestCase):
         self.assertEqual(result, LineString([(100, 100), (0, 100), (0, 0), (100, 0), (100, 20)]))
         self.assertEqual(interval, old_interval)
 
-    def test_inverse(self):
+    def test_reverse(self):
         line = LineString([(0, 0), (100, 0)])
-        result = line.ext.inverse()
+        result = line.ext.reverse()
         self.assertEqual(LineString([(100, 0), (0, 0)]), result)
 
     def test_start_and_end(self):
@@ -159,14 +159,14 @@ class LineStringExtensionTest(TestCase):
         line0 = LineString([(0, 0), (1, 0)])
         line1 = LineString([(0, 1), (-1, 1.001)])
         self.assertTrue(line0.ext.is_parallel_to(line1, angle_tol=1))
-        self.assertTrue(line0.ext.is_parallel_to(line1.ext.inverse(), angle_tol=1))
+        self.assertTrue(line0.ext.is_parallel_to(line1.ext.reverse(), angle_tol=1))
         self.assertFalse(line0.ext.is_parallel_to(line1))
-        self.assertFalse(line0.ext.is_parallel_to(line1.ext.inverse()))
+        self.assertFalse(line0.ext.is_parallel_to(line1.ext.reverse()))
 
         line2 = LineString([(-13.344930868732892, 31.590217663613032), (-18.99876411019792, 31.590542699372538)])
         line3 = LineString([(18.68523464902812, 31.58837626703631), (-13.334930868749396, 31.59021708871851)])
         self.assertTrue(line2.ext.is_parallel_to(line3))
-        self.assertTrue(line2.ext.is_parallel_to(line3.ext.inverse()))
+        self.assertTrue(line2.ext.is_parallel_to(line3.ext.reverse()))
 
     def test_is_perpendicular_to(self):
         line0 = LineString([(0, 0), (1, 0)])

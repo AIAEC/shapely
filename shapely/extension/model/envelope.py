@@ -184,14 +184,14 @@ class Envelope:
     @property
     def longer_edges(self) -> Tuple[LineString, LineString]:
         if self.edge(EdgePosition.BOTTOM).length > self.edge(EdgePosition.LEFT).length:
-            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP).ext.inverse()
-        return self.edge(EdgePosition.LEFT).ext.inverse(), self.edge(EdgePosition.RIGHT)
+            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP).ext.reverse()
+        return self.edge(EdgePosition.LEFT).ext.reverse(), self.edge(EdgePosition.RIGHT)
 
     @property
     def shorter_edges(self) -> Tuple[LineString, LineString]:
         if self.edge(EdgePosition.BOTTOM).length <= self.edge(EdgePosition.LEFT).length:
-            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP).ext.inverse()
-        return self.edge(EdgePosition.LEFT).ext.inverse(), self.edge(EdgePosition.RIGHT)
+            return self.edge(EdgePosition.BOTTOM), self.edge(EdgePosition.TOP).ext.reverse()
+        return self.edge(EdgePosition.LEFT).ext.reverse(), self.edge(EdgePosition.RIGHT)
 
     @property
     def longer_mid_line(self) -> LineString:
