@@ -4,7 +4,7 @@ from unittest import TestCase
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.envelope import Envelope, PointPosition, EdgePosition, HalfEdgePosition, DiagonalPosition, \
     HalfDiagonalPosition, EnvelopeCreator
-from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry import Point, Polygon, LineString, box
 from shapely.wkt import loads
 
 
@@ -161,3 +161,12 @@ class EnvelopeCreatorTest(TestCase):
 
         longer_edges = envelope.longer_edges
         self.assertAlmostEqual(longer_edges[0].ext.angle().degree, longer_edges[1].ext.reverse().ext.angle().degree)
+
+
+def test_edge_direction():
+    envelope = Envelope(box(0, 0, 1, 1), angle=0)
+    assert LineString([(0, 0), (0, 1)]) == envelope.edge(EdgePosition.LEFT)
+    assert LineString([(1, 0), (1, 1)]) == envelope.edge(EdgePosition.RIGHT)
+
+    assert LineString([(0, 0), (1, 0)]) == envelope.edge(EdgePosition.BOTTOM)
+    assert LineString([(0, 1), (1, 1)]) == envelope.edge(EdgePosition.TOP)
