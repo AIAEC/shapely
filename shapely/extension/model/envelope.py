@@ -194,6 +194,16 @@ class Envelope:
         return self.edge(EdgePosition.LEFT).ext.reverse(), self.edge(EdgePosition.RIGHT)
 
     @property
+    def edges(self) -> List[LineString]:
+        """
+        a list of edges which order by [left, bottom, right, top]
+        """
+        return [self.edge(EdgePosition.LEFT),
+                self.edge(EdgePosition.BOTTOM),
+                self.edge(EdgePosition.RIGHT),
+                self.edge(EdgePosition.TOP)]
+
+    @property
     def longer_mid_line(self) -> LineString:
         if self.edge(EdgePosition.MID).length > self.edge(EdgePosition.HORIZON).length:
             return self.edge(EdgePosition.MID)

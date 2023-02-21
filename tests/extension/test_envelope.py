@@ -44,6 +44,11 @@ class EnvelopeTest(TestCase):
         self.assertEqual(0, envelope.shorter_mid_line.length)
         self.assertEqual(0, envelope.width)
         self.assertEqual(0, envelope.depth)
+        self.assertEqual(4, len(envelope.edges))
+        self.assertEqual(0, envelope.edges[0].length)
+        self.assertEqual(0, envelope.edges[1].length)
+        self.assertEqual(0, envelope.edges[2].length)
+        self.assertEqual(0, envelope.edges[3].length)
 
     def test_create_envelope_by_points(self):
         points = [Point(0, 0), Point(1, 0), Point(1, 1), Point(0, 1)]
