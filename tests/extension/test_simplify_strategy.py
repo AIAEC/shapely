@@ -42,13 +42,13 @@ def test_simplify_linear_ring():
     start_in_middle_ring = LinearRing([(5, 0), (10, 0), (10, 10), (0, 10), (0, 0)])
     assert start_in_middle_ring.coords[0] == start_in_middle_ring.coords[-1]
     assert len(start_in_middle_ring.coords) == 6
-    assert 5 == len(start_in_middle_ring.ext.decompose(Point).to_list())
+    assert 6 == len(start_in_middle_ring.ext.decompose(Point).to_list())
 
     native_simplified = start_in_middle_ring.simplify(1)
-    assert 5 == len(native_simplified.ext.decompose(Point).to_list())
+    assert 6 == len(native_simplified.ext.decompose(Point).to_list())
 
     ring_simplified = start_in_middle_ring.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=1))[0]
-    assert 4 == len(ring_simplified.ext.decompose(Point).to_list())
+    assert 5 == len(ring_simplified.ext.decompose(Point).to_list())
     assert 5 == len(ring_simplified.coords)
     assert isinstance(ring_simplified, LinearRing)
 
@@ -56,18 +56,18 @@ def test_simplify_linear_ring():
 def test_ring_simplify_strategy():
     start_in_middle_ring = LinearRing([(50, 0), (100, 0), (100, 100), (0, 100), (0, 0)])
     simplified = start_in_middle_ring.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0))[0]
-    assert 4 == len(simplified.ext.decompose(Point).to_list())
+    assert 5 == len(simplified.ext.decompose(Point).to_list())
     assert isinstance(simplified, type(start_in_middle_ring))
     assert LinearRing([(0, 0), (100, 0), (100, 100), (0, 100), (0, 0)]) == simplified
 
     small_ring = box(80, 80, 90, 90).exterior
     simplified = small_ring.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0))[0]
-    assert 4 == len(simplified.ext.decompose(Point).to_list())
+    assert 5 == len(simplified.ext.decompose(Point).to_list())
     assert isinstance(simplified, type(small_ring))
 
     poly: Polygon = box(10, 10, 20, 20)
     simplified = poly.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=1))[0]
-    assert 4 == len(simplified.ext.decompose(Point).to_list())
+    assert 5 == len(simplified.ext.decompose(Point).to_list())
     assert isinstance(simplified, type(poly))
 
     p = Point(0, 0)
@@ -82,14 +82,14 @@ def test_ring_simplify_strategy():
 
     ring_line = LineString([(50, 0), (100, 0), (100, 100), (0, 100), (0, 0), (50, 0)])
     simplified = ring_line.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0))[0]
-    assert 5 == len(simplified.ext.decompose(Point).to_list())
+    assert 6 == len(simplified.ext.decompose(Point).to_list())
     assert ring_line == simplified
     assert isinstance(simplified, type(ring_line))
 
     poly = Polygon(shell=start_in_middle_ring.coords,
                    holes=[small_ring, LinearRing([(50, 50), (60, 50), (60, 60), (40, 60), (40, 50)])])
     simplified = poly.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0))[0]
-    assert 4 * 3 == len(simplified.ext.decompose(Point).to_list())
+    assert 5 * 3 == len(simplified.ext.decompose(Point).to_list())
     pol = Polygon(shell=[(0, 0), (100, 0), (100, 100), (0, 100), (0, 0)],
                   holes=[small_ring, [(40, 50), (60, 50), (60, 60), (40, 60)]])
     assert pol == simplified

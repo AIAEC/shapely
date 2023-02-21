@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from shapely.extension.strategy.decompose_strategy import DefaultDecomposeStrategy, CurveDecomposeStrategy
 from shapely.geometry import Polygon, MultiPoint, Point, LineString, box, GeometryCollection, MultiPolygon, \
-    MultiLineString
+    MultiLineString, LinearRing
 
 
 class DecomposeStrategyTest(TestCase):
@@ -63,12 +63,37 @@ class DecomposeStrategyTest(TestCase):
         self.assertTrue(all(isinstance(geom, MultiPoint) for geom in strategy.segment_to_multipoint([linestring])))
         self.assertEqual(1, len(strategy.segment_to_multipoint([linestring])))
 
+    def test_invalid_linear_ring_to_multipoint(self):
+        strategy = DefaultDecomposeStrategy()
+        ring = LinearRing([(0, 0), (0.5, 0), (0.5, 0.5), (0.5, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
+        self.assertTrue(all(isinstance(geom, MultiPoint) for geom in strategy.segment_to_multipoint(ring)))
+        self.assertTrue(all(isinstance(geom, MultiPoint) for geom in strategy.segment_to_multipoint([ring])))
+        self.assertEqual(1, len(strategy.segment_to_multipoint([ring])))
+        multi_point = strategy.segment_to_multipoint([ring])[0]
+        self.assertEqual(8, len(multi_point.geoms))
+
     def test_multipoint_to_point(self):
         strategy = DefaultDecomposeStrategy()
         multipoint = MultiPoint([Point(0, 0), Point(1, 1)])
         self.assertTrue(all(isinstance(geom, Point) for geom in strategy.multipoint_to_point(multipoint)))
         self.assertTrue(all(isinstance(geom, Point) for geom in strategy.multipoint_to_point([multipoint])))
         self.assertEqual(2, len(strategy.multipoint_to_point([multipoint])))
+
+    def test_multiple_multipoint_to_point(self):
+        strategy = DefaultDecomposeStrategy()
+        multipoints = [
+            MultiPoint([Point(0, 1), Point(0, 0)]),
+            MultiPoint([Point(0, 0), Point(1, 1)]),
+            MultiPoint([Point(1, 1), Point(1, 1)]),
+            MultiPoint([Point(1, 1), Point(0, 0)]),
+            MultiPoint([Point(0, 0), Point(1, 0)]),
+            ]
+        points = strategy.multipoint_to_point(multipoints)
+        self.assertTrue(all(isinstance(p, Point) for p in points))
+        self.assertEqual(5, len(points))
+
+        # only remove the duplicate points of each pair point list deduced from multipoints
+        self.assertListEqual([Point(0, 1), Point(0, 0), Point(1, 1), Point(0, 0), Point(1, 0)], points)
 
 
 class CurveDecomposeStrategyTest(TestCase):

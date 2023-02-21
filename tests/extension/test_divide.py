@@ -73,7 +73,7 @@ class DivideTest(TestCase):
         result = divide(poly, multi_line)
         result = sorted(result, key=lambda p: p.area, reverse=True)
         self.assertEqual(5, len(result))
-        self.assertEqual(5, len(result[0].exterior.ext.decompose(Point).to_list()))
+        self.assertEqual(6, len(result[0].exterior.ext.decompose(Point).to_list()))
 
         multi_line = loads('MULTILINESTRING ((5 0, 5 5),(5 5, 8 5),(8 5, 8 8))')
         result = divide(poly, multi_line)

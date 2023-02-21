@@ -27,6 +27,9 @@ class LineStringExtensionTest(TestCase):
         result = line.ext.projected_point(Point(0.5, -1))
         self.assertTrue(result.equals(Point(0.5, 0)))
 
+        result = line.ext.projected_point(Point(100, 0))
+        self.assertTrue(result.equals(Point(100, 0)))
+
         # projected point not on extension
         result = line.ext.projected_point(Point(100, 1), on_extension=False)
         self.assertTrue(result.equals(Point(1, 0)))

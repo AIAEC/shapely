@@ -1,9 +1,11 @@
 from collections import defaultdict
 from copy import deepcopy
 from itertools import chain
+from numbers import Number
 from operator import attrgetter
-from typing import Iterable, Any, Callable, Tuple, List, Union, Sequence, Dict
+from typing import Iterable, Any, Callable, Tuple, List, Union, Sequence, Dict, Optional
 
+from shapely.extension.functional.util import identity
 from shapely.extension.util.ordered_set import OrderedSet
 
 
@@ -222,3 +224,36 @@ def sign(expr: Any, reverse: bool = False) -> int:
     1 or -1
     """
     return 1 if expr ^ reverse else -1
+
+
+def argmin(seq: Sequence, key: Optional[Callable[[Any], Number]] = None) -> Optional[int]:
+    """
+    返回最小值的index
+    :param seq:
+    :param key:
+    :return:
+    """
+    if not seq:
+        return None
+
+    key = key or identity
+    min_idx = None
+    min_val = None
+
+    for i, item in enumerate(seq):
+        val = key(item)
+        if min_val is None or val < min_val:
+            min_val = val
+            min_idx = i
+
+    return min_idx
+
+
+def argmax(seq: Sequence, key: Optional[Callable[[Any], Number]] = None) -> Optional[int]:
+    """
+    返回最大值的index
+    :param seq:
+    :param key:
+    :return:
+    """
+    return argmin(seq, lambda x: -key(x) if key else -x)

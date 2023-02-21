@@ -130,9 +130,33 @@ class DefaultDecomposeStrategy(BaseDecomposeStrategy):
         return multi_points
 
     def multipoint_to_point(self, multi_point_or_points: Union[MultiPoint, Sequence[MultiPoint]]) -> List[Point]:
+        """
+        decompose multipoint to point and do a limiting deduplication that only remove adjacent deduplicate points in
+        the final points list.
+        Choose the limiting deduplication strategy is to handle the case of linestring or linearRing with duplicate
+        coords decomposed into points. In this case, we should keep the duplicated points, in order to keep the shape
+        of the linestring or linearRing.
+
+        Parameters
+        ----------
+        multi_point_or_points: MultiPoint or sequence of MultiPoint
+
+        Returns
+        -------
+        list of points
+        """
         multi_points = multi_point_or_points if isinstance(multi_point_or_points, Sequence) else [multi_point_or_points]
         points = lconcat([multi_point.geoms for multi_point in multi_points])
-        return sorted(list(set(points)), key=points.index)
+
+        points_with_limited_deduplication: List[Point] = []
+
+        for point, next_point in win_slice(points, win_size=2):
+            if not point.equals(next_point):
+                points_with_limited_deduplication.append(point)
+
+        points_with_limited_deduplication.append(points[-1])
+
+        return points_with_limited_deduplication
 
 
 class CurveDecomposeStrategy(DefaultDecomposeStrategy):

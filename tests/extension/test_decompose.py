@@ -12,7 +12,7 @@ class DecomposeTest(TestCase):
         multipolygon = MultiPolygon([box(0, 0, 1, 1), box(1, 1, 2, 2)])
         points = decompose(multipolygon, target_class=Point)
         self.assertTrue(all(isinstance(geom, Point) for geom in points))
-        self.assertEqual(7, len(points))
+        self.assertEqual(10, len(points))
 
     def test_decompose_multipolygon_to_linestring(self):
         multipolygon = MultiPolygon([box(0, 0, 1, 1), box(1, 1, 2, 2)])
@@ -21,13 +21,14 @@ class DecomposeTest(TestCase):
         self.assertEqual(2, len(lines))
 
     def test_decompose_geometry_collection_to_point(self):
+        # each box has 5 points, including extra point equal to the first point
         geom_col = GeometryCollection([MultiPolygon([box(0, 0, 1, 1), box(1, 1, 2, 2)]),
                                        Point(0, 1),
                                        LineString([(1, 1), (2, 2)])])
         points = decompose(geom_col, target_class=Point)
 
         self.assertTrue(all(isinstance(geom, Point) for geom in points))
-        self.assertEqual(10, len(points))
+        self.assertEqual(13, len(points))
 
     def test_falsy_case_of_decomposing_multipoint_to_polygon(self):
         multipoint = MultiPoint([Point(0, 0), Point(1, 1)])
@@ -70,3 +71,8 @@ class DecomposeTest(TestCase):
                     StraightSegment([(10, 0), (0, 0)])]
         self.assertTrue(all([ccw_decomposed_segments[i] == ccw_lines[i] for i in range(len(ccw_lines))]))
         self.assertTrue(all([cw_decomposed_segments[i] == cw_lines[i] for i in range(len(cw_lines))]))
+
+    def test_decompose_invalid_linear_ring_to_point(self):
+        ring = LinearRing([(0, 0), (0.5, 0), (0.5, 0.5), (0.5, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
+        points = decompose(ring, target_class=Point)
+        self.assertEqual(8, len(points))

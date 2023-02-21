@@ -1,4 +1,5 @@
 from math import sqrt
+from random import random
 
 try:
     from descartes import PolygonPatch
@@ -24,6 +25,7 @@ class Draw:
     YELLOW = '#ffcc33'
     DARKGRAY = '#333333'
     PURPLE = '#660066'
+    RANDOM = 'random'
 
     def __init__(self, size=SIZE, dpi=90):
         self.fig = pyplot.figure(1, figsize=size, dpi=dpi, frameon=False)
@@ -53,15 +55,21 @@ class Draw:
 
         return self
 
+    @staticmethod
+    def color(color_code: str) -> str:
+        if color_code == 'random':
+            return f'#{int(random() * 0x1000000):06x}'
+        return color_code
+
     def draw_line(self, line: LineString, color=BLUE):
         x, y = line.xy
-        self.ax.plot(x, y, color=color, alpha=0.7, linewidth=1.5, solid_capstyle='round', zorder=2)
+        self.ax.plot(x, y, color=self.color(color), alpha=0.7, linewidth=1.5, solid_capstyle='round', zorder=2)
         return self
 
     def draw_polygon(self, polygon: Polygon, color=GRAY, edge_color=BLACK, alpha=0.5):
         patch = PolygonPatch(polygon.ext.shell,
-                             facecolor=color,
-                             edgecolor=edge_color,
+                             facecolor=self.color(color),
+                             edgecolor=self.color(edge_color),
                              linewidth=0.5,
                              alpha=alpha,
                              zorder=1)
@@ -70,7 +78,7 @@ class Draw:
         for hole in polygon.ext.holes:
             patch = PolygonPatch(hole,
                                  facecolor=self.WHITE,
-                                 edgecolor=edge_color,
+                                 edgecolor=self.color(edge_color),
                                  linewidth=0.5,
                                  alpha=1,
                                  zorder=1)
@@ -79,7 +87,7 @@ class Draw:
 
     def draw_point(self, point: Point, color=RED):
         self.ax.plot(point.x, point.y, 'o',
-                     color=color,
+                     color=self.color(color),
                      alpha=0.7,
                      zorder=2)
         return self
