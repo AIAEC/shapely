@@ -83,6 +83,8 @@ class Draw:
                                  alpha=1,
                                  zorder=1)
             self.ax.add_patch(patch)
+
+        self.ax.autoscale_view()
         return self
 
     def draw_point(self, point: Point, color=RED):
