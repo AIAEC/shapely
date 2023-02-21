@@ -820,8 +820,8 @@ class Stretch:
         None
         """
         if with_cargo:
-            data = {'pivots': {pivot.id: (pivot.shape, pivot.cargo) for pivot in self.pivots},
-                    'edges': [(edge.from_pivot.id, edge.to_pivot.id, edge.cargo) for edge in self.edges]}
+            data = {'pivots': {pivot.id: (pivot.shape, pivot.cargo.data) for pivot in self.pivots},
+                    'edges': [(edge.from_pivot.id, edge.to_pivot.id, edge.cargo.data) for edge in self.edges]}
         else:
             data = {'pivots': {pivot.id: pivot.shape for pivot in self.pivots},
                     'edges': [(edge.from_pivot.id, edge.to_pivot.id) for edge in self.edges]}

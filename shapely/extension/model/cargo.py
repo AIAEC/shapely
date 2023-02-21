@@ -1,3 +1,4 @@
+from weakref import ref
 from collections import Counter
 from copy import deepcopy
 from operator import itemgetter
@@ -11,7 +12,7 @@ class Cargo:
     def __init__(self, data=None, host=None, default=None, verbose=False):
         self._data = data or {}
         self._id = uuid4()
-        self._host = host
+        self._host = ref(host) if host else None
         self._default = default
         self._verbose = verbose
 
@@ -21,11 +22,6 @@ class Cargo:
     def __hash__(self):
         return hash(self._id)
 
-    def __eq__(self, other):
-        if not isinstance(other, Cargo):
-            return False
-        return self._id == other._id
-
     def data_equals(self, other: Union['Cargo', dict]):
         if not isinstance(other, (dict, Cargo)):
             return False
@@ -33,6 +29,11 @@ class Cargo:
             other = dict(other)
 
         return self._data == other
+
+    def __eq__(self, other):
+        if not isinstance(other, Cargo):
+            return False
+        return self._id == other._id
 
     def __getitem__(self, item):
         return self._data.get(item, self._default)
@@ -46,11 +47,17 @@ class Cargo:
         return iter(self._data)
 
     @property
-    def host(self):
-        return self._host
+    def data(self):
+        return self._data
+
+    @property
+    def host(self) -> Optional[Any]:
+        if self._host:
+            return self._host()
+        return None
 
     def copy(self) -> 'Cargo':
-        return Cargo(data=deepcopy(self._data), host=self._host, default=self._default)
+        return Cargo(data=deepcopy(self._data), host=self.host, default=self._default)
 
     def setdefault(self, key, default):
         return self._data.setdefault(key, default)
@@ -140,7 +147,7 @@ class ConsensusCargo(Cargo):
                     value_counts[idx][1] += 1
 
         data = {key: max(value_counts, key=itemgetter(1))[0] for key, value_counts in board.items()}
-        host = Counter([cargo._host for cargo in cargos]).most_common(1)[0][0]  # most common host
+        host = Counter([cargo.host for cargo in cargos]).most_common(1)[0][0]  # most common host
         default = Counter([cargo._default for cargo in cargos]).most_common(1)[0][0]  # most common default
         verbose = sum([cargo._verbose for cargo in cargos]) > len(cargos) / 2
 
