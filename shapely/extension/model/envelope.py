@@ -196,12 +196,13 @@ class Envelope:
     @property
     def edges(self) -> List[LineString]:
         """
-        a list of edges which order by [left, bottom, right, top]
+        a list of edges which order by [left, bottom, right, top].
+        all edges combine a ring in ccw.
         """
-        return [self.edge(EdgePosition.LEFT),
+        return [self.edge(EdgePosition.LEFT).ext.reverse(),
                 self.edge(EdgePosition.BOTTOM),
                 self.edge(EdgePosition.RIGHT),
-                self.edge(EdgePosition.TOP)]
+                self.edge(EdgePosition.TOP).ext.reverse()]
 
     @property
     def longer_mid_line(self) -> LineString:

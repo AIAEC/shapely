@@ -95,6 +95,14 @@ class EnvelopeTest(TestCase):
         envelope = Envelope(multi_points)
         self.assertTrue(envelope.shape.buffer(MATH_EPS).contains(multi_points))
 
+    def test_edges_of_envelope(self):
+        envelope = Envelope(box(0, 0, 10, 5), angle=0)
+        self.assertEqual(4, len(envelope.edges))
+        self.assertTrue(envelope.edges[0].equals_exact(LineString([(0, 5), (0, 0)]), tolerance=0))
+        self.assertTrue(envelope.edges[1].equals_exact(LineString([(0, 0), (10, 0)]), tolerance=0))
+        self.assertTrue(envelope.edges[2].equals_exact(LineString([(10, 0), (10, 5)]), tolerance=0))
+        self.assertTrue(envelope.edges[3].equals_exact(LineString([(10, 5), (0, 5)]), tolerance=0))
+
 
 def test_geoms():
     p = Point(1, 0)
