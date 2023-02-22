@@ -30,16 +30,13 @@ def legalize(geom: BaseGeometry) -> BaseGeometry:
 
     if isinstance(geom, BaseMultipartGeometry):
         sub_geoms = [legalize(g) for g in flatten(geom)]
-        if all(isinstance(g, LineString) for g in
-               sub_geoms):  # are sub geoms all lines
+        if all(isinstance(g, LineString) for g in sub_geoms):  # are sub geoms all lines
             geom = MultiLineString(sub_geoms)
-        elif all(isinstance(g, Polygon) for g in
-                 sub_geoms):  # area sub geoms all polygons
+        elif all(isinstance(g, Polygon) for g in sub_geoms):  # area sub geoms all polygons
             polys = [legalize(poly) for poly in flatten(GeometryCollection(sub_geoms).buffer(0)) if
                      isinstance(poly, Polygon)]
             geom = MultiPolygon(polys)
-        elif all(isinstance(g, Point) for g in
-                 sub_geoms):  # area sub geoms all points
+        elif all(isinstance(g, Point) for g in sub_geoms):  # area sub geoms all points
             geom = MultiPoint(sub_geoms)
         else:
             polys = []

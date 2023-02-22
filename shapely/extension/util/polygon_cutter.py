@@ -2,7 +2,6 @@ from typing import Union
 
 from shapely.extension.geometry.empty import EMPTY_GEOM
 
-from shapely import wkt
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector

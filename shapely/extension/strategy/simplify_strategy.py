@@ -58,7 +58,7 @@ class RingSimplifyStrategy(BaseSimplifyStrategy):
                 isinstance(ring, LinearRing)
                 and len(ring.coords) > 3
                 and (2 == len(LineString([ring.coords[i] for i in [-2, 0, 1]]).simplify(self._simplify_dist).coords)))
-        if can_ends_simplify:
+        if can_ends_simplify and len([ring.coords[-2]] + ring.coords[1:-2]) >= 3:
             return LinearRing([ring.coords[-2]] + ring.coords[1:-2])
         return ring
 
