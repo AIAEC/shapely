@@ -2,7 +2,6 @@ import json
 from copy import deepcopy
 from unittest import skip
 
-from shapely.extension.draw import Draw
 from shapely.extension.model.stretch.stretch_v3 import Stretch
 from shapely.geometry import Point
 
@@ -187,6 +186,8 @@ class TestBasicAttribute:
 
     @skip('skip drawing test for online unittest, only do it locally')
     def test_draw(self, stretch_for_closure_strategy):
+        from shapely.extension.draw import Draw
+
         stretch = stretch_for_closure_strategy
         drawer = Draw()
         for closure in stretch.closures:
