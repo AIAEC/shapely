@@ -2174,3 +2174,74 @@ def stretch_offset_union_2_reverse_closure() -> Stretch:
     stretch.shrink_id_gen()
 
     return stretch
+
+
+@pytest.fixture
+def stretch_of_three_closures() -> Stretch:
+    """
+        ┌─────────────────────┐
+        │                     │
+        │                     │
+        │                     │
+        │                     │
+        │                     │
+        │                     │
+        ├──────────────┬──────┤
+        │              │      │
+        │              │      │
+        └──────────────┴──────┘
+    """
+
+    stretch = Stretch()
+
+    pivots = [
+        Pivot((0, 0), stretch, '0'),
+        Pivot((75, 0), stretch, '1'),
+        Pivot((100, 0), stretch, '2'),
+        Pivot((0, 10), stretch, '3'),
+        Pivot((75, 10), stretch, '4'),
+        Pivot((100, 10), stretch, '5'),
+        Pivot((0, 200), stretch, '6'),
+        Pivot((100, 200), stretch, '7'),
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges = [
+        Edge('0', '1', stretch),
+        Edge('1', '4', stretch),
+        Edge('4', '3', stretch),
+        Edge('3', '0', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '5', stretch),
+        Edge('5', '4', stretch),
+        Edge('4', '1', stretch),
+        Edge('5', '7', stretch),
+        Edge('7', '6', stretch),
+        Edge('6', '3', stretch),
+        Edge('3', '4', stretch),
+        Edge('4', '5', stretch),
+    ]
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+
+    closures = [
+        Closure(exterior=EdgeSeq(edges[:4]),
+                interiors=[],
+                stretch=stretch,
+                id_='0'),
+        Closure(exterior=EdgeSeq(edges[4:8]),
+                interiors=[],
+                stretch=stretch,
+                id_='1'),
+        Closure(exterior=EdgeSeq(edges[8:]),
+                interiors=[],
+                stretch=stretch,
+                id_='2'),
+    ]
+
+    stretch._closure_map = OrderedDict([(c.id, c) for c in closures])
+
+    stretch.shrink_id_gen()
+
+    return stretch

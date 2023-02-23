@@ -1223,3 +1223,30 @@ class TestOffset:
         assert closures[1].shape.equals(loads('POLYGON ((0 0, 12 0, 12 6, 8 6, 4 6, 0 6, 0 0))'))
         assert closures[2].shape.equals(loads('POLYGON ((12 6, 12 7, 12 12, 8 12, 8 7, 8 6, 12 6))'))
 
+    @pytest.mark.skip(reason='to fix?')
+    def test_offset_twice(self,
+                          stretch_of_three_closures):
+        """
+    ┌─────────────────────┐
+    │                     │
+    │                     │
+    │                     │
+    │                     │
+    │      ▲          ▲   │
+    │      │          │   │
+    ├──────────────┬──────┤
+    │              │      │
+    │              │      │
+    └──────────────┴──────┘
+        """
+        stretch = stretch_of_three_closures
+        assert len(stretch.closures) == 3
+        assert len(stretch.edges) == 13
+        assert len(stretch.pivots) == 8
+
+        edge_seq = EdgeSeq([stretch.edge('(3,4)'),
+                            stretch.edge('(4,5)')])
+        for edge in edge_seq:
+            Offset(edge, StrictAttachOffsetHandler).offset(150)
+
+        assert all([closure.shape.area in [40 * 100, 160 * 75, 160 * 25] for closure in stretch.closures])
