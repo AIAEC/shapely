@@ -122,3 +122,13 @@ def test_simplify_invalid_ring_no_raise():
     ring = self_intersection_ring.ext.simplify(strategy=ConservativeSimplifyStrategy(area_diff_tolerance=0.1))[0]
     assert isinstance(ring, LinearRing)
     assert len(ring.coords) == 11
+
+
+def test_ring_simplify_flat_ring():
+    flat_ring = LinearRing([(5, 0), (10, 0), (0, 0), (5, 0)])
+    assert len(flat_ring.coords) == 4
+    assert not flat_ring.is_valid
+
+    flat_ring = flat_ring.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0.1))[0]
+    assert flat_ring == LinearRing([(0, 0), (10, 0), (0, 0)])
+    assert len(flat_ring.coords) == 4
