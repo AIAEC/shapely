@@ -29,7 +29,7 @@ class ClosureStrategy:
                                        and e.shape.is_valid),
                             out_edges)
 
-        reverse_edge_angle: Angle = edge.shape.ext.inverse().ext.angle()
+        reverse_edge_angle: Angle = edge.shape.ext.reverse().ext.angle()
 
         def other_ccw_rotating_angle_to_inversion_of_given_edge(other_edge: Edge):
             if other_edge.shape.length == 0:
@@ -66,7 +66,7 @@ class ClosureStrategy:
             if other_edge.shape.length == 0:
                 return 0
 
-            angle = edge_angle.rotating_angle(other_edge.shape.ext.inverse().ext.angle()).degree
+            angle = edge_angle.rotating_angle(other_edge.shape.ext.reverse().ext.angle()).degree
 
             if angle == 0:
                 return 360  # make sure the edge with same angle as reverse_edge is the last to consider

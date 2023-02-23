@@ -50,7 +50,7 @@ class Cut:
         new_edges.extend(closure.stretch.add_edge(line=line_inside,
                                                   dist_tol_to_pivot=dist_tol_to_pivot,
                                                   dist_tol_to_edge=dist_tol_to_edge))
-        new_edges.extend(closure.stretch.add_edge(line=line_inside.ext.inverse(),
+        new_edges.extend(closure.stretch.add_edge(line=line_inside.ext.reverse(),
                                                   dist_tol_to_pivot=dist_tol_to_pivot,
                                                   dist_tol_to_edge=dist_tol_to_edge))
 

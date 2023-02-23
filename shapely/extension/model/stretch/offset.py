@@ -160,7 +160,7 @@ class Offset:
             new_edges.extend(self._stretch.add_edge(line=segment,
                                                     dist_tol_to_pivot=dist_tol_to_pivot,
                                                     dist_tol_to_edge=dist_tol_to_edge))
-            new_edges.extend(self._stretch.add_edge(line=segment.ext.inverse(),
+            new_edges.extend(self._stretch.add_edge(line=segment.ext.reverse(),
                                                     dist_tol_to_pivot=dist_tol_to_pivot,
                                                     dist_tol_to_edge=dist_tol_to_edge))
 
