@@ -1285,11 +1285,12 @@ class Stretch:
         line_union = unary_union(flatten(line, target_class_or_callable=LineString).to_list())
 
         lines_inside: List[LineString] = (self.closure_snapshot().occupation
-                                          .intersection(line_union)
-                                          .ext.decompose(LineString)
-                                          .filter(truth)
-                                          .filter_not(self_intersection)
-                                          .to_list())
+                                              .ext.flatten(Polygon)
+                                              .flat_map(lambda p: p.intersection(line_union)
+                                                                   .ext.decompose(LineString)
+                                                                   .filter(truth)
+                                                                   .filter_not(self_intersection))
+                                              .to_list())
 
         new_edge_groups: List[List[DirectEdge]] = []
 

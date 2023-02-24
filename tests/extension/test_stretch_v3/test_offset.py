@@ -1286,3 +1286,31 @@ class TestOffset:
         assert new_edge.reverse.closure.cargo['test'] == 'closure1'
         assert new_edge.cargo['test'] == 'edge01', 'edge01, edge12, edge23 has same weight, but edge01 is the first'
         assert new_edge.reverse.cargo['test'] == 'edge10', 'edge10, edge21, edge32 has same weight, edge10 is the first'
+
+    @pytest.mark.skip(reason='to fix?')
+    def test_offset_twice(self,
+                          stretch_of_three_closures):
+        """
+    ┌─────────────────────┐
+    │                     │
+    │                     │
+    │                     │
+    │                     │
+    │      ▲          ▲   │
+    │      │          │   │
+    ├──────────────┬──────┤
+    │              │      │
+    │              │      │
+    └──────────────┴──────┘
+        """
+        stretch = stretch_of_three_closures
+        assert len(stretch.closures) == 3
+        assert len(stretch.edges) == 13
+        assert len(stretch.pivots) == 8
+
+        edge_seq = EdgeSeq([stretch.edge('(3,4)'),
+                            stretch.edge('(4,5)')])
+        for edge in edge_seq:
+            Offset(edge, StrictAttachOffsetHandler).offset(150)
+
+        assert all([closure.shape.area in [40 * 100, 160 * 75, 160 * 25] for closure in stretch.closures])
