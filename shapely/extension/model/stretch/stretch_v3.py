@@ -630,12 +630,14 @@ class EdgeSeq:
         if ref_to_last_new_edge not in old_edge_to_pivot._in_edges:
             old_edge_to_pivot._in_edges.append(ref_to_last_new_edge)
 
-    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS) -> None:
+    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS,
+                 consider_cargo_equality: bool = True) -> None:
         """
         [MID LEVEL API] simplify the edge sequence by merging edges that are almost parallel
         Parameters
         ----------
         angle_tol: float, angle degree tolerance
+        consider_cargo_equality:
 
         Returns
         -------
@@ -650,6 +652,9 @@ class EdgeSeq:
                 return False
 
             if edge0.reverse_closure != edge1.reverse_closure:
+                return False
+
+            if consider_cargo_equality and not edge0.cargo.data_equals(edge1.cargo):
                 return False
 
             return edge0.shape.ext.angle().almost_equal(edge1.shape.ext.angle(), angle_tol)
@@ -943,20 +948,21 @@ class Closure:
 
         return new_closures
 
-    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS) -> None:
+    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS, consider_cargo_equality: bool = True) -> None:
         """
         [MID LEVEL API] simplify the exterior and interiors of the closure
         Parameters
         ----------
         angle_tol: angle degree tolerance
+        consider_cargo_equality:
 
         Returns
         -------
         None
         """
-        self.exterior.simplify(angle_tol)
+        self.exterior.simplify(angle_tol, consider_cargo_equality)
         for interior in self.interiors:
-            interior.simplify(angle_tol)
+            interior.simplify(angle_tol, consider_cargo_equality)
 
     def remove_crack(self, gc: bool = False) -> None:
         self.exterior.remove_crack(gc)
