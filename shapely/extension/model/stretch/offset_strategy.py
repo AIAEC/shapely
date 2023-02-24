@@ -65,6 +65,7 @@ class StrictAttachOffsetHandler(OffsetHandler):
                                       .ext.buffer().single_sided().rect(-(dist + MATH_MIDDLE_EPS * sign(dist > 0)))
                                       .intersection(closure_poly.boundary)
                                       .ext.decompose(Point)
+                                      .filter(lambda pt: pt != start_point)
                                       .min_by(end_point.distance))
         new_end_point = offset_line_inside.ext.projected_point(nearest_point_to_end_point)
 
@@ -73,6 +74,7 @@ class StrictAttachOffsetHandler(OffsetHandler):
                                         .ext.buffer().single_sided().rect(-(dist + MATH_MIDDLE_EPS * sign(dist > 0)))
                                         .intersection(closure_poly.boundary)
                                         .ext.decompose(Point)
+                                        .filter(lambda pt: pt != end_point)
                                         .min_by(start_point.distance))
         new_start_point = offset_line_inside.ext.projected_point(nearest_point_to_start_point)
         return LineString([new_start_point, new_end_point])

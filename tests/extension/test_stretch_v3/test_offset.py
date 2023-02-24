@@ -1,7 +1,8 @@
 import pytest
 
 from shapely.extension.model.stretch.offset import Offset
-from shapely.extension.model.stretch.offset_strategy import NaiveAttachOffsetHandler, StrictAttachOffsetHandler
+from shapely.extension.model.stretch.offset_strategy import NaiveAttachOffsetHandler, StrictAttachOffsetHandler, \
+    OffsetHandler
 from shapely.extension.model.stretch.stretch_v3 import EdgeSeq
 from shapely.geometry import LineString, Polygon
 from shapely.wkt import loads
@@ -1287,21 +1288,20 @@ class TestOffset:
         assert new_edge.cargo['test'] == 'edge01', 'edge01, edge12, edge23 has same weight, but edge01 is the first'
         assert new_edge.reverse.cargo['test'] == 'edge10', 'edge10, edge21, edge32 has same weight, edge10 is the first'
 
-    @pytest.mark.skip(reason='to fix?')
-    def test_offset_twice(self,
-                          stretch_of_three_closures):
+    def test_offset_twice(self, stretch_of_three_closures):
         """
-    ┌─────────────────────┐
-    │                     │
-    │                     │
-    │                     │
-    │                     │
-    │      ▲          ▲   │
-    │      │          │   │
-    ├──────────────┬──────┤
-    │              │      │
-    │              │      │
-    └──────────────┴──────┘
+       6┌─────────────────────┐7
+        │                     │
+        │                     │
+        │                     │
+        │                     │
+        │      ▲          ▲   │
+        │      │          │   │
+       3├──────────────┬──────┤5
+        │            4 │      │
+        │              │      │
+        └──────────────┴──────┘
+        0              1      2
         """
         stretch = stretch_of_three_closures
         assert len(stretch.closures) == 3
@@ -1311,6 +1311,11 @@ class TestOffset:
         edge_seq = EdgeSeq([stretch.edge('(3,4)'),
                             stretch.edge('(4,5)')])
         for edge in edge_seq:
-            Offset(edge, StrictAttachOffsetHandler).offset(150)
+            Offset(edge, OffsetHandler).offset(150)
 
-        assert all([closure.shape.area in [40 * 100, 160 * 75, 160 * 25] for closure in stretch.closures])
+        closures = stretch.closures
+        closures.sort(key=lambda closure: closure.shape.centroid.x)
+
+        assert closures[0].shape.equals(loads('POLYGON ((0 0, 75 0, 75 10, 75 160, 0 160, 0 10, 0 0))'))
+        assert closures[1].shape.equals(loads('POLYGON ((100 160, 100 200, 0 200, 0 160, 75 160, 100 160))'))
+        assert closures[2].shape.equals(loads('POLYGON ((75 0, 100 0, 100 10, 100 160, 75 160, 75 10, 75 0))'))

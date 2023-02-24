@@ -2179,17 +2179,18 @@ def stretch_offset_union_2_reverse_closure() -> Stretch:
 @pytest.fixture
 def stretch_of_three_closures() -> Stretch:
     """
-        ┌─────────────────────┐
+       6┌─────────────────────┐7
         │                     │
         │                     │
         │                     │
         │                     │
         │                     │
-        │                     │
-        ├──────────────┬──────┤
+        │              4      │
+       3├──────────────┬──────┤5
         │              │      │
         │              │      │
         └──────────────┴──────┘
+        0              1      2
     """
 
     stretch = Stretch()
