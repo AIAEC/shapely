@@ -98,3 +98,19 @@ class TestAddingClosure:
         closures = stretch.closures
         # exist shared edges
         assert len(set(closures[0].edges).symmetric_difference(closures[1].edges)) > 0
+
+    def test_default_cargo_when_adding_closure(self, stretch_4_dangling_edge):
+        stretch = Stretch(default_pivot_cargo_dict={'test': 'pivot'},
+                          default_edge_cargo_dict={'test': 'edge'},
+                          default_closure_cargo_dict={'test': 'closure'})
+        closure = stretch.add_closure(Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]))
+        assert closure.cargo['test'] == 'closure'
+
+        for closure in stretch.closures:
+            assert closure.cargo['test'] == 'closure'
+
+        for edge in stretch.edges:
+            assert edge.cargo['test'] == 'edge'
+
+        for pivot in stretch.pivots:
+            assert pivot.cargo['test'] == 'pivot'

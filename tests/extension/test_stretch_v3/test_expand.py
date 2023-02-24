@@ -1,6 +1,6 @@
 import pytest
 
-from shapely.extension.model.stretch.stretch_v3 import Pivot
+from shapely.extension.model.stretch.stretch_v3 import Pivot, EdgeSeq
 from shapely.geometry import Point, LineString, LinearRing, Polygon
 
 
@@ -200,3 +200,48 @@ class TestExpand:
             Polygon([(0, 0), (1, 0), (1.1, 0.5), (1.1, 0.6), (1.2, 0.7), (1, 1), (0, 1)]))
         assert stretch.closure('1').shape.equals(
             Polygon([(1, 0), (2, 0), (2, 1), (1, 1), (1.2, 0.7), (1.1, 0.6), (1.1, 0.5), (1, 0)]))
+
+    def test_cargo_inheritance_for_expand(self, stretch_2_boxes):
+        stretch = stretch_2_boxes
+
+        new_pivots = [
+            Pivot(Point(1.1, 0.5), stretch, '6'),
+            Pivot(Point(1.1, 0.6), stretch, '7'),
+        ]
+        stretch._pivot_map.update({p.id: p for p in new_pivots})
+        stretch.shrink_id_gen()
+
+        assert len(stretch.pivots) == 8
+        assert len(stretch.edges) == 8
+        assert len(stretch.closures) == 2
+
+        edge12 = stretch.edge('(1,2)')
+        edge21 = stretch.edge('(2,1)')
+
+        edge12.cargo['test'] = 'edge12'
+        edge21.cargo['test'] = 'edge21'
+
+        stretch.pivot('1').cargo['test'] = 'pivot1'
+        stretch.pivot('2').cargo['test'] = 'pivot2'
+
+        stretch.closure('0').cargo['test'] = 'closure0'
+        stretch.closure('1').cargo['test'] = 'closure1'
+
+        result = edge12.expand().by(new_pivots)
+        assert isinstance(result, EdgeSeq)
+        assert len(result) == 3
+        assert result[0].cargo['test'] == 'edge12'
+        assert result[2].cargo['test'] == 'edge12'
+        assert result[1].cargo.get('test') is None
+
+        assert stretch.pivot('1').cargo['test'] == 'pivot1'
+        assert stretch.pivot('2').cargo['test'] == 'pivot2'
+        assert stretch.pivot('6').cargo.get('test') is None
+        assert stretch.pivot('7').cargo.get('test') is None
+
+        assert stretch.closure('0').cargo['test'] == 'closure0'
+        assert stretch.closure('1').cargo['test'] == 'closure1'
+
+        assert result[0].reverse.cargo['test'] == 'edge21'
+        assert result[2].reverse.cargo['test'] == 'edge21'
+        assert result[1].reverse.cargo.get('test') is None

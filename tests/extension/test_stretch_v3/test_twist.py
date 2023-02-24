@@ -111,3 +111,32 @@ class TestTwist:
 
         with pytest.raises(ValueError):
             Edge.twist(edge0, edge1)
+
+    def test_cargo_of_twist_edges(self, stretch_exterior_offset_hit_hit_with_reverse_closure):
+        stretch = stretch_exterior_offset_hit_hit_with_reverse_closure
+
+        edge12 = stretch.edge('(1,2)')
+        edge21 = stretch.edge('(2,1)')
+        edge32 = stretch.edge('(3,2)')
+
+        edge12.cargo['test'] = 'edge12'
+        edge21.cargo['test'] = 'edge21'
+        edge32.cargo['test'] = 'edge32'
+
+        stretch.pivot('1').cargo['test'] = 'pivot1'
+        stretch.pivot('2').cargo['test'] = 'pivot2'
+        stretch.pivot('3').cargo['test'] = 'pivot3'
+
+        stretch.closure('0').cargo['test'] = 'closure0'
+        stretch.closure('1').cargo['test'] = 'closure1'
+
+        edge = Edge.twist(edge12, stretch.edge('(2,3)'))
+        assert isinstance(edge, Edge)
+        assert edge.cargo['test'] == 'edge12'
+        assert edge.reverse.cargo['test'] == 'edge32'
+        assert stretch.pivot('1').cargo['test'] == 'pivot1'
+        assert stretch.pivot('2').cargo['test'] == 'pivot2'
+        assert stretch.pivot('3').cargo['test'] == 'pivot3'
+        assert stretch.closure('0').cargo['test'] == 'closure0'
+        assert stretch.closure('1').cargo['test'] == 'closure1'
+

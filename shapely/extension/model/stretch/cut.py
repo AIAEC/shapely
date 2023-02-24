@@ -61,6 +61,7 @@ class Cut:
         closure.stretch.delete_closure(closure, gc=False)
 
         return (ClosureReconstructor(stretch)
+                .cargo(closure.cargo.data)
                 .from_edges(list(new_edges), self._closure_strategy)
                 .reconstruct(dist_tol_to_pivot=dist_tol_to_pivot, dist_tol_to_edge=dist_tol_to_edge))
 

@@ -10,7 +10,7 @@ from shapely.extension.util.iter_util import first
 
 class Cargo:
     def __init__(self, data=None, host=None, default=None, verbose=False):
-        self._data = data or {}
+        self._data = deepcopy(data) or {}
         self._id = uuid4()
         self._host = ref(host) if host else None
         self._default = default

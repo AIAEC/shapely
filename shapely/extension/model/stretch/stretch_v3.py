@@ -10,6 +10,7 @@ from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
+from shapely.extension.model.interval import Interval
 from shapely.extension.typing import CoordType
 from shapely.extension.util.func_util import lfilter, argmin
 from shapely.extension.util.iter_util import first, win_slice
@@ -18,8 +19,12 @@ from shapely.geometry.base import BaseGeometry
 
 
 class Pivot:
-    def __init__(self, origin: CoordType, stretch: 'Stretch', id_: str):
-        self.cargo = Cargo(host=self)
+    def __init__(self, origin: CoordType,
+                 stretch: 'Stretch',
+                 id_: str,
+                 cargo_dict: Optional[dict] = None):
+
+        self.cargo = Cargo(data=cargo_dict, host=self)
         self._stretch: ReferenceType[Stretch] = ref(stretch)
         self.origin: Point = Point(origin)
         self._id: str = id_
@@ -109,9 +114,13 @@ class Pivot:
 
 
 class Edge:
-    def __init__(self, from_pid: str, to_pid: str, stretch: 'Stretch', closure: Optional['Closure'] = None):
+    def __init__(self, from_pid: str,
+                 to_pid: str,
+                 stretch: 'Stretch',
+                 closure: Optional['Closure'] = None,
+                 cargo_dict: Optional[dict] = None):
         assert from_pid != to_pid, 'from_pid and to_pid should not be the same'
-        self.cargo = Cargo(host=self)
+        self.cargo = Cargo(data=cargo_dict, host=self)
 
         self.from_pid: str = from_pid
         self.to_pid: str = to_pid
@@ -275,61 +284,98 @@ class Edge:
         from shapely.extension.model.stretch.expansion import Expansion
         return Expansion(self)
 
-    @classmethod
-    def twist(cls, edge0: 'Edge', edge1: 'Edge') -> 'Edge':
+    def sub_edge(self, interval: Union[Interval, Tuple[float, float]],
+                 dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
+                 dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                 absolute: bool = True) -> 'Edge':
         """
-        [LOW LEVEL API] twist edge0 and edge1 into 1 edge
+        [LOW LEVEL API] get sub edge of current edge
+        Parameters
+        ----------
+        interval: interval instance or tuple of 2 float
+
         Returns
         -------
-        edge instance
+        edge
         """
-        if edge0.to_pid != edge1.from_pid:
+        assert interval[0] < interval[1], f'interval should be in ascending order, but got {interval}'
+
+        points = [self.shape.interpolate(val, normalized=not absolute) for val in interval]
+        pivots = [self.stretch.add_pivot(origin=point,
+                                         dist_tol_to_pivot=dist_tol_to_pivot,
+                                         dist_tol_to_edge=dist_tol_to_edge) for point in points]
+        edge_id = f'({pivots[0].id},{pivots[1].id})'
+        edge = self.stretch.edge(edge_id)
+        assert edge is not None, f'edge {edge_id} should be created'
+        return edge
+
+    @classmethod
+    def twist(cls, primary_edge: 'Edge', secondary_edge: 'Edge') -> 'Edge':
+        """
+        [LOW LEVEL API] twist primary edge and secondary edge into 1 edge
+        Returns
+        -------
+        edge instance, which cargo, will inherit from primary edge's cargo
+        and if their reverse edge exists, the reverse edge should inherit the cargo of reverse edge of secondary edge,
+        for symmetry reason
+        """
+        if primary_edge.to_pid != secondary_edge.from_pid:
             raise ValueError('current edge and given edge should be connected')
 
-        if edge0.closure is not edge1.closure:
+        if primary_edge.closure is not secondary_edge.closure:
             raise ValueError('current edge and given edge should belong to the same closure, or no closure')
 
-        if edge0.reverse is edge1:
+        if primary_edge.reverse is secondary_edge:
             raise ValueError('current edge and given edge should not be reverse of each other')
 
-        if edge0.reverse_closure is not edge1.reverse_closure:
+        if primary_edge.reverse_closure is not secondary_edge.reverse_closure:
             raise ValueError('current edge and given edge should belong to the same reverse closure, or no closure')
 
-        stretch = edge0.stretch
-        from_pid = edge0.from_pid
-        to_pid = edge1.to_pid
-        closure = edge0.closure
-        reverse_closure = edge0.reverse_closure
-        edge0_reverse = edge0.reverse
-        edge1_reverse = edge1.reverse
+        stretch = primary_edge.stretch
+        from_pid = primary_edge.from_pid
+        to_pid = secondary_edge.to_pid
+        closure = primary_edge.closure
+        reverse_closure = primary_edge.reverse_closure
+        primary_edge_reverse = primary_edge.reverse
+        secondary_edge_reverse = secondary_edge.reverse
 
-        stretch.discard_edge(edge0)
-        stretch.discard_edge(edge1)
-        twisted_edge: Edge = stretch.create_edge().from_pivot_by_id(from_pid).to_pivot_by_id(to_pid).create()
+        stretch.discard_edge(primary_edge)
+        stretch.discard_edge(secondary_edge)
+        twisted_edge: Edge = (stretch
+                              .create_edge()
+                              .cargo(primary_edge.cargo.data)
+                              .from_pivot_by_id(from_pid)
+                              .to_pivot_by_id(to_pid)
+                              .create())
 
         if closure:
             assert isinstance(closure, Closure)
-            seq = closure.seq_of_edge(edge0)
-            assert seq is closure.seq_of_edge(edge1)
+            seq = closure.seq_of_edge(primary_edge)
+            assert seq is closure.seq_of_edge(secondary_edge)
 
-            idx = seq._edges.index(edge0)
-            seq._edges.remove(edge0)
-            seq._edges.remove(edge1)
+            idx = seq._edges.index(primary_edge)
+            seq._edges.remove(primary_edge)
+            seq._edges.remove(secondary_edge)
             seq._edges.insert(idx, twisted_edge)
 
             seq.set_closure(closure)
 
         if reverse_closure:
-            stretch.discard_edge(edge0_reverse)
-            stretch.discard_edge(edge1_reverse)
-            reverse_twisted_edge = stretch.create_edge().from_pivot_by_id(to_pid).to_pivot_by_id(from_pid).create()
+            stretch.discard_edge(primary_edge_reverse)
+            stretch.discard_edge(secondary_edge_reverse)
+            reverse_twisted_edge = (stretch
+                                    .create_edge()
+                                    .cargo(secondary_edge_reverse.cargo.data)
+                                    .from_pivot_by_id(to_pid)
+                                    .to_pivot_by_id(from_pid)
+                                    .create())
 
-            seq = reverse_closure.seq_of_edge(edge0_reverse)
-            assert seq is reverse_closure.seq_of_edge(edge1_reverse)
+            seq = reverse_closure.seq_of_edge(primary_edge_reverse)
+            assert seq is reverse_closure.seq_of_edge(secondary_edge_reverse)
 
-            idx = seq._edges.index(edge0_reverse)
-            seq._edges.remove(edge0_reverse)
-            seq._edges.remove(edge1_reverse)
+            idx = seq._edges.index(primary_edge_reverse)
+            seq._edges.remove(primary_edge_reverse)
+            seq._edges.remove(secondary_edge_reverse)
             seq._edges.insert(idx, reverse_twisted_edge)
 
             seq.set_closure(reverse_closure)
@@ -678,8 +724,9 @@ class Closure:
     def __init__(self, exterior: EdgeSeq,
                  stretch: 'Stretch',
                  id_: str,
-                 interiors: Optional[List[EdgeSeq]] = None):
-        self.cargo = Cargo(host=self)
+                 interiors: Optional[List[EdgeSeq]] = None,
+                 cargo_dict: Optional[dict] = None):
+        self.cargo = Cargo(data=cargo_dict, host=self)
         self.exterior: EdgeSeq = exterior
         self.interiors: List[EdgeSeq] = interiors or []
         self._stretch: ReferenceType[Stretch] = ref(stretch)
@@ -844,6 +891,7 @@ class Closure:
         Returns
         -------
         list of closures
+        the cargos of them should inherit from self.cargo
         """
         edges_shared = self.shared_edges(closure, including_reverse=True)
         if not edges_shared:
@@ -866,7 +914,10 @@ class Closure:
         stretch.remove_dangling_pivots()
 
         from shapely.extension.model.stretch.creator import ClosureReconstructor
-        closures = ClosureReconstructor(stretch).from_edges(list(edges_left)).reconstruct()
+        closures = (ClosureReconstructor(stretch)
+                    .cargo(self.cargo.data)
+                    .from_edges(list(edges_left))
+                    .reconstruct())
 
         return closures
 
@@ -916,13 +967,20 @@ class Closure:
 
 
 class Stretch:
-    def __init__(self):
+    def __init__(self, default_pivot_cargo_dict: Optional[dict] = None,
+                 default_edge_cargo_dict: Optional[dict] = None,
+                 default_closure_cargo_dict: Optional[dict] = None):
+
         self._pivot_map: Dict[str, Pivot] = OrderedDict()
         self._edge_map: Dict[str, Edge] = OrderedDict()
         self._closure_map: Dict[str, Closure] = OrderedDict()
 
         self._pid_gen = count(0)  # pivot id generator
         self._cid_gen = count(0)  # closure id generator
+
+        self._default_pivot_cargo_dict = default_pivot_cargo_dict or {}
+        self._default_edge_cargo_dict = default_edge_cargo_dict or {}
+        self._default_closure_cargo_dict = default_closure_cargo_dict or {}
 
     def __deepcopy__(self, memodict={}):
         stretch = Stretch()
@@ -955,14 +1013,22 @@ class Stretch:
         json string
         """
         pivot_map = {pivot.id: pivot.shape.coords[0] for pivot in self.pivots}
+        pivot_cargo_map = {pivot.id: pivot.cargo.data for pivot in self.pivots}
+
+        edge_cargo_map = {edge.id: edge.cargo.data for edge in self.edges}
+
         closure_map = {closure.id: {
             'exterior': closure.exterior.pids,
             'interiors': [interior.pids for interior in closure.interiors]
         } for closure in self.closures}
+        closure_cargo_map = {closure.id: closure.cargo.data for closure in self.closures}
 
         stretch_json = {
             "pivot": pivot_map,
-            "closure": closure_map
+            "pivot_cargo": pivot_cargo_map,
+            "edge_cargo": edge_cargo_map,
+            "closure": closure_map,
+            "closure_cargo": closure_cargo_map,
         }
         return json.dumps(stretch_json)
 
@@ -972,10 +1038,15 @@ class Stretch:
         assert "pivot" in stretch_json and "closure" in stretch_json, "invalid stretch json"
         pivot_map = stretch_json["pivot"]
         closure_map = stretch_json["closure"]
+        pivot_cargo_map = stretch_json["pivot_cargo"]
+        closure_cargo_map = stretch_json["closure_cargo"]
+        edge_cargo_map = stretch_json["edge_cargo"]
 
         stretch = Stretch()
-        pivots = [Pivot(point, stretch, pid) for pid, point in pivot_map.items()]
-        stretch._pivot_map = {pivot.id: pivot for pivot in pivots}
+        pivots: List[Pivot] = [Pivot(point, stretch, pid, pivot_cargo_map.get(pid, {}))
+                               for pid, point in pivot_map.items()]
+
+        stretch._pivot_map = OrderedDict([(pivot.id, pivot) for pivot in pivots])
 
         edges: List[Edge] = []
         closures: List[Closure] = []
@@ -984,17 +1055,22 @@ class Stretch:
             interiors = closure_json["interiors"]
             edge_seqs: List[EdgeSeq] = []
             for pid_list in [exterior] + interiors:
-                cur_edges = [Edge(pid0, pid1, stretch) for pid0, pid1 in win_slice(pid_list, win_size=2)]
+                cur_edges: List[Edge] = []
+                for edge in [Edge(pid0, pid1, stretch) for pid0, pid1 in win_slice(pid_list, win_size=2)]:
+                    edge.cargo.update(edge_cargo_map.get(edge.id, {}))
+                    cur_edges.append(edge)
+
                 edges.extend(cur_edges)
                 edge_seqs.append(EdgeSeq(cur_edges))
 
             closures.append(Closure(exterior=edge_seqs[0],
                                     interiors=edge_seqs[1:],
                                     stretch=stretch,
-                                    id_=cid))
+                                    id_=cid,
+                                    cargo_dict=closure_cargo_map.get(cid, {})))
 
-        stretch._edge_map = {edge.id: edge for edge in edges}
-        stretch._closure_map = {closure.id: closure for closure in closures}
+        stretch._edge_map = OrderedDict([(edge.id, edge) for edge in edges])
+        stretch._closure_map = OrderedDict([(closure.id, closure) for closure in closures])
         stretch.shrink_id_gen()
         return stretch
 
@@ -1049,8 +1125,41 @@ class Stretch:
         -------
         list of edges
         """
-        query_geom = query_geom.buffer(buffer_dist)
+        if buffer_dist != 0:
+            query_geom = query_geom.buffer(buffer_dist)
+
         return [edge for edge in self.edges if edge.shape.intersects(query_geom)]
+
+    def find_edge(self, query_geom: BaseGeometry, buffer_dist: float = 0.0) -> Optional[Edge]:
+        """
+        find best matched edge, if not found, return None
+        Parameters
+        ----------
+        query_geom: geometry instance
+        buffer_dist: buffer distance
+
+        Returns
+        -------
+        edge or None
+        """
+        edges = self.edges_by_query(query_geom, buffer_dist)
+
+        if len(edges) == 0:
+            return None
+
+        if len(edges) == 1:
+            return edges[0]
+
+        def projection_direction_tuple(edge: Edge) -> float:
+            projection_len = (seq(edge.shape.ext.projection_by(query_geom).positive_intervals())
+                              .map(lambda interval: interval.length)
+                              .sum())
+            including_angle = edge.shape.ext.angle().including_angle(query_geom.ext.angle()).degree
+            # projection length as the primary sorting key, the larger, the better
+            # including angle as the secondary sorting key, the smaller, the better
+            return (projection_len, -including_angle)
+
+        return max(edges, key=projection_direction_tuple)
 
     def pivot(self, pid: str) -> Optional[Pivot]:
         """
@@ -1086,8 +1195,28 @@ class Stretch:
         -------
         pivots intersecting query_geom
         """
-        query_geom = query_geom.buffer(buffer_dist)
+        if buffer_dist != 0:
+            query_geom = query_geom.buffer(buffer_dist)
         return lfilter(lambda p: p.shape.intersects(query_geom), self.pivots)
+
+    def find_pivot(self, query_geom: BaseGeometry, buffer_dist: float = 0.0) -> Optional[Pivot]:
+        """
+        find best matched pivot, if not found, return None
+        Parameters
+        ----------
+        query_geom: geometry instance
+        buffer_dist: buffer distance
+
+        Returns
+        -------
+        pivot or None
+        """
+        pivots = self.pivots_by_query(query_geom, buffer_dist)
+
+        if len(pivots) == 0:
+            return None
+
+        return min(pivots, key=lambda pivot: pivot.shape.centroid.distance(query_geom.centroid))
 
     def closure(self, cid: str) -> Optional[Closure]:
         """
@@ -1102,6 +1231,22 @@ class Stretch:
         """
         return self._closure_map.get(cid, None)
 
+    def closures_by_query(self, query_geom: BaseGeometry, buffer_dist: float = 0.0) -> List[Closure]:
+        """
+        query closure by intersecting geometry
+        Parameters
+        ----------
+        query_geom
+        buffer_dist
+
+        Returns
+        -------
+        closure intersecting query_geom
+        """
+        if buffer_dist != 0:
+            query_geom = query_geom.buffer(buffer_dist)
+        return lfilter(lambda c: c.shape.intersects(query_geom), self.closures)
+
     @property
     def closures(self) -> List[Closure]:
         """
@@ -1111,19 +1256,22 @@ class Stretch:
         """
         return list(self._closure_map.values())
 
-    def create_pivot(self, origin: Union[CoordType, Point]) -> Pivot:
+    def create_pivot(self, origin: Union[CoordType, Point],
+                     cargo_dict: Optional[dict] = None) -> Pivot:
         """
         [LOW LEVEL API] create pivot WITHOUT duplicate pivot checking and edge attaching
         Parameters
         ----------
         origin: 2-float-tuple / Coord / Point
+        cargo_dict: cargo dict, default to None
 
         Returns
         -------
         Pivot instance
         """
         pid = str(next(self._pid_gen))
-        pivot = Pivot(origin=origin, stretch=self, id_=pid)
+        cargo_dict = cargo_dict or self._default_pivot_cargo_dict
+        pivot = Pivot(origin=origin, stretch=self, id_=pid, cargo_dict=cargo_dict)
         self._pivot_map[pid] = pivot
         return pivot
 
@@ -1287,7 +1435,8 @@ class Stretch:
 
     def add_pivot(self, origin: Union[CoordType, Point],
                   dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                  dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> Pivot:
+                  dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                  cargo_dict: Optional[dict] = None) -> Pivot:
         """
         [MID LEVEL API] create pivot WITH duplicate pivot checking and edge attaching
         Parameters
@@ -1295,6 +1444,7 @@ class Stretch:
         origin: 2-float-tuple / Coord / Point
         dist_tol_to_edge
         dist_tol_to_pivot
+        cargo_dict
 
         Returns
         -------
@@ -1309,7 +1459,7 @@ class Stretch:
             return min(existed_pivots, key=lambda p: p.shape.distance(point))
 
         # create pivot
-        pivot = self.create_pivot(point)
+        pivot = self.create_pivot(point, cargo_dict=cargo_dict)
 
         # try to attach pivot to existed edges
         for existed_edge in self.edges_by_query(point, buffer_dist=dist_tol_to_edge):
@@ -1323,7 +1473,8 @@ class Stretch:
 
     def add_edge(self, line: LineString,
                  dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                 dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> EdgeSeq:
+                 dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                 cargo_dict: Optional[dict] = None) -> EdgeSeq:
         """
         [MID LEVEL API] create edge with duplicate edge checking and pivot attaching
         NOTICE: it will not guarantee the validity of closures.
@@ -1332,6 +1483,7 @@ class Stretch:
         line
         dist_tol_to_pivot
         dist_tol_to_edge
+        cargo_dict
 
         Returns
         -------
@@ -1349,6 +1501,7 @@ class Stretch:
             .map(lambda p: self.add_pivot(p, dist_tol_to_pivot, dist_tol_to_edge))
             .sliding(2)
             .map(lambda pivot_pair: (edge_creator
+                                     .cargo(cargo_dict)
                                      .from_pivot(pivot_pair[0])
                                      .to_pivot(pivot_pair[1])
                                      .create(raise_on_failure=False)))
@@ -1366,7 +1519,8 @@ class Stretch:
 
     def add_closure(self, polygon: Polygon,
                     dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                    dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> Closure:
+                    dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                    cargo_dict: Optional[dict] = None) -> Closure:
         """
         [MID LEVEL API] create closure with duplicate closure checking and edge attaching
         Parameters
@@ -1374,6 +1528,7 @@ class Stretch:
         polygon
         dist_tol_to_pivot
         dist_tol_to_edge
+        cargo_dict
 
         Returns
         -------
@@ -1388,6 +1543,7 @@ class Stretch:
                          .map(lambda interior: self.add_edge(interior, dist_tol_to_pivot, dist_tol_to_edge))
                          .list())
         return (self.create_closure()
+                .cargo(cargo_dict)
                 .exterior(exterior_seq)
                 .extend_interiors(interior_seqs)
                 .create())

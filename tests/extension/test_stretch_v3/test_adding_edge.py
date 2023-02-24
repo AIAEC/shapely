@@ -40,6 +40,18 @@ class TestAddingEdge:
         assert edge_seq[2] == stretch.edge('(2,3)')
         assert edge_seq[3] == stretch.edge('(3,0)')
 
+    def test_add_edge_with_duplicate_points(self, stretch_4_dangling_pivots):
+        stretch = stretch_4_dangling_pivots
+        assert len(stretch.pivots) == 4
+        assert len(stretch.edges) == 0
+        assert len(stretch.closures) == 0
+
+        result = stretch.add_edge(LineString([(0, 0), (0, 0), (1, 0), (1, 0)]))
+        assert len(result) == 1
+        assert len(stretch.pivots) == 4
+        assert len(stretch.edges) == 1
+        assert len(stretch.closures) == 0
+
     def test_add_edge_with_points_almost_equal_to_pivots(self, stretch_2_boxes):
         stretch = stretch_2_boxes
         assert len(stretch.pivots) == 6
@@ -107,3 +119,10 @@ class TestAddingEdge:
         assert len(edge_seq) == 7
         assert len(stretch.pivots) == 6
         assert len(stretch.edges) == 7
+
+    def test_default_cargo_after_adding_edge(self, stretch_4_dangling_pivots):
+        stretch = stretch_4_dangling_pivots
+        stretch._default_edge_cargo_dict = {'test': 'edge'}
+        edge_seq = stretch.add_edge(LineString([(0, 0), (1, 1)]))
+        assert len(edge_seq) == 1
+        assert edge_seq[0].cargo['test'] == 'edge'

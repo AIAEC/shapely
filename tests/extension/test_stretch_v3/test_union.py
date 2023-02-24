@@ -1,3 +1,4 @@
+from shapely.extension.model.stretch.stretch_v3 import Closure
 from shapely.geometry import Polygon
 from shapely.wkt import loads
 
@@ -82,3 +83,23 @@ class TestUnion:
         closure = stretch.closures[0]
         assert closure.shape.equals(Polygon([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]))
         assert len(closure.interiors) == 0
+
+    def test_cargo_inherit_with_union(self, stretch_2_boxes):
+        stretch = stretch_2_boxes
+
+        stretch.closure('0').cargo['test'] = 'cargo0'
+        stretch.closure('1').cargo['test'] = 'cargo1'
+        assert stretch.closure('0').shape.centroid.x < stretch.closure('1').shape.centroid.x
+
+        stretch.edge('(2,3)').cargo['test'] = 'edge23'
+        stretch.pivot('1').cargo['test'] = 'pivot1'
+
+        closures = stretch.closures
+        closures.sort(key=lambda c: c.shape.centroid.x)
+
+        result = closures[0].union(closures[1])
+        assert len(result) == 1
+        assert isinstance(result[0], Closure)
+        assert result[0].cargo['test'] == 'cargo0'
+        assert stretch.edge('(2,3)').cargo['test'] == 'edge23'
+        assert stretch.pivot('1').cargo['test'] == 'pivot1'

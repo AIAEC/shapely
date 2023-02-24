@@ -174,6 +174,27 @@ class TestBasicAttribute:
         obj = json.loads(json_str)
         assert isinstance(obj, dict)
 
+    def test_dumps_with_cargo(self, stretch_box):
+        stretch = stretch_box
+
+        pivot = stretch.pivot('0')
+        pivot.cargo['test'] = 'pivot'
+
+        edge = stretch.edge('(0,1)')
+        edge.cargo['test'] = 'edge'
+
+        closure = stretch.closure('0')
+        closure.cargo['test'] = 'closure'
+
+        json_str = stretch.dumps()
+        assert isinstance(json_str, str)
+        assert len(json_str) > 0
+        obj = json.loads(json_str)
+        assert isinstance(obj, dict)
+        assert obj['pivot_cargo']['0'] == {'test': 'pivot'}
+        assert obj['edge_cargo']['(0,1)'] == {'test': 'edge'}
+        assert obj['closure_cargo']['0'] == {'test': 'closure'}
+
     def test_loads(self, stretch_for_closure_strategy):
         stretch = stretch_for_closure_strategy
 
@@ -183,6 +204,29 @@ class TestBasicAttribute:
         assert set(stretch2.pivots) == set(stretch.pivots)
         assert set(stretch2.edges) == set(stretch.edges)
         assert set(stretch2.closures) == set(stretch.closures)
+
+    def test_loads_with_cargo(self, stretch_box):
+        stretch = stretch_box
+
+        pivot = stretch.pivot('0')
+        pivot.cargo['test'] = 'pivot'
+
+        edge = stretch.edge('(0,1)')
+        edge.cargo['test'] = 'edge'
+
+        closure = stretch.closure('0')
+        closure.cargo['test'] = 'closure'
+
+        json_str = stretch.dumps()
+        stretch2 = Stretch.loads(json_str)
+
+        assert set(stretch2.pivots) == set(stretch.pivots)
+        assert set(stretch2.edges) == set(stretch.edges)
+        assert set(stretch2.closures) == set(stretch.closures)
+
+        assert stretch2.pivot('0').cargo.data == {'test': 'pivot'}
+        assert stretch2.edge('(0,1)').cargo.data == {'test': 'edge'}
+        assert stretch2.closure('0').cargo.data == {'test': 'closure'}
 
     @skip('skip drawing test for online unittest, only do it locally')
     def test_draw(self, stretch_for_closure_strategy):

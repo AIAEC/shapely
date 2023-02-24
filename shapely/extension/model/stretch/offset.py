@@ -10,7 +10,7 @@ from shapely.extension.model.stretch.stretch_v3 import Edge, EdgeSeq, Closure
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.func_util import group
 from shapely.extension.util.iter_util import first
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Polygon, Point
 
 
 class Offset:
@@ -96,6 +96,8 @@ class Offset:
         if dist > 0:
             union_to_closure = self._edge.reverse_closure
             self.inner_offset_helper(line_after_attach=line_after_attach,
+                                     line_after_offset=line_after_offset,
+                                     offset_dist=dist,
                                      inclusive_space=self._closure.shape,
                                      union_to_closure=union_to_closure,
                                      dist_tol_to_pivot=dist_tol_to_pivot,
@@ -104,6 +106,7 @@ class Offset:
         # case 3: offset exterior into outer space
         elif self._edge.is_exterior and dist < 0:
             self.outer_offset_helper(line_after_offset=line_after_offset,
+                                     offset_dist=dist,
                                      exclusive_space=None,
                                      dist_tol_to_pivot=dist_tol_to_pivot,
                                      dist_tol_to_edge=dist_tol_to_edge)
@@ -111,6 +114,7 @@ class Offset:
         # case 4: offset interior into outer space
         elif self._edge.is_interior and dist < 0:
             self.outer_offset_helper(line_after_offset=line_after_offset,
+                                     offset_dist=dist,
                                      exclusive_space=self._closure.shape,
                                      dist_tol_to_pivot=dist_tol_to_pivot,
                                      dist_tol_to_edge=dist_tol_to_edge)
@@ -126,6 +130,8 @@ class Offset:
         return offset_edge_seqs
 
     def inner_offset_helper(self, line_after_attach: LineString,
+                            line_after_offset: LineString,
+                            offset_dist: float,
                             inclusive_space: Polygon,
                             union_to_closure: Optional[Closure] = None,
                             dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
@@ -135,6 +141,8 @@ class Offset:
         Parameters
         ----------
         line_after_attach
+        line_after_offset
+        offset_dist
         inclusive_space: space that the line_after_attach must be inside
         union_to_closure
         dist_tol_to_pivot
@@ -152,10 +160,11 @@ class Offset:
                 # remove the target closure and its edges
                 self._stretch.delete_closure(self._closure, gc=True)
             else:
-                self._closure, *_ = self._closure.union(union_to_closure)
+                union_to_closure.union(self._closure)  # union_to_closure as the primary for cargo
             return
 
         new_edges: List[Edge] = []
+
         for segment in segments:
             new_edges.extend(self._stretch.add_edge(line=segment,
                                                     dist_tol_to_pivot=dist_tol_to_pivot,
@@ -171,23 +180,43 @@ class Offset:
         self._stretch.delete_closure(self._closure, gc=False)
 
         new_closures: List[Closure] = (ClosureReconstructor(stretch=self._stretch)
+                                       .cargo(self._closure.cargo.data)
                                        .from_edges(new_edges + closure_edges)
                                        .reconstruct(dist_tol_to_pivot=dist_tol_to_pivot,
                                                     dist_tol_to_edge=dist_tol_to_edge))
 
-        target_closure = first(lambda closure: self._edge in closure.exterior, new_closures)
-        assert isinstance(target_closure, Closure)  # must have target closure
+        # inherit cargo of pivots and edges before deleting or unioning closure
+        self.inherit_pivot_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
+        self.inherit_edge_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
+
+        disposal_closure = first(lambda closure: self._edge in closure.exterior, new_closures)
+        assert isinstance(disposal_closure, Closure)  # must have this closure
 
         if union_to_closure is None:
             # remove the target closure and its edges
-            self._stretch.delete_closure(target_closure, gc=True)
+            self._stretch.delete_closure(disposal_closure, gc=True)
         else:
-            self._closure, *_ = target_closure.union(union_to_closure)
+            union_to_closure.union(disposal_closure)  # union_to_closure as the primary for cargo
 
     def outer_offset_helper(self, line_after_offset: LineString,
+                            offset_dist: float,
                             exclusive_space: Optional[Polygon] = None,
                             dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
                             dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> None:
+        """
+
+        Parameters
+        ----------
+        line_after_offset
+        offset_dist
+        exclusive_space
+        dist_tol_to_pivot
+        dist_tol_to_edge
+
+        Returns
+        -------
+
+        """
         new_closure_placeholder = line_after_offset.union(self._edge_seq.shape).minimum_rotated_rectangle
         if exclusive_space:
             new_closure_placeholder = new_closure_placeholder.difference(exclusive_space)
@@ -197,8 +226,40 @@ class Offset:
         for new_closure_poly in new_closure_placeholder.ext.flatten(Polygon).list():
             new_closure = self._stretch.add_closure(new_closure_poly,
                                                     dist_tol_to_pivot=dist_tol_to_pivot,
-                                                    dist_tol_to_edge=dist_tol_to_edge)
+                                                    dist_tol_to_edge=dist_tol_to_edge,
+                                                    cargo_dict=self._closure.cargo.data)
+
+            self.inherit_edge_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
+            self.inherit_pivot_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
 
             # if union failed, return (union_to_closure, new_closure), thus union_to_closure remains unchanged
             # if union success, return list of new closures with only one element, thus union_to_closure is updated
+            # union_to_closure is the primary closure
             union_to_closure, *_ = union_to_closure.union(new_closure)
+
+    def inherit_pivot_cargo(self, line_after_offset: LineString, offset_dist: float):
+        line_before_offset = line_after_offset.ext.offset(-offset_dist)
+        origin_points = line_before_offset.ext.decompose(Point).list()
+        cur_points = line_after_offset.ext.decompose(Point).list()
+        assert len(origin_points) == len(cur_points)
+
+        for origin_point, current_point in zip(origin_points, cur_points):
+            origin_pivot = self._stretch.find_pivot(origin_point, buffer_dist=MATH_MIDDLE_EPS)
+            current_pivot = self._stretch.find_pivot(current_point, buffer_dist=MATH_MIDDLE_EPS)
+            if origin_pivot and current_pivot:
+                current_pivot.cargo.update(origin_pivot.cargo.data)
+
+    def inherit_edge_cargo(self, line_after_offset: LineString, offset_dist: float):
+        line_before_offset = line_after_offset.ext.offset(-offset_dist)
+        segments_before_offset = line_before_offset.ext.decompose(StraightSegment).list()
+        segments_after_offset = line_after_offset.ext.decompose(StraightSegment).list()
+        assert len(segments_before_offset) == len(segments_after_offset)
+
+        for segment_before_offset, segment_after_offset in zip(segments_before_offset, segments_after_offset):
+            origin_edge = self._stretch.find_edge(segment_before_offset, buffer_dist=MATH_MIDDLE_EPS)
+            current_edge = self._stretch.find_edge(segment_after_offset, buffer_dist=MATH_MIDDLE_EPS)
+            if origin_edge and current_edge:
+                current_edge.cargo.update(origin_edge.cargo.data)
+
+                if origin_edge.reverse and current_edge.reverse:
+                    current_edge.reverse.cargo.update(origin_edge.reverse.cargo.data)

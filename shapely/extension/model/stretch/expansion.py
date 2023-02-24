@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Union, List
 
 from shapely.extension.functional import seq
@@ -48,12 +49,21 @@ class Expansion:
 
         replaced_edge_seq = Pivot.connect(pivots_in_seq)
 
+        origin_cargo_dict = self._edge.cargo.data
+        replaced_edge_seq[0].cargo.update(deepcopy(origin_cargo_dict))
+        replaced_edge_seq[-1].cargo.update(deepcopy(origin_cargo_dict))
+
         if self._edge in replaced_edge_seq:
             raise ValueError('pivots given to expand edge contains pair of from_pivot and to_pivot of edge')
 
         replaced_reverse_edge_seq = None
         if self._edge.reverse:
             replaced_reverse_edge_seq = Pivot.connect(pivots_in_seq[::-1])
+
+            reverse_cargo_dict = self._edge.reverse.cargo.data
+            replaced_reverse_edge_seq[0].cargo.update(deepcopy(reverse_cargo_dict))
+            replaced_reverse_edge_seq[-1].cargo.update(deepcopy(reverse_cargo_dict))
+
             if self._edge.reverse in replaced_reverse_edge_seq:
                 raise ValueError('expand reverse edge by its origin from_pivot or to_pivot')
 

@@ -1,5 +1,6 @@
+from copy import deepcopy
 from operator import attrgetter
-from typing import List, Union, Optional, Set
+from typing import List, Union, Optional, Set, Dict
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.functional import seq
@@ -19,6 +20,12 @@ class DanglingEdgeCreator:
         self._stretch = stretch
         self._from_pid = None
         self._to_pid = None
+        self._cargo_dict = self._stretch._default_edge_cargo_dict
+
+    def cargo(self, dict_: Dict[str, object]) -> 'DanglingEdgeCreator':
+        if dict_:
+            self._cargo_dict = dict_
+        return self
 
     def from_pivot(self, from_pivot: Pivot) -> 'DanglingEdgeCreator':
         assert self._stretch.pivot(from_pivot.id) is from_pivot
@@ -65,7 +72,8 @@ class DanglingEdgeCreator:
 
         edge = Edge(from_pid=self._from_pid,
                     to_pid=self._to_pid,
-                    stretch=self._stretch)
+                    stretch=self._stretch,
+                    cargo_dict=deepcopy(self._cargo_dict))
 
         if edge.id in self._stretch._edge_map:
             return self._stretch._edge_map[edge.id]
@@ -86,6 +94,12 @@ class ClosureCreator:
         self._exterior: Optional[EdgeSeq] = None
         self._interiors: List[EdgeSeq] = []
         self._id_gen = id_gen
+        self._cargo_dict = self._stretch._default_closure_cargo_dict
+
+    def cargo(self, dict_: Dict[str, object]) -> 'ClosureCreator':
+        if dict_:
+            self._cargo_dict = dict_
+        return self
 
     def exterior(self, edges: Union[List[Edge], EdgeSeq]) -> 'ClosureCreator':
         assert all(edge.stretch is self._stretch for edge in edges)
@@ -114,7 +128,8 @@ class ClosureCreator:
         closure = Closure(exterior=self._exterior,
                           interiors=self._interiors,
                           stretch=self._stretch,
-                          id_=str(next(self._id_gen)))
+                          id_=str(next(self._id_gen)),
+                          cargo_dict=deepcopy(self._cargo_dict))
 
         # check if same closure already exists
         for _cls in self._stretch.closures:
@@ -133,6 +148,12 @@ class ClosureReconstructor:
 
         self._exteriors: List[EdgeSeq] = []
         self._interiors: List[EdgeSeq] = []
+        self._cargo_dict = self._stretch._default_closure_cargo_dict
+
+    def cargo(self, dict_: Dict[str, object]) -> 'ClosureReconstructor':
+        if dict_:
+            self._cargo_dict = dict_
+        return self
 
     def from_edges(self, edges: List[Edge],
                    closure_strategy: Optional[ClosureStrategy] = None) -> 'ClosureReconstructor':
@@ -179,6 +200,7 @@ class ClosureReconstructor:
 
             closures.append(self._stretch.add_closure(Polygon(exterior.coords, belonging_interiors),
                                                       dist_tol_to_pivot=dist_tol_to_pivot,
-                                                      dist_tol_to_edge=dist_tol_to_edge))
+                                                      dist_tol_to_edge=dist_tol_to_edge,
+                                                      cargo_dict=self._cargo_dict))
 
         return closures

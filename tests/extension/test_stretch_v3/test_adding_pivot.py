@@ -3,8 +3,9 @@ from collections import OrderedDict
 import pytest
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.model.interval import Interval
 from shapely.extension.model.stretch.stretch_v3 import Stretch, Edge
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString
 
 
 class TestAddingPivot:
@@ -74,3 +75,86 @@ class TestAddingPivot:
         assert len(stretch.pivots) == 5
         assert len(stretch.edges) == 5
         assert pivot in stretch.pivots
+
+
+class TestSubEdge:
+    def test_sub_edge_absolute_mode(self, stretch_box):
+        stretch = stretch_box
+
+        edge = stretch.edges[0]
+        assert len(stretch.edges) == 4
+        assert len(stretch.pivots) == 4
+        assert len(stretch.closures) == 1
+
+        result = edge.sub_edge((0.5, 0.75), absolute=True)
+        assert isinstance(result, Edge)
+        assert result.shape.equals(LineString([(0.5, 0), (0.75, 0)]))
+        assert len(stretch.edges) == 6
+        assert len(stretch.pivots) == 6
+        assert len(stretch.closures) == 1
+
+    def test_sub_edge_relative_mode(self, stretch_box):
+        stretch = stretch_box
+
+        edge = stretch.edges[0]
+        assert len(stretch.edges) == 4
+        assert len(stretch.pivots) == 4
+        assert len(stretch.closures) == 1
+
+        result = edge.sub_edge((0.1, 0.9), absolute=False)
+        assert isinstance(result, Edge)
+        assert result.shape.equals(LineString([(0.1, 0), (0.9, 0)]))
+        assert len(stretch.edges) == 6
+        assert len(stretch.pivots) == 6
+        assert len(stretch.closures) == 1
+
+    def test_sub_edge_with_reverse_closure(self, stretch_2_boxes):
+        stretch = stretch_2_boxes
+
+        edge = stretch.edge('(1,2)')
+        assert edge in stretch.edges
+        assert len(stretch.edges) == 8
+        assert len(stretch.pivots) == 6
+        assert len(stretch.closures) == 2
+
+        result = edge.sub_edge((0.3, 0.6), absolute=True)
+        assert isinstance(result, Edge)
+        assert result.closure is stretch.closure('0')
+        assert result.shape.equals(LineString([(1, 0.3), (1, 0.6)]))
+        assert result.reverse is not None
+        assert result.reverse_closure is stretch.closure('1')
+        assert result in stretch.edges
+        assert len(stretch.pivots) == 8
+        assert len(stretch.edges) == 12
+        assert len(stretch.closures) == 2
+
+    def test_sub_edge_with_wrong_interval(self, stretch_box):
+        stretch = stretch_box
+
+        edge = stretch.edges[0]
+
+        with pytest.raises(AssertionError):
+            edge.sub_edge((0.2, 0.1), absolute=True)
+
+        with pytest.raises(AssertionError):
+            edge.sub_edge((0.5, 0.5), absolute=True)
+
+    def test_sub_edge_attaching_to_existed_pivot(self, stretch_box):
+        stretch = stretch_box
+
+        edge = stretch.edges[0]
+        assert len(stretch.edges) == 4
+        assert len(stretch.pivots) == 4
+        assert len(stretch.closures) == 1
+
+        result = edge.sub_edge(Interval(0.5, 1 - MATH_MIDDLE_EPS), absolute=True, dist_tol_to_pivot=2 * MATH_MIDDLE_EPS)
+        assert isinstance(result, Edge)
+        assert len(stretch.pivots) == 5
+        assert len(stretch.edges) == 5
+        assert len(stretch.closures) == 1
+        assert result.shape.equals(LineString([(0.5, 0), (1, 0)]))
+
+    def test_default_pivot_cargo_when_add_pivot(self):
+        stretch = Stretch(default_pivot_cargo_dict={'test': 'pivot'})
+        pivot = stretch.add_pivot(Point(0, 0))
+        assert pivot.cargo['test'] == 'pivot'

@@ -1,5 +1,7 @@
+from shapely.extension.constant import MATH_MIDDLE_EPS
+
 from shapely.extension.model.stretch.cut import Cut
-from shapely.geometry import LineString, Polygon, LinearRing
+from shapely.geometry import LineString, Polygon, LinearRing, Point
 from shapely.wkt import loads
 
 
@@ -220,3 +222,41 @@ class TestCut:
         assert closures[1].shape.equals(Polygon([(0, 0.5), (1, 0.5), (1, 1), (0, 1), (0, 0.5)]))
         assert closures[2].shape.equals(Polygon([(1, 0), (2, 0), (2, 0.5), (1, 0.5), (1, 0)]))
         assert closures[3].shape.equals(Polygon([(1, 0.5), (2, 0.5), (2, 1), (1, 1), (1, 0.5)]))
+
+    def test_cargo_inherit_with_cut(self, stretch_2_boxes):
+        stretch = stretch_2_boxes
+        stretch.closure('0').cargo['test'] = 'closure0'
+        stretch.closure('1').cargo['test'] = 'closure1'
+        stretch.edge('(3,0)').cargo['test'] = 'edge30'
+        stretch.edge('(1,2)').cargo['test'] = 'edge12'
+        stretch.edge('(2,1)').cargo['test'] = 'edge21'
+        stretch.edge('(4,5)').cargo['test'] = 'edge45'
+
+        closures = (Cut(stretch.closures)
+                    .by(LineString([(-1, 0.5), (3, 0.5)]))
+                    .closures())
+
+        closures.sort(key=lambda closure: closure.shape.centroid.x)
+        assert closures[0].cargo['test'] == 'closure0'
+        assert closures[1].cargo['test'] == 'closure0'
+        assert closures[2].cargo['test'] == 'closure1'
+        assert closures[3].cargo['test'] == 'closure1'
+
+        for edge in stretch.edges_by_query(Point(0, 0.3)):
+            assert edge.cargo['test'] == 'edge30'
+
+        for edge in stretch.edges_by_query(Point(0, 0.7)):
+            assert edge.cargo['test'] == 'edge30'
+
+        pivot = stretch.pivots_by_query(Point(1, 0.5), MATH_MIDDLE_EPS)[0]
+        pivot_id = pivot.id
+        assert stretch.edge(f'(1,{pivot_id})').cargo['test'] == 'edge12'
+        assert stretch.edge(f'({pivot_id},2)').cargo['test'] == 'edge12'
+        assert stretch.edge(f'({pivot_id},1)').cargo['test'] == 'edge21'
+        assert stretch.edge(f'(2,{pivot_id})').cargo['test'] == 'edge21'
+
+        for edge in stretch.edges_by_query(Point(2, 0.3)):
+            assert edge.cargo['test'] == 'edge45'
+
+        for edge in stretch.edges_by_query(Point(2, 0.7)):
+            assert edge.cargo['test'] == 'edge45'

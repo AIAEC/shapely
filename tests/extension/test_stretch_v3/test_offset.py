@@ -1223,3 +1223,66 @@ class TestOffset:
         assert closures[1].shape.equals(loads('POLYGON ((0 0, 12 0, 12 6, 8 6, 4 6, 0 6, 0 0))'))
         assert closures[2].shape.equals(loads('POLYGON ((12 6, 12 7, 12 12, 8 12, 8 7, 8 6, 12 6))'))
 
+    def test_cargo_when_offset_exterior_edge_inner(self, stretch_2_boxes):
+        stretch = stretch_2_boxes
+
+        stretch.edge('(1,2)').cargo['test'] = 'edge12'
+        stretch.edge('(2,1)').cargo['test'] = 'edge21'
+        stretch.closure('0').cargo['test'] = 'closure0'
+        stretch.closure('1').cargo['test'] = 'closure1'
+        stretch.pivot('1').cargo['test'] = 'pivot1'
+        stretch.pivot('2').cargo['test'] = 'pivot2'
+
+        assert stretch.closure('0').shape.centroid.x < stretch.closure('1').shape.centroid.x
+
+        edges_seqs = Offset(stretch.edge('(1,2)'), StrictAttachOffsetHandler).offset(0.1)
+        assert len(edges_seqs) == 1
+        edge_seq = edges_seqs[0]
+        assert isinstance(edge_seq, EdgeSeq)
+        assert len(edge_seq) == 1
+        new_edge = edge_seq[0]
+
+        assert new_edge.cargo['test'] == 'edge12'
+        assert new_edge.reverse.cargo['test'] == 'edge21'
+        closures = stretch.closures
+        closures.sort(key=lambda closure: closure.shape.centroid.x)
+        assert closures[0].cargo['test'] == 'closure0'
+        assert closures[1].cargo['test'] == 'closure1'
+
+        assert new_edge.from_pivot.cargo['test'] == 'pivot1'
+        assert new_edge.to_pivot.cargo['test'] == 'pivot2'
+
+    def test_cargo_when_offset_exterior_edge_seq_inner(self, stretch_exterior_offset_hit_hit_with_reverse_closure):
+        stretch = stretch_exterior_offset_hit_hit_with_reverse_closure
+
+        stretch.edge('(0,1)').cargo['test'] = 'edge01'
+        stretch.edge('(1,0)').cargo['test'] = 'edge10'
+        stretch.edge('(1,2)').cargo['test'] = 'edge12'
+        stretch.edge('(2,1)').cargo['test'] = 'edge21'
+        stretch.edge('(2,3)').cargo['test'] = 'edge23'
+        stretch.edge('(3,2)').cargo['test'] = 'edge32'
+        stretch.pivot('0').cargo['test'] = 'pivot0'
+        stretch.pivot('1').cargo['test'] = 'pivot1'
+        stretch.pivot('2').cargo['test'] = 'pivot2'
+        stretch.pivot('3').cargo['test'] = 'pivot3'
+        stretch.closure('0').cargo['test'] = 'closure0'
+        stretch.closure('1').cargo['test'] = 'closure1'
+
+        edge_seq = EdgeSeq([stretch.edge('(0,1)'),
+                            stretch.edge('(1,2)'),
+                            stretch.edge('(2,3)')])
+
+        edge_seqs = Offset(edge_seq, StrictAttachOffsetHandler).offset(1)
+        assert isinstance(edge_seqs, list)
+        assert len(edge_seqs) == 1
+        new_edge_seq = edge_seqs[0]
+        assert isinstance(new_edge_seq, EdgeSeq)
+        assert len(new_edge_seq) == 1
+
+        new_edge = new_edge_seq[0]
+        assert new_edge.from_pivot.cargo['test'] == 'pivot0'
+        assert new_edge.to_pivot.cargo['test'] == 'pivot3'
+        assert new_edge.closure.cargo['test'] == 'closure0'
+        assert new_edge.reverse.closure.cargo['test'] == 'closure1'
+        assert new_edge.cargo['test'] == 'edge01', 'edge01, edge12, edge23 has same weight, but edge01 is the first'
+        assert new_edge.reverse.cargo['test'] == 'edge10', 'edge10, edge21, edge32 has same weight, edge10 is the first'
