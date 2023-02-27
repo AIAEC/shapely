@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
 
+from shapely.extension.constant import ANGLE_AROUND_EPS
 from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.model.stretch.stretch_v3 import Edge
 from shapely.extension.model.stretch.stretch_v3 import EdgeSeq, Closure
+from shapely.extension.model.vector import Vector
 from shapely.extension.util.func_util import sign
 from shapely.geometry import LineString, Point
 
@@ -106,3 +109,56 @@ class StrictAttachOffsetHandler(OffsetHandler):
                                 .min_by(line_after_offset.ext.end().distance))
 
         return LineString([nearest_point_to_start, *list(line_after_offset.coords), nearest_point_to_end])
+
+
+class AngleAttachOffsetHandler(OffsetHandler):
+    def offset(self, dist: float) -> LineString:
+        edge_seq_shape = self._edge_seq.shape
+        target_line = (LineString([edge_seq_shape.ext.start(), edge_seq_shape.ext.end()])
+                       .ext.offset(dist)
+                       .ext.prolong().from_ends(self._closure.shape.length + dist))
+        last_start_attachment, last_end_attachment = self.last_attachments(dist)
+        start_offset = target_line.ext.projected_point(last_start_attachment)
+        end_offset = target_line.ext.projected_point(last_end_attachment)
+        return LineString([start_offset, end_offset])
+
+    def attach_endpoints(self, line_after_offset: LineString, dist: float) -> LineString:
+        last_start_attachment, last_end_attachment = self.last_attachments(dist)
+
+        return LineString([last_start_attachment, *list(line_after_offset.coords), last_end_attachment])
+
+    def last_attachments(self, dist: float):
+        """Return the last attached points of the edge sequence"""
+
+        edge_seq_shape = self._edge_seq.shape
+        last_start_attachment = edge_seq_shape.ext.start()
+        last_end_attachment = edge_seq_shape.ext.end()
+        if dist == 0 or edge_seq_shape.length <= 0:
+            return last_start_attachment, last_end_attachment
+
+        edge_direction = Vector.from_endpoints_of(edge_seq_shape)
+        offset_vector: Vector = (edge_direction.ccw_perpendicular if dist > 0 else edge_direction.cw_perpendicular)
+        target_line = (LineString([edge_seq_shape.ext.start(), edge_seq_shape.ext.end()])
+                       .ext.offset(dist)
+                       .ext.prolong().from_ends(self._closure.shape.length + dist))
+
+        edge: Edge = self._edge_seq[-1]
+        while edge := edge.next():
+            if edge.shape.ext.angle().including_angle(offset_vector.angle).degree > 90 - ANGLE_AROUND_EPS:
+                break
+            if intersection := target_line.intersection(edge.shape):
+                last_end_attachment = intersection.ext.decompose(Point)[0]
+                break
+            else:
+                last_end_attachment = edge.shape.ext.end()
+
+        edge: Edge = self._edge_seq[0]
+        while edge := edge.prev():
+            if edge.shape.ext.angle().including_angle(offset_vector.invert().angle).degree > 90 - ANGLE_AROUND_EPS:
+                break
+            if intersection := target_line.intersection(edge.shape):
+                last_start_attachment = intersection.ext.decompose(Point)[0]
+                break
+            else:
+                last_start_attachment = edge.shape.ext.start()
+        return last_start_attachment, last_end_attachment

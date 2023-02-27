@@ -1,12 +1,13 @@
 from copy import deepcopy
 from operator import attrgetter
-from typing import List, Union, Optional, Set, Dict
+from typing import List, Union, Optional, Dict
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.functional import seq
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.stretch_v3 import Stretch, Pivot, Edge, EdgeSeq, Closure
 from shapely.extension.util.func_util import group, separate
+from shapely.extension.util.ordered_set import OrderedSet
 from shapely.geometry import Polygon
 from shapely.geometry.base import BaseGeometry
 
@@ -158,7 +159,7 @@ class ClosureReconstructor:
     def from_edges(self, edges: List[Edge],
                    closure_strategy: Optional[ClosureStrategy] = None) -> 'ClosureReconstructor':
         assert all(edge.stretch is self._stretch for edge in edges)
-        edge_set: Set[Edge] = set(edges)
+        edge_set = OrderedSet(edges)
 
         closure_strategy = closure_strategy or ClosureStrategy()
 

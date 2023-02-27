@@ -14,6 +14,7 @@ from shapely.extension.model.interval import Interval
 from shapely.extension.typing import CoordType
 from shapely.extension.util.func_util import lfilter, argmin
 from shapely.extension.util.iter_util import first, win_slice
+from shapely.extension.util.ordered_set import OrderedSet
 from shapely.geometry import Point, LineString, Polygon, LinearRing
 from shapely.geometry.base import BaseGeometry
 
@@ -902,7 +903,8 @@ class Closure:
         if not edges_shared:
             return [self, closure]
 
-        edges_left = set(self.edges + closure.edges) - set(edges_shared)
+        edges_left = OrderedSet(self.edges + closure.edges)
+        edges_left.difference_update(edges_shared)
 
         # keep the stretch as local var, in case that delete edge might delete related closure, causing current closure
         # to be deleted and self.stretch unset to None

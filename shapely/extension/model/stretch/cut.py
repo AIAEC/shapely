@@ -1,9 +1,10 @@
-from typing import List, Set, Optional
+from typing import List, Optional
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.creator import ClosureReconstructor
 from shapely.extension.model.stretch.stretch_v3 import Closure, Edge
+from shapely.extension.util.ordered_set import OrderedSet
 from shapely.geometry import LineString
 
 
@@ -54,7 +55,7 @@ class Cut:
                                                   dist_tol_to_pivot=dist_tol_to_pivot,
                                                   dist_tol_to_edge=dist_tol_to_edge))
 
-        new_edges: Set[Edge] = set(new_edges + closure.edges)
+        unique_new_edges = list(OrderedSet(new_edges + closure.edges))
         stretch = closure.stretch
 
         # remove current closure from stretch
@@ -62,7 +63,7 @@ class Cut:
 
         return (ClosureReconstructor(stretch)
                 .cargo(closure.cargo.data)
-                .from_edges(list(new_edges), self._closure_strategy)
+                .from_edges(unique_new_edges, self._closure_strategy)
                 .reconstruct(dist_tol_to_pivot=dist_tol_to_pivot, dist_tol_to_edge=dist_tol_to_edge))
 
     def cut_closure_by_lines(self, closure: Closure,
