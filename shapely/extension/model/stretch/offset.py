@@ -152,10 +152,18 @@ class Offset:
         -------
 
         """
-        segments: List[StraightSegment] = (inclusive_space.intersection(line_after_attach)
-                                           .ext.decompose(StraightSegment)
-                                           .list())
-        if not segments:
+        inclusive_space_boundary = inclusive_space.boundary
+        segment_seq = inclusive_space.intersection(line_after_attach).ext.decompose(StraightSegment)
+        segments_inside: List[StraightSegment] = (segment_seq
+                                                  .map(lambda seg: seg.difference(inclusive_space_boundary))
+                                                  .flat_map(lambda seg: seg.ext.flatten(LineString))
+                                                  .list())
+        segments_on_boundary: List[StraightSegment] = (segment_seq
+                                                       .map(lambda seg: seg.intersection(inclusive_space_boundary))
+                                                       .flat_map(lambda seg: seg.ext.flatten(LineString))
+                                                       .list())
+
+        if not (segments_inside + segments_on_boundary):
             if union_to_closure is None:
                 # remove the target closure and its edges
                 self._stretch.delete_closure(self._closure, gc=True)
@@ -165,11 +173,35 @@ class Offset:
 
         new_edges: List[Edge] = []
 
-        for segment in segments:
-            new_edges.extend(self._stretch.add_edge(line=segment,
+        for segment_on_boundary in segments_on_boundary:
+            # segment is on the boundary of inclusive_space, adding endpoints of segment as pivots is proper to
+            # form new closures.
+            # adding double edge can cause invalid closure, as shows below:
+            #     overlap
+            # ┌───────┐       ┌───┐◄──►
+            # │     ▲ │       │   │
+            # │     │ │       │   │
+            # │   ┌─┴─┘       │   │
+            # └───┘           └───┘
+            pivot0 = self._stretch.add_pivot(segment_on_boundary.ext.start(),
+                                             dist_tol_to_pivot=dist_tol_to_pivot,
+                                             dist_tol_to_edge=dist_tol_to_edge)
+            pivot1 = self._stretch.add_pivot(segment_on_boundary.ext.end(),
+                                             dist_tol_to_pivot=dist_tol_to_pivot,
+                                             dist_tol_to_edge=dist_tol_to_edge)
+            possible_edge0 = self._stretch.edge(f'({pivot0.id}, {pivot1.id})')
+            possible_edge1 = self._stretch.edge(f'({pivot1.id}, {pivot0.id})')
+            if edge := first(lambda edge: bool(edge) and edge.closure is self._closure,
+                             [possible_edge0, possible_edge1]):
+                new_edges.append(edge)
+
+        for segment_inside in segments_inside:
+            # segment is in the interior space of inclusive_space, add double edges of segment
+            # to form new closures
+            new_edges.extend(self._stretch.add_edge(line=segment_inside,
                                                     dist_tol_to_pivot=dist_tol_to_pivot,
                                                     dist_tol_to_edge=dist_tol_to_edge))
-            new_edges.extend(self._stretch.add_edge(line=segment.ext.reverse(),
+            new_edges.extend(self._stretch.add_edge(line=segment_inside.ext.reverse(),
                                                     dist_tol_to_pivot=dist_tol_to_pivot,
                                                     dist_tol_to_edge=dist_tol_to_edge))
 
