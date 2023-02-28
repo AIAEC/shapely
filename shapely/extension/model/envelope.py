@@ -194,6 +194,16 @@ class Envelope:
         return self.edge(EdgePosition.LEFT).ext.reverse(), self.edge(EdgePosition.RIGHT)
 
     @property
+    def points(self) -> List[Point]:
+        """
+        a list of endpoints which order by [left_bottom, right_bottom, right_top, left_top].
+        """
+        return [self.left_bottom,
+                self.right_bottom,
+                self.right_top,
+                self.left_top]
+
+    @property
     def edges(self) -> List[LineString]:
         """
         a list of edges which order by [left, bottom, right, top].
