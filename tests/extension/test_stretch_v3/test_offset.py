@@ -1,8 +1,8 @@
 import pytest
 
 from shapely.extension.model.stretch.offset import Offset
-from shapely.extension.model.stretch.offset_strategy import NaiveAttachOffsetHandler, StrictAttachOffsetHandler, \
-    OffsetHandler
+from shapely.extension.model.stretch.offset_strategy import ProlongAttachOffsetHandler, StrictAttachOffsetHandler, \
+    VerticalAttachOffsetHandler
 from shapely.extension.model.stretch.stretch_v3 import EdgeSeq
 from shapely.geometry import LineString, Polygon
 from shapely.wkt import loads
@@ -78,7 +78,7 @@ class TestOffset:
         assert isinstance(edge_seq, EdgeSeq)
         assert len(edge_seq) == 3
 
-        edge_seqs = Offset(edge_seq, NaiveAttachOffsetHandler).offset(10)
+        edge_seqs = Offset(edge_seq, ProlongAttachOffsetHandler).offset(10)
         assert all(isinstance(edge_seq, EdgeSeq) for edge_seq in edge_seqs)
         assert len(edge_seqs) == 1
 
@@ -830,7 +830,7 @@ class TestOffset:
         edge = stretch.edge('(1,2)')
         assert edge in stretch.edges
 
-        edge_seqs = Offset(edge, NaiveAttachOffsetHandler).offset(10)
+        edge_seqs = Offset(edge, ProlongAttachOffsetHandler).offset(10)
 
         assert len(edge_seqs) == 2
         edge_seq = edge_seqs[0]
@@ -869,7 +869,7 @@ class TestOffset:
         edge = stretch.edge('(1,2)')
         assert edge in stretch.edges
 
-        edge_seqs = Offset(edge, NaiveAttachOffsetHandler).offset(30)
+        edge_seqs = Offset(edge, ProlongAttachOffsetHandler).offset(30)
         assert len(edge_seqs) == 0
 
         assert len(stretch.closures) == 0
@@ -1311,7 +1311,7 @@ class TestOffset:
         edge_seq = EdgeSeq([stretch.edge('(3,4)'),
                             stretch.edge('(4,5)')])
         for edge in edge_seq:
-            Offset(edge, OffsetHandler).offset(150)
+            Offset(edge, VerticalAttachOffsetHandler).offset(150)
 
         closures = stretch.closures
         closures.sort(key=lambda closure: closure.shape.centroid.x)

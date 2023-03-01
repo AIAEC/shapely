@@ -10,19 +10,43 @@ from shapely.geometry import LineString, Point
 
 
 class BaseOffsetHandler(ABC):
+    def __init__(self, edge_seq: EdgeSeq, closure: Closure):
+        self._edge_seq = edge_seq
+        self._closure = closure
+
     @abstractmethod
     def offset(self, dist: float) -> LineString:
+        """
+        edge shape after offset, which edge should be considered as evolved from the original edge, for example, should inherit the cargo
+
+        Parameters
+        ----------
+        dist
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     @abstractmethod
     def attach_endpoints(self, line_after_offset: LineString, dist: float) -> LineString:
+        """
+        attach the endpoints of the offset line to the closure, will use this linestring to split the closure
+
+        Parameters
+        ----------
+        line_after_offset
+        dist
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
 
-class OffsetHandler(BaseOffsetHandler):
-    def __init__(self, edge_seq: EdgeSeq, closure: Closure):
-        self._edge_seq = edge_seq
-        self._closure = closure
+class VerticalAttachOffsetHandler(BaseOffsetHandler):
 
     def offset(self, dist: float) -> LineString:
         return self._edge_seq.shape.ext.offset(dist)
@@ -34,16 +58,16 @@ class OffsetHandler(BaseOffsetHandler):
         return LineString([start, *line_after_offset.coords, end])
 
 
-class NaiveAttachOffsetHandler(OffsetHandler):
+class ProlongAttachOffsetHandler(BaseOffsetHandler):
     def offset(self, dist: float) -> LineString:
-        line_after_offset = super().offset(dist)
+        line_after_offset = self._edge_seq.shape.ext.offset(dist)
         return line_after_offset.ext.prolong().from_ends(self._closure.shape.length)
 
     def attach_endpoints(self, line_after_offset: LineString, dist: float) -> LineString:
         return line_after_offset
 
 
-class StrictAttachOffsetHandler(OffsetHandler):
+class StrictAttachOffsetHandler(BaseOffsetHandler):
     def offset(self, dist: float) -> LineString:
         closure_poly = self._closure.shape
         line_after_offset: LineString = self._edge_seq.shape.ext.offset(dist)
@@ -111,23 +135,23 @@ class StrictAttachOffsetHandler(OffsetHandler):
         return LineString([nearest_point_to_start, *list(line_after_offset.coords), nearest_point_to_end])
 
 
-class AngleAttachOffsetHandler(OffsetHandler):
+class AngleAttachOffsetHandler(BaseOffsetHandler):
     def offset(self, dist: float) -> LineString:
         edge_seq_shape = self._edge_seq.shape
         target_line = (LineString([edge_seq_shape.ext.start(), edge_seq_shape.ext.end()])
                        .ext.offset(dist)
                        .ext.prolong().from_ends(self._closure.shape.length + dist))
-        last_start_attachment, last_end_attachment = self.last_attachments(dist)
+        last_start_attachment, last_end_attachment = self._last_attachments(dist)
         start_offset = target_line.ext.projected_point(last_start_attachment)
         end_offset = target_line.ext.projected_point(last_end_attachment)
         return LineString([start_offset, end_offset])
 
     def attach_endpoints(self, line_after_offset: LineString, dist: float) -> LineString:
-        last_start_attachment, last_end_attachment = self.last_attachments(dist)
+        last_start_attachment, last_end_attachment = self._last_attachments(dist)
 
         return LineString([last_start_attachment, *list(line_after_offset.coords), last_end_attachment])
 
-    def last_attachments(self, dist: float):
+    def _last_attachments(self, dist: float):
         """Return the last attached points of the edge sequence"""
 
         edge_seq_shape = self._edge_seq.shape
