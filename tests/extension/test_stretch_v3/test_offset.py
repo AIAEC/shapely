@@ -1319,3 +1319,37 @@ class TestOffset:
         assert closures[0].shape.equals(loads('POLYGON ((0 0, 75 0, 75 10, 75 160, 0 160, 0 10, 0 0))'))
         assert closures[1].shape.equals(loads('POLYGON ((100 160, 100 200, 0 200, 0 160, 75 160, 100 160))'))
         assert closures[2].shape.equals(loads('POLYGON ((75 0, 100 0, 100 10, 100 160, 75 160, 75 10, 75 0))'))
+
+    def test_offset_for_attaching_offset_target_edge(self, stretch_for_offset_attaching_to_edge):
+        stretch = stretch_for_offset_attaching_to_edge
+        assert len(stretch.pivots) == 13
+        assert len(stretch.edges) == 13
+        assert len(stretch.closures) == 1
+
+        edge = stretch.edge('(1,2)')
+        edge_seq = Offset(edge, VerticalAttachOffsetHandler).offset(5)
+        assert len(edge_seq) == 0, 'offset to attach the edge and remove piece of closure'
+
+        assert len(stretch.pivots) == 11
+        assert len(stretch.edges) == 11
+        assert len(stretch.closures) == 1
+
+        assert stretch.closures[0].shape.equals(
+            loads('POLYGON ((0 0, 5 0, 5 5, 5 10, 10 10, 10 15, 5 15, 5 20, 10 20, 10 25, 0 25, 0 0))'))
+
+    def test_offset_for_attaching_offset_target_edge_and_attaching_edge(self, stretch_for_offset_attaching_to_edge):
+        stretch = stretch_for_offset_attaching_to_edge
+        assert len(stretch.pivots) == 13
+        assert len(stretch.edges) == 13
+        assert len(stretch.closures) == 1
+
+        edge = stretch.edge('(1,2)')
+        edge_seq = Offset(edge, VerticalAttachOffsetHandler).offset(10)
+        assert len(edge_seq) == 1
+
+        assert len(stretch.pivots) == 11
+        assert len(stretch.edges) == 11
+        assert len(stretch.closures) == 1
+
+        assert stretch.closures[0].shape.equals(
+            loads('POLYGON ((0 0, 5 0, 5 5, 5 10, 10 10, 10 15, 5 15, 5 20, 10 20, 10 25, 0 25, 0 0))'))

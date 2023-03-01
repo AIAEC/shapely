@@ -2246,3 +2246,72 @@ def stretch_of_three_closures() -> Stretch:
     stretch.shrink_id_gen()
 
     return stretch
+
+
+@pytest.fixture
+def stretch_for_offset_attaching_to_edge() -> Stretch:
+    """
+    Returns
+    -------
+     12┌──────┐11
+       │      │
+       │  9┌──┘10
+       │   │
+       │  8└──┐7
+       │      │
+       │  5┌──┘6
+       │   │
+       │  4└──┐3
+       │      │
+       └───x──┘
+      0    1   2
+      """
+    stretch = Stretch()
+
+    pivots = [
+        Pivot((0, 0), stretch, '0'),
+        Pivot((5, 0), stretch, '1'),
+        Pivot((10, 0), stretch, '2'),
+        Pivot((10, 5), stretch, '3'),
+        Pivot((5, 5), stretch, '4'),
+        Pivot((5, 10), stretch, '5'),
+        Pivot((10, 10), stretch, '6'),
+        Pivot((10, 15), stretch, '7'),
+        Pivot((5, 15), stretch, '8'),
+        Pivot((5, 20), stretch, '9'),
+        Pivot((10, 20), stretch, '10'),
+        Pivot((10, 25), stretch, '11'),
+        Pivot((0, 25), stretch, '12'),
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges = [
+        Edge('0', '1', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '3', stretch),
+        Edge('3', '4', stretch),
+        Edge('4', '5', stretch),
+        Edge('5', '6', stretch),
+        Edge('6', '7', stretch),
+        Edge('7', '8', stretch),
+        Edge('8', '9', stretch),
+        Edge('9', '10', stretch),
+        Edge('10', '11', stretch),
+        Edge('11', '12', stretch),
+        Edge('12', '0', stretch),
+    ]
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+
+    closures = [
+        Closure(exterior=EdgeSeq(edges),
+                interiors=[],
+                stretch=stretch,
+                id_='0'),
+    ]
+
+    stretch._closure_map = OrderedDict([(c.id, c) for c in closures])
+
+    stretch.shrink_id_gen()
+    return stretch
