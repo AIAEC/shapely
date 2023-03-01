@@ -246,7 +246,7 @@ class TestOffset:
             loads(
                 'POLYGON ((0 0, 10 0, 10 8, 8 8, 8 12, 12 12, 12 10, 18 10, 18 12, 22 12, 22 8, 20 8, 20 0, 30 0, 30 20, 0 20, 0 0))'))
 
-    def test_offset_exterior_edge_inner_connected_in_in_default_handler(
+    def test_offset_exterior_edge_inner_connected_in_in_vertical_attach_handler(
             self, stretch_exterior_offset_connected_in_in_no_reverse_closure):
         stretch = stretch_exterior_offset_connected_in_in_no_reverse_closure
         assert len(stretch.closures) == 1
@@ -256,7 +256,7 @@ class TestOffset:
         edge = stretch.edge('(1,2)')
         assert edge in stretch.edges
 
-        edge_seqs = Offset(edge).offset(10)
+        edge_seqs = Offset(edge, VerticalAttachOffsetHandler).offset(10)
         assert len(edge_seqs) == 0
 
         assert len(stretch.closures) == 1
@@ -452,7 +452,7 @@ class TestOffset:
             loads(
                 'POLYGON ((0 0, 30 0, 30 30, 0 30, 0 0), (20 2, 10 2, 10 20, 5 20, 5 25, 25 25, 25 20, 20 20, 20 2))'))
 
-    def test_offset_interior_edge_hit_in_default_handler(
+    def test_offset_interior_edge_hit_in_vertical_attach_handler(
             self, stretch_interior_offset_hit_in):
         stretch = stretch_interior_offset_hit_in
 
@@ -464,7 +464,7 @@ class TestOffset:
         edge = stretch.edge('(7,8)')
         assert edge in stretch.edges
 
-        edge_seqs = Offset(edge).offset(5)
+        edge_seqs = Offset(edge, VerticalAttachOffsetHandler).offset(5)
         assert all(isinstance(edge_seq, EdgeSeq) for edge_seq in edge_seqs)
         assert len(edge_seqs) == 1
         edge_seq = edge_seqs[0]
@@ -542,7 +542,8 @@ class TestOffset:
             loads(
                 'POLYGON ((0 0, 30 0, 30 30, 0 30, 0 0), (8 12, 10 12, 10 20, 5 20, 5 25, 25 25, 25 20, 20 20, 20 12, 22 12, 22 8, 18 8, 18 10, 12 10, 12 8, 8 8, 8 12))'))
 
-    def test_offset_interior_edge_in_in_connected_default_handler(self, stretch_interior_offset_connected_in_in):
+    def test_offset_interior_edge_in_in_connected_vertical_offset_handler(self,
+                                                                          stretch_interior_offset_connected_in_in):
         stretch = stretch_interior_offset_connected_in_in
 
         assert len(stretch.closures) == 1
@@ -553,7 +554,7 @@ class TestOffset:
         edge = stretch.edge('(7,8)')
         assert edge in stretch.edges
 
-        edge_seqs = Offset(edge).offset(10)
+        edge_seqs = Offset(edge, VerticalAttachOffsetHandler).offset(10)
         assert len(edge_seqs) == 0
 
         assert stretch.closure('0') is None, 'origin closure should be removed'

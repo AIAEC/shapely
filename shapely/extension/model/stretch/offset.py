@@ -5,7 +5,7 @@ from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.creator import ClosureReconstructor
-from shapely.extension.model.stretch.offset_strategy import VerticalAttachOffsetHandler
+from shapely.extension.model.stretch.offset_strategy import AngleAttachOffsetHandler
 from shapely.extension.model.stretch.stretch_v3 import Edge, EdgeSeq, Closure
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.func_util import group
@@ -33,7 +33,7 @@ class Offset:
 
         self._edge = self._edge_seq[0]
 
-        self._offset_handler_cls = offset_handler_cls or VerticalAttachOffsetHandler
+        self._offset_handler_cls = offset_handler_cls or AngleAttachOffsetHandler
         self._shape_offset_strategy = self._offset_handler_cls(edge_seq=self._edge_seq, closure=self._closure)
 
     def query_the_offset_edge_seq(self, line_after_offset: LineString) -> List[EdgeSeq]:
