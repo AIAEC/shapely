@@ -2317,4 +2317,56 @@ def stretch_for_offset_attaching_to_edge() -> Stretch:
     return stretch
 
 
+@pytest.fixture
+def box_stretches() -> Stretch:
+    """"
+      ┌─────┐──────┐
+      │     │      │
+      │     │      │
+      └─────┘──────┘
 
+    Returns
+    -------
+
+    """
+    stretch = Stretch()
+    pivots = [
+        Pivot((0, 0), stretch, '0'),
+        Pivot((100, 0), stretch, '1'),
+        Pivot((100, 100), stretch, '2'),
+        Pivot((0, 100), stretch, '3'),
+        Pivot((200, 0), stretch, '4'),
+        Pivot((200, 100), stretch, '5'),
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges1 = [
+        Edge('0', '1', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '3', stretch),
+        Edge('3', '0', stretch),
+
+    ]
+
+    edges2 = [
+        Edge('1', '4', stretch),
+        Edge('4', '5', stretch),
+        Edge('5', '2', stretch),
+        Edge('2', '1', stretch), ]
+
+    edges = edges1 + edges2
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+
+    closures = [
+        Closure(exterior=EdgeSeq(edges1), stretch=stretch, id_='0'),
+        Closure(exterior=EdgeSeq(edges2), stretch=stretch, id_='1'),
+    ]
+
+    assert len(closures) == 2
+
+    stretch._closure_map = OrderedDict([(c.id, c) for c in closures])
+    stretch.shrink_id_gen()
+
+    return stretch

@@ -1,10 +1,9 @@
 from typing import List
 
-import pytest
-
 from shapely.geometry import Polygon
 from shapely.geometry import box, LineString, MultiLineString
 from shapely.ops import unary_union
+from shapely.wkt import loads
 
 
 class TestSplit:
@@ -68,61 +67,82 @@ class TestSplit:
         assert len(new_closures[1].interiors) == 0
         assert new_closures[1].shape.equals(Polygon([(5, 0), (10, 0), (10, 5), (5, 5)]))
 
-    def test_failed_split(self, stretch_2_boxes):
-        lines: List[LineString] = [LineString([(-1.00, 0.50), (0.75, 0.50)])]
-        stretch_2_boxes.split(lines)
-        assert len(stretch_2_boxes.closures) == 2
-        closures = sorted(stretch_2_boxes.closures,
-                          key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
-        assert closures[0].shape.equals(box(0, 0, 1, 1))
-        assert closures[1].shape.equals(box(1, 0, 2, 1))
+    def test_split_by_lines_cutting_across_0_closure(self, box_stretches):
+        lines: List[LineString] = [LineString([(-100, 50), (75, 50)])]
+        box_stretches.split(lines)
+        assert len(box_stretches.closures) == 2
+        closures = sorted(box_stretches.closures, key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
+        assert closures[0].shape.equals(box(0, 0, 100, 100))
+        assert closures[1].shape.equals(box(100, 0, 200, 100))
 
-    def test_line_segment_split_two_regions_into_four(self, stretch_2_boxes):
-        lines: List[LineString] = [LineString([(-10, 0.5), (10, 0.5)])]
-        stretch_2_boxes.split(lines)
-        assert len(stretch_2_boxes.closures) == 4
-        closures = sorted(stretch_2_boxes.closures,
-                          key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
-        assert closures[0].shape.equals(box(0, 0, 1, 0.50))
-        assert closures[1].shape.equals(box(0, 0.50, 1, 1))
-        assert closures[2].shape.equals(box(1, 0, 2, 0.50))
-        assert closures[3].shape.equals(box(1, 0.50, 2, 1))
+    def test_split_by_lines_cutting_across_2_closure(self, box_stretches):
+        lines: List[LineString] = [LineString([(-1000, 50), (1000, 50)])]
+        box_stretches.split(lines)
+        assert len(box_stretches.closures) == 4
+        closures = sorted(box_stretches.closures, key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
+        assert closures[0].shape.equals(box(0, 0, 100, 50))
+        assert closures[1].shape.equals(box(0, 50, 100, 100))
+        assert closures[2].shape.equals(box(100, 0, 200, 50))
+        assert closures[3].shape.equals(box(100, 50, 200, 100))
 
-    def test_multiline_split_left_region_together(self, stretch_2_boxes):
-        lines: MultiLineString = unary_union(
-            [LineString([(-1.00, 0.50), (0.75, 0.50)]), LineString([(0.50, -1), (.50, .75)]),
-             LineString([(.25, -1.00), (.25, .25)])])
-        stretch_2_boxes.split(lines)
-        assert len(stretch_2_boxes.closures) == 3
-        closures = sorted(stretch_2_boxes.closures,
-                          key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
-        assert closures[0].shape.equals(box(0, 0, .50, .50))
-        assert closures[1].shape.equals(box(0, 0, 1.00, 1.00).difference(box(0, 0, .50, .50)))
-        assert closures[2].shape.equals(box(1.00, 0, 2.00, 1.00))
+    def test_split_by_multilines_which_generate_new_closure(self, box_stretches):
+        lines: MultiLineString = unary_union([LineString([(-100, 50), (75, 50)]),
+                                              LineString([(50, -100), (50, 75)]),
+                                              LineString([(25, -100), (25, 25)])])
+        box_stretches.split(lines)
+        assert len(box_stretches.closures) == 3
+        closures = sorted(box_stretches.closures, key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
+        assert closures[0].shape.equals(box(0, 0, 50, 50))
+        assert closures[1].shape.equals(box(0, 0, 100, 100).difference(box(0, 0, 50, 50)))
+        assert closures[2].shape.equals(box(100, 0, 200, 100))
 
-    def test_multiline_split_all_regions_together(self, stretch_2_boxes):
-        lines: MultiLineString = unary_union(
-            [LineString([(-1.00, .50), (1.75, .50)]), LineString([(1.50, -1.00), (1.50, .75)]),
-             LineString([(.25, -1.00), (.25, .25)])])
-        stretch_2_boxes.split(lines)
-        assert len(stretch_2_boxes.closures) == 4
-        closures = sorted(stretch_2_boxes.closures,
-                          key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
-        assert closures[0].shape.equals(box(0, 0, 1.00, .50))
-        assert closures[1].shape.equals(box(0, .50, 1.00, 1.00))
-        assert closures[2].shape.equals(box(1.00, 0, 1.50, .50))
-        assert closures[3].shape.equals(box(1.00, 0, 2.00, 1.00).difference(box(1.00, 0, 1.50, .50)))
+    def test_split_by_multilines_which_cut_across_1_closure_and_gen_2_closures(self, box_stretches):
+        lines: MultiLineString = unary_union([LineString([(-100, 50), (175, 50)]),
+                                              LineString([(150, -100), (150, 75)]),
+                                              LineString([(25, -100), (25, 25)])])
+        box_stretches.split(lines)
+        assert len(box_stretches.closures) == 4
+        closures = sorted(box_stretches.closures, key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
+        assert closures[0].shape.equals(box(0, 0, 100, 50))
+        assert closures[1].shape.equals(box(0, 50, 100, 100))
+        assert closures[2].shape.equals(box(100, 0, 150, 50))
+        assert closures[3].shape.equals(box(100, 0, 200, 100).difference(box(100, 0, 150, 50)))
 
-    @pytest.mark.skip("TODO expect split not to remove original cuts")
-    def test_split_closures_not_remove_original_cuts(self, stretch_box_with_exterior_crack):
-        lines = [LineString([(2, 0), (2, 3)]), LineString([(0, 2), (3, 2)])]
-        stretch_box_with_exterior_crack.split(lines)
+    def test_split_closures_without_removing_origin_cracks(self, stretch_box_with_exterior_crack):
+        stretch = stretch_box_with_exterior_crack
 
-        assert len(stretch_box_with_exterior_crack.closures) == 2
-        closures = sorted(stretch_box_with_exterior_crack.closures,
-                          key=lambda region: (region.shape.centroid.x, region.shape.centroid.y))
-        assert closures[0].shape.equals(box(0, 0, 2, 2))
-        assert len(closures[0].edges) == 4
-        assert len(closures[1].edges) == 9
-        assert closures[1].shape == (
-            Polygon([(10, 0), (10, 10), (0, 10), (0, 2), (2, 2), (2, 0), (5, 0), (5, 5), (5, 0), (10, 0)]))
+        assert len(stretch.closures) == 1
+        assert len(stretch.pivots) == 6
+        assert len(stretch.edges) == 7
+
+        stretch.split(LineString([(-1, 8), (5, 8)]))
+
+        assert len(stretch.closures) == 1
+        assert len(stretch.pivots) == 7
+        assert len(stretch.edges) == 8
+
+        assert stretch.edge('(4,5)') in stretch.edges
+        assert stretch.edge('(5,4)') in stretch.edges
+
+        assert stretch.closures[0].shape.equals(loads('POLYGON ((0 0, 5 0, 5 5, 5 0, 10 0, 10 10, 0 10, 0 8, 0 0))'))
+
+    def test_split_closures_without_removing_origin_cracks(self, stretch_box_with_exterior_crack):
+        stretch = stretch_box_with_exterior_crack
+
+        assert len(stretch.closures) == 1
+        assert len(stretch.pivots) == 6
+        assert len(stretch.edges) == 7
+
+        stretch.split([LineString([(-1, 8), (5, 8)]), LineString([(5, 7), (5, 11)])])
+
+        assert len(stretch.closures) == 2
+        assert len(stretch.pivots) == 9
+        assert len(stretch.edges) == 13
+
+        assert stretch.edge('(4,5)') in stretch.edges
+        assert stretch.edge('(5,4)') in stretch.edges
+
+        closures = stretch.closures
+        closures.sort(key=lambda c: c.shape.centroid.x)
+        assert closures[0].shape.equals(loads('POLYGON ((0 10, 0 8, 5 8, 5 10, 0 10))'))
+        assert closures[1].shape.equals(loads('POLYGON ((0 0, 5 0, 5 5, 5 0, 10 0, 10 10, 5 10, 5 8, 0 8, 0 0))'))

@@ -44,10 +44,19 @@ class TestBasicAttribute:
         assert len(edge_seq) == 3
 
     def test_deepcopy_of_stretch(self, stretch_box):
+        stretch_box.pivots[0].cargo['test'] = 'pivot'
+        stretch_box.edges[0].cargo['test'] = 'edge'
+        stretch_box.closures[0].cargo['test'] = 'closure'
+
         stretch_box_deep_copy = deepcopy(stretch_box)
+
         assert len(stretch_box_deep_copy.pivots) == 4
         assert len(stretch_box_deep_copy.edges) == 4
         assert len(stretch_box_deep_copy.closures) == 1
+
+        assert stretch_box_deep_copy.pivots[0].cargo['test'] == 'pivot'
+        assert stretch_box_deep_copy.edges[0].cargo['test'] == 'edge'
+        assert stretch_box_deep_copy.closures[0].cargo['test'] == 'closure'
 
         for pivot, pivot_deep_copy in zip(stretch_box.pivots, stretch_box_deep_copy.pivots):
             assert pivot is not pivot_deep_copy
@@ -82,7 +91,11 @@ class TestBasicAttribute:
 
     def test_deepcopy_of_pivot(self, stretch_box):
         pivot = stretch_box.pivot('0')
+        pivot.cargo['test'] = 'pivot'
         pivot_deep_copy = deepcopy(pivot)
+
+        assert pivot_deep_copy.cargo['test'] == 'pivot'
+
         # deep copy is a different object from origin pivot
         pivot_deep_copy.origin = Point(10, 10)  # change deep copy's origin
         assert pivot.origin == Point(0, 0), 'deep copy should be separate instance from origin pivot'
@@ -109,12 +122,16 @@ class TestBasicAttribute:
 
     def test_deepcopy_of_edge(self, stretch_box):
         edge = stretch_box.edge('(0,1)')
+        edge.cargo['test'] = 'edge'
         edge_deep_copy = deepcopy(edge)
-        setattr(edge_deep_copy, 'cargo', '0')
+        setattr(edge_deep_copy, '_test_mark', '0')
+
+        # deepcopy should have same cargo
+        assert edge_deep_copy.cargo['test'] == 'edge'
 
         # deepcopy of edge is not in stretch
         assert all(edge_deep_copy is not _edge for _edge in stretch_box.edges)
-        assert getattr(edge, 'cargo', None) != '0'
+        assert getattr(edge, '_test_mark', None) != '0'
 
         # deepcopy of edge should hold deepcopy of pivots
         edge_deep_copy.from_pivot.origin = Point(10, 10)
@@ -146,8 +163,12 @@ class TestBasicAttribute:
 
     def test_deepcopy_of_closure(self, stretch_box):
         closure = stretch_box.closure('0')
+        closure.cargo['test'] = 'closure'
         closure_deep_copy = deepcopy(closure)
         closure_deep_copy._id = '1'
+
+        # closure copy should have same cargo
+        assert closure_deep_copy.cargo['test'] == 'closure'
 
         # closure copy should be a different object from origin closure
         assert len(stretch_box.closures) == 1
