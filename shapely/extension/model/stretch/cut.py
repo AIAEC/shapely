@@ -1,11 +1,11 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.creator import ClosureReconstructor
 from shapely.extension.model.stretch.stretch_v3 import Closure, Edge
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import LineString
+from shapely.geometry import LineString, MultiLineString
 
 
 class Cut:
@@ -13,7 +13,7 @@ class Cut:
         self._closures = closures
         self._closure_strategy = closure_strategy or ClosureStrategy()
 
-    def by(self, line: LineString,
+    def by(self, line: Union[LineString, MultiLineString],
            dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
            dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> 'Cut':
 
@@ -34,7 +34,7 @@ class Cut:
         return self
 
     @staticmethod
-    def segments_inside_closure(line: LineString, closure: Closure) -> List[LineString]:
+    def segments_inside_closure(line: Union[LineString, MultiLineString], closure: Closure) -> List[LineString]:
         closure_poly = closure.shape
 
         # filter only the segments laid in the interior space of closure not on the boundary

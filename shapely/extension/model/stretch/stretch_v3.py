@@ -15,7 +15,7 @@ from shapely.extension.typing import CoordType
 from shapely.extension.util.func_util import lfilter, argmin
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import Point, LineString, Polygon, LinearRing
+from shapely.geometry import Point, LineString, Polygon, LinearRing, MultiLineString
 from shapely.geometry.base import BaseGeometry
 
 
@@ -825,7 +825,7 @@ class Closure:
                 return seq
         return None
 
-    def cut(self, line: LineString,
+    def cut(self, line: Union[LineString, MultiLineString],
             dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
             dist_tol_to_edge: float = MATH_MIDDLE_EPS,
             closure_strategy: Optional['ClosureStrategy'] = None) -> List['Closure']:
@@ -849,10 +849,10 @@ class Closure:
                 .by(line=line, dist_tol_to_pivot=dist_tol_to_pivot, dist_tol_to_edge=dist_tol_to_edge)
                 .closures())
 
-    def split(self, line: LineString,
+    def split(self, line: Union[LineString, MultiLineString],
               dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
               dist_tol_to_edge: float = MATH_MIDDLE_EPS,
-              closure_strategy: Optional['ClosureStrategy'] = None):
+              closure_strategy: Optional['ClosureStrategy'] = None) -> List['Closure']:
         """
         cut the closure by the given line, but when it will not generate back and forth edges and turning back pivots
         Parameters
@@ -1560,3 +1560,16 @@ class Stretch:
                 .exterior(exterior_seq)
                 .extend_interiors(interior_seqs)
                 .create())
+
+    def split(self, lines: Union[List[LineString], MultiLineString],
+              dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
+              dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+              closure_strategy: Optional['ClosureStrategy'] = None):
+
+        line: MultiLineString = lines if isinstance(lines, MultiLineString) else MultiLineString(lines)
+        for closure in self.closures:
+            closure.split(line=line,
+                          dist_tol_to_pivot=dist_tol_to_pivot,
+                          dist_tol_to_edge=dist_tol_to_edge,
+                          closure_strategy=closure_strategy)
+        return self
