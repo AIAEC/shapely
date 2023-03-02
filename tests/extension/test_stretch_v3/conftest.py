@@ -2318,7 +2318,7 @@ def stretch_for_offset_attaching_to_edge() -> Stretch:
 
 
 @pytest.fixture
-def box_stretchs() -> Stretch:
+def box_stretches() -> Stretch:
     """"
       ┌─────┐──────┐
       │     │      │

@@ -12,6 +12,7 @@ from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
 from shapely.extension.model.interval import Interval
 from shapely.extension.typing import CoordType
+from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, argmin
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.extension.util.ordered_set import OrderedSet
@@ -677,15 +678,25 @@ class EdgeSeq:
 
         self._edges = merged_edges
 
-    def remove_crack(self, gc: bool = False) -> None:
+    def remove_crack(self, from_pivots: Optional[List[Pivot]] = None,
+                     gc: bool = False) -> None:
         """
+
+        Parameters
+        ----------
+        from_pivots: list of pivots to start removing crack from, if not given, take all pivots as start
+        gc: whether discard dangling pivots after removing crack
 
         Returns
         -------
 
         """
-        pivots = self.pivots
+        pivots = set(self.pivots)
+        if from_pivots:
+            pivots &= set(from_pivots)
+
         pivots_turning_back = [p for p in pivots if p.turning_back]
+
         while pivots_turning_back:
             pivot = pivots_turning_back.pop()
 
@@ -866,12 +877,18 @@ class Closure:
         -------
         list of closure
         """
+        # get stretch before cut to avoid self closure removed by cut
+        stretch = self.stretch
+
         closures = self.cut(line=line,
                             dist_tol_to_pivot=dist_tol_to_pivot,
                             dist_tol_to_edge=dist_tol_to_edge,
                             closure_strategy=closure_strategy)
+
+        pivots_on_line: List[Pivot] = stretch.pivots_by_query(line, buffer_dist=dist_tol_to_pivot)
+
         for closure in closures:
-            closure.remove_crack(gc=True)
+            closure.remove_crack(from_pivots=pivots_on_line, gc=True)
 
         return closures
 
@@ -971,10 +988,11 @@ class Closure:
         for interior in self.interiors:
             interior.simplify(angle_tol, consider_cargo_equality)
 
-    def remove_crack(self, gc: bool = False) -> None:
-        self.exterior.remove_crack(gc)
+    def remove_crack(self, from_pivots: Optional[List[Pivot]] = None, gc: bool = False) -> None:
+        self.exterior.remove_crack(from_pivots=from_pivots, gc=gc)
+
         for interior in self.interiors:
-            interior.remove_crack(gc)
+            interior.remove_crack(from_pivots=from_pivots, gc=gc)
 
         self.interiors = lfilter(truth, self.interiors)
 
@@ -1561,12 +1579,12 @@ class Stretch:
                 .extend_interiors(interior_seqs)
                 .create())
 
-    def split(self, lines: Union[List[LineString], MultiLineString],
+    def split(self, lines: Union[List[LineString], MultiLineString, LineString],
               dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
               dist_tol_to_edge: float = MATH_MIDDLE_EPS,
               closure_strategy: Optional['ClosureStrategy'] = None):
 
-        line: MultiLineString = lines if isinstance(lines, MultiLineString) else MultiLineString(lines)
+        line: MultiLineString = MultiLineString(flatten(lines).list())
         for closure in self.closures:
             closure.split(line=line,
                           dist_tol_to_pivot=dist_tol_to_pivot,
