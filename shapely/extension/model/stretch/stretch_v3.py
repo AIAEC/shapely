@@ -162,7 +162,11 @@ class Edge:
 
     def __deepcopy__(self, memodict={}):  # don't remove memodict here, it's the default value of deepcopy
         # create a new edge with same from/to pivots
-        edge_copy = Edge(self.from_pid, self.to_pid, self.stretch, self.closure)
+        edge_copy = Edge(from_pid=self.from_pid,
+                         to_pid=self.to_pid,
+                         stretch=self.stretch,
+                         closure=self.closure,
+                         cargo_dict=self.cargo.data)
 
         # create deepcopy of its from and to pivots
         from_pivot_copy = deepcopy(self.from_pivot, memodict)
@@ -766,7 +770,8 @@ class Closure:
         closure = Closure(exterior=deepcopy(self.exterior, memodict),
                           stretch=self.stretch,
                           id_=self.id,
-                          interiors=deepcopy(self.interiors, memodict))
+                          interiors=deepcopy(self.interiors, memodict),
+                          cargo_dict=self.cargo.data)
         closure.exterior.closure = closure
         for interior in closure.interiors:
             interior.closure = closure
