@@ -1591,3 +1591,18 @@ class Stretch:
                           dist_tol_to_edge=dist_tol_to_edge,
                           closure_strategy=closure_strategy)
         return self
+
+    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS, consider_cargo_equality: bool = True) -> None:
+        """
+        [MID LEVEL API] simplify the stretch by simplifying closure
+        Parameters
+        ----------
+        angle_tol: angle degree tolerance
+        consider_cargo_equality:
+
+        Returns
+        -------
+        None
+        """
+        for closure in self.closures:
+            closure.simplify(angle_tol=angle_tol, consider_cargo_equality=consider_cargo_equality)
