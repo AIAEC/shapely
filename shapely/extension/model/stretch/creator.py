@@ -166,12 +166,15 @@ class ClosureReconstructor:
         while edge_set:
             edge = edge_set.pop()
             edge_seq = closure_strategy.consecutive_edges(edge)
-            edge_set.difference_update(edge_seq)
 
             if edge_seq.exterior_available:
+                if edge.reverse in edge_seq:
+                    continue
                 self._exteriors.append(edge_seq)
             elif edge_seq.interior_available:
                 self._interiors.append(edge_seq)
+
+            edge_set.difference_update(edge_seq)
 
         return self
 
