@@ -139,6 +139,15 @@ class TestClosureStrategy:
         assert len(sorted_edges) == 3
         assert sorted_edges[0] == edges[-1]
 
+    def test_sort_chainable_edges_with_special_id_order(self, stretch_8_dangling_pivots):
+        stretch = stretch_8_dangling_pivots
+        edges = [Edge('2', '4', stretch=stretch),
+                 Edge('3', '2', stretch=stretch)]
+        sorted_edges = ClosureStrategy.sort_edges_by_chain(edges)
+        assert len(sorted_edges) == 2
+        assert sorted_edges[0] == edges[1]
+        assert sorted_edges[1] == edges[0]
+
     def test_sort_loop_chain_of_edges(self, stretch_8_dangling_pivots):
         stretch = stretch_8_dangling_pivots
         edges = [Edge('2', '3', stretch=stretch),

@@ -340,6 +340,10 @@ class Edge:
         stretch = primary_edge.stretch
         from_pid = primary_edge.from_pid
         to_pid = secondary_edge.to_pid
+        origin_pivots = [primary_edge.from_pivot,
+                         primary_edge.to_pivot,
+                         secondary_edge.from_pivot,
+                         secondary_edge.to_pivot]
         closure = primary_edge.closure
         reverse_closure = primary_edge.reverse_closure
         primary_edge_reverse = primary_edge.reverse
@@ -385,6 +389,11 @@ class Edge:
             seq._edges.insert(idx, reverse_twisted_edge)
 
             seq.set_closure(reverse_closure)
+
+        # remove dangling pivots
+        for pivot in origin_pivots:
+            if pivot.dangling:
+                stretch._pivot_map.pop(pivot.id, None)
 
         return twisted_edge
 

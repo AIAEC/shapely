@@ -16,6 +16,7 @@ from shapely.geometry import LineString, Polygon, Point
 class Offset:
     def __init__(self, edge: Union[Edge, EdgeSeq], offset_handler_cls=None):
         self._edge_seq = edge
+        self._edge_seq_shape = self._edge_seq.shape
         if isinstance(edge, Edge):
             self._edge_seq = EdgeSeq([edge])
 
@@ -217,11 +218,11 @@ class Offset:
                                        .reconstruct(dist_tol_to_pivot=dist_tol_to_pivot,
                                                     dist_tol_to_edge=dist_tol_to_edge))
 
-        # inherit cargo of pivots and edges before deleting or unioning closure
+        # inherit cargo of pivots and edges before deleting or merging closure
         self.inherit_pivot_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
         self.inherit_edge_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
 
-        disposal_closure = first(lambda closure: self._edge in closure.exterior, new_closures)
+        disposal_closure = first(lambda closure: self._edge_seq_shape.intersects(closure.shape), new_closures)
         assert isinstance(disposal_closure, Closure)  # must have this closure
 
         if union_to_closure is None:

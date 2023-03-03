@@ -117,7 +117,7 @@ class ClosureStrategy:
             edge_set.remove(next_)
             cur = next_
 
-        if not edge_set:
+        if edge_set:
             cur = head
             while ((last := cur.prev(cls))
                    and (last in edge_set)
