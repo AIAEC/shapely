@@ -379,7 +379,7 @@ class Edge:
             seq = reverse_closure.seq_of_edge(primary_edge_reverse)
             assert seq is reverse_closure.seq_of_edge(secondary_edge_reverse)
 
-            idx = seq._edges.index(primary_edge_reverse)
+            idx = seq._edges.index(secondary_edge_reverse)  # symmetric
             seq._edges.remove(primary_edge_reverse)
             seq._edges.remove(secondary_edge_reverse)
             seq._edges.insert(idx, reverse_twisted_edge)
@@ -1591,3 +1591,18 @@ class Stretch:
                           dist_tol_to_edge=dist_tol_to_edge,
                           closure_strategy=closure_strategy)
         return self
+
+    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS, consider_cargo_equality: bool = True) -> None:
+        """
+        [MID LEVEL API] simplify the stretch by simplifying closure
+        Parameters
+        ----------
+        angle_tol: angle degree tolerance
+        consider_cargo_equality:
+
+        Returns
+        -------
+        None
+        """
+        for closure in self.closures:
+            closure.simplify(angle_tol=angle_tol, consider_cargo_equality=consider_cargo_equality)

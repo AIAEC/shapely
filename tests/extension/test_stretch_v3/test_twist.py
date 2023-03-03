@@ -140,3 +140,7 @@ class TestTwist:
         assert stretch.closure('0').cargo['test'] == 'closure0'
         assert stretch.closure('1').cargo['test'] == 'closure1'
 
+        closures = sorted(stretch.closures, key=lambda c: c.shape.centroid.y)
+        assert closures[0].shape.equals(loads('POLYGON ((0 0, 0 -10, 30 -10, 30 0, 10 0, 0 0))'))
+        assert closures[1].shape.equals(loads('POLYGON ((0 0, 10 0, 30 0, 30 20, 0 20, 0 0))'))
+
