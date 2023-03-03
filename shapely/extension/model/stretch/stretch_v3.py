@@ -379,7 +379,7 @@ class Edge:
             seq = reverse_closure.seq_of_edge(primary_edge_reverse)
             assert seq is reverse_closure.seq_of_edge(secondary_edge_reverse)
 
-            idx = seq._edges.index(primary_edge_reverse)
+            idx = seq._edges.index(secondary_edge_reverse)  # symmetric
             seq._edges.remove(primary_edge_reverse)
             seq._edges.remove(secondary_edge_reverse)
             seq._edges.insert(idx, reverse_twisted_edge)
