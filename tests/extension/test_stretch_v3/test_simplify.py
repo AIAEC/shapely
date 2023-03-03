@@ -44,3 +44,14 @@ class TestSimplify:
         interior = closure.interiors[0]
         assert len(interior) == 4
         assert interior.shape.equals(LinearRing([(5, 25), (25, 25), (25, 20), (5, 20)]))
+
+    def test_simplify_stretch(self, stretch_exterior_offset_hit_out_with_reverse_closure):
+        stretch = stretch_exterior_offset_hit_out_with_reverse_closure
+        shapes = [c.shape for c in stretch.closures]
+
+        stretch.simplify()
+        assert len(stretch.closures) == 2
+        assert stretch.closures[0].shape.equals(shapes[0])
+        assert not stretch.closures[0].shape.almost_equals(shapes[0])
+        assert stretch.closures[1].shape.equals(shapes[1])
+        assert not stretch.closures[1].shape.almost_equals(shapes[1])
