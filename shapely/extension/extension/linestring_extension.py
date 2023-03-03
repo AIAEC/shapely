@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from copy import deepcopy
 from itertools import product, combinations
-from typing import Union, Tuple, Optional, Iterable, Callable, List, overload
+from typing import Union, Tuple, Optional, Iterable, Callable, List, overload, Literal
 
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
@@ -331,7 +331,9 @@ class LineStringExtension(BaseGeomExtension):
                     projected_pt_at_start,
                     projected_pt_at_end], key=lambda pt: given_point.distance(pt))
 
-    def perpendicular_line(self, point: Point, length: float, position: str = 'mid') -> LineString:
+    def perpendicular_line(self, point: Point,
+                           length: float,
+                           position: Literal['mid', 'left', 'right'] = 'mid') -> LineString:
         """
         project the given point onto the current linestring and return the perpendicular linestring(normal line)
         of the projected point
@@ -362,7 +364,9 @@ class LineStringExtension(BaseGeomExtension):
             pt1 = perpendicular_vec_cw.unit(length).apply(point_on_line)
         return LineString([pt0, pt1])
 
-    def tangent_line(self, point: Point, length: float, position: str = 'mid') -> LineString:
+    def tangent_line(self, point: Point,
+                     length: float,
+                     position: Literal['mid', 'forward', 'backward'] = 'mid') -> LineString:
         """
         project the given point onto the current linestring and return the tangent linestring of the projected point
         Parameters
