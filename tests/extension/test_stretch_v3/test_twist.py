@@ -135,7 +135,7 @@ class TestTwist:
         assert edge.cargo['test'] == 'edge12'
         assert edge.reverse.cargo['test'] == 'edge32'
         assert stretch.pivot('1').cargo['test'] == 'pivot1'
-        assert stretch.pivot('2').cargo['test'] == 'pivot2'
+        assert stretch.pivot('2') is None
         assert stretch.pivot('3').cargo['test'] == 'pivot3'
         assert stretch.closure('0').cargo['test'] == 'closure0'
         assert stretch.closure('1').cargo['test'] == 'closure1'
