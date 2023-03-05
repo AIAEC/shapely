@@ -20,7 +20,8 @@ class TestTwist:
         assert stretch.edge(edge.id) is edge
         assert all(old_edge not in stretch.edges for old_edge in old_edges)
 
-        assert len(stretch.pivots) == 4
+        assert len(stretch.pivots) == 3
+        assert stretch.pivot('1') is None
         assert len(stretch.edges) == 3
         assert len(stretch.closures) == 1
         assert stretch.closures[0].shape.equals(Polygon([(0, 0), (1, 1), (0, 1)]))
@@ -39,7 +40,8 @@ class TestTwist:
         assert stretch.edge(edge.id) is edge
         assert all(old_edge not in stretch.edges for old_edge in old_edges)
 
-        assert len(stretch.pivots) == 8
+        assert len(stretch.pivots) == 7
+        assert stretch.pivot('1') is None
         assert len(stretch.edges) == 7
         assert len(stretch.closures) == 0
 
@@ -98,7 +100,8 @@ class TestTwist:
         assert edge1 not in stretch.edges
         assert len(stretch.closures) == 2
         assert len(stretch.edges) == 10
-        assert len(stretch.pivots) == 8
+        assert len(stretch.pivots) == 7
+        assert stretch.pivot('1') is None
 
         assert stretch.closures[0].shape.equals(Polygon([(0, 0), (20, 0), (30, 0), (30, 20), (0, 20)]))
         assert stretch.closures[1].shape.equals(Polygon([(0, 0), (0, -10), (30, -10), (30, 0), (20, 0)]))

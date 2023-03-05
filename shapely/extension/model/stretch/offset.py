@@ -222,7 +222,7 @@ class Offset:
         self.inherit_pivot_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
         self.inherit_edge_cargo(line_after_offset=line_after_offset, offset_dist=offset_dist)
 
-        disposal_closure = first(lambda closure: self._edge_seq_shape.intersects(closure.shape), new_closures)
+        disposal_closure = max(new_closures, key=lambda closure: self._edge_seq_shape.intersection(closure.shape).length)
         assert isinstance(disposal_closure, Closure)  # must have this closure
 
         if union_to_closure is None:
