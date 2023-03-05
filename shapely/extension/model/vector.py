@@ -29,7 +29,13 @@ class Vector:
         y: number type(int, float)
         """
         if not (isinstance(x, Num) and isinstance(y, Num)):
-            raise TypeError(f'x, y should only be number, given x={x}, y={y}')
+            if isinstance(x, Sequence):
+                x, y, *_ = x
+            elif isinstance(x, dict):
+                x, y = x['x'], x['y']
+            else:
+                raise TypeError(f'x, y should only be number, given x={x}, y={y}')
+
         self.x = x
         self.y = y
 

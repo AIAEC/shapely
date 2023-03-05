@@ -12,6 +12,16 @@ MATH_LARGE_EPS = 1e-3
 
 
 class TestVector(TestCase):
+    def test_construct_vector(self):
+        vec = Vector(1, 1)
+        self.assertEqual(Vector(1, 1), vec)
+
+        vec = Vector([2, 2, 2])
+        self.assertEqual(Vector(2, 2), vec)
+
+        vec = Vector({'x': 3, 'y': 3})
+        self.assertEqual(Vector(3, 3), vec)
+
     def test_is_valid_2d_coordinate(self):
         self.assertTrue(Vector._is_coord((0, 1)))
         self.assertTrue(Vector._is_coord((0., 1)))
