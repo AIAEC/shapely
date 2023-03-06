@@ -1047,7 +1047,7 @@ class Stretch:
 
     def dumps(self) -> str:
         """
-        dump stretch to json string
+        dump stretch to json string, for only debug purpose
         Returns
         -------
         json string
@@ -1074,8 +1074,19 @@ class Stretch:
 
     @classmethod
     def loads(cls, json_str: str) -> 'Stretch':
+        """
+        load stretch from json string, for only debug purpose
+        Parameters
+        ----------
+        json_str: string of json
+
+        Returns
+        -------
+        instance of stretch
+        """
         stretch_json = json.loads(json_str)
         assert "pivot" in stretch_json and "closure" in stretch_json, "invalid stretch json"
+
         pivot_map = stretch_json["pivot"]
         closure_map = stretch_json["closure"]
         pivot_cargo_map = stretch_json["pivot_cargo"]
@@ -1094,6 +1105,7 @@ class Stretch:
             exterior = closure_json["exterior"]
             interiors = closure_json["interiors"]
             edge_seqs: List[EdgeSeq] = []
+
             for pid_list in [exterior] + interiors:
                 cur_edges: List[Edge] = []
                 for edge in [Edge(pid0, pid1, stretch) for pid0, pid1 in win_slice(pid_list, win_size=2)]:
