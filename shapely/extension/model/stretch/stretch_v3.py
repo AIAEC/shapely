@@ -1027,6 +1027,11 @@ class Stretch:
         stretch._pivot_map = deepcopy(self._pivot_map, memodict)
         stretch._edge_map = deepcopy(self._edge_map, memodict)
         stretch._closure_map = deepcopy(self._closure_map, memodict)
+
+        stretch._default_pivot_cargo_dict = deepcopy(self._default_pivot_cargo_dict, memodict)
+        stretch._default_edge_cargo_dict = deepcopy(self._default_edge_cargo_dict, memodict)
+        stretch._default_closure_cargo_dict = deepcopy(self._default_closure_cargo_dict, memodict)
+
         stretch.shrink_id_gen()
 
         for pivot in stretch.pivots:
