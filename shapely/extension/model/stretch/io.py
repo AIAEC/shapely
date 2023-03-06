@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 from shapely.extension.model.stretch.stretch_v3 import Stretch, Pivot, Edge, Closure, EdgeSeq
 from shapely.extension.util.iter_util import win_slice
@@ -56,6 +56,9 @@ class StretchPack:
     pivot_packs: List[PivotPack] = field()
     edge_packs: List[EdgePack] = field()
     closure_packs: List[ClosurePack] = field()
+    default_pivot_cargo_dict: dict = field(default_factory=dict)
+    default_edge_cargo_dict: dict = field(default_factory=dict)
+    default_closure_cargo_dict: dict = field(default_factory=dict)
 
     @classmethod
     def pack_from(cls, stretch: Stretch) -> 'StretchPack':
@@ -64,12 +67,15 @@ class StretchPack:
         closure_packs = [ClosurePack.from_(closure) for closure in stretch.closures]
         return cls(pivot_packs=pivot_packs,
                    edge_packs=edge_packs,
-                   closure_packs=closure_packs)
+                   closure_packs=closure_packs,
+                   default_pivot_cargo_dict=stretch._default_pivot_cargo_dict,
+                   default_edge_cargo_dict=stretch._default_edge_cargo_dict,
+                   default_closure_cargo_dict=stretch._default_closure_cargo_dict)
 
-    def unpack(self, default_pivot_cargo_dict: Optional[dict] = None,
-               default_edge_cargo_dict: Optional[dict] = None,
-               default_closure_cargo_dict: Optional[dict] = None) -> Stretch:
-        stretch = Stretch(default_pivot_cargo_dict, default_edge_cargo_dict, default_closure_cargo_dict)
+    def unpack(self) -> Stretch:
+        stretch = Stretch(default_pivot_cargo_dict=self.default_pivot_cargo_dict,
+                          default_edge_cargo_dict=self.default_edge_cargo_dict,
+                          default_closure_cargo_dict=self.default_closure_cargo_dict)
 
         pivots = [Pivot(origin=pivot_pack.origin,
                         stretch=stretch,

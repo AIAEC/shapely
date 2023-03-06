@@ -2,6 +2,10 @@ from shapely.extension.model.stretch.io import StretchPack
 
 
 def test_create_stretch_pack_from_stretch(stretch_box):
+    stretch_box._default_pivot_cargo_dict['default'] = 'pivot'
+    stretch_box._default_edge_cargo_dict['default'] = 'edge'
+    stretch_box._default_closure_cargo_dict['default'] = 'closure'
+
     stretch_box.pivots[0].cargo['test'] = 'pivot'
     stretch_box.edges[0].cargo['test'] = 'edge'
     stretch_box.closures[0].cargo['test'] = 'closure'
@@ -15,10 +19,16 @@ def test_create_stretch_pack_from_stretch(stretch_box):
     assert stretch_pack.pivot_packs[0].cargo['test'] == 'pivot'
     assert stretch_pack.edge_packs[0].cargo['test'] == 'edge'
     assert stretch_pack.closure_packs[0].cargo['test'] == 'closure'
+    assert stretch_pack.default_pivot_cargo_dict['default'] == 'pivot'
+    assert stretch_pack.default_edge_cargo_dict['default'] == 'edge'
+    assert stretch_pack.default_closure_cargo_dict['default'] == 'closure'
 
 
 def test_create_stretch_from_stretch_pack(stretch_box_holes):
     stretch = stretch_box_holes
+    stretch._default_pivot_cargo_dict['default'] = 'pivot'
+    stretch._default_edge_cargo_dict['default'] = 'edge'
+    stretch._default_closure_cargo_dict['default'] = 'closure'
 
     stretch.pivots[0].cargo['test'] = 'pivot'
     stretch.edges[0].cargo['test'] = 'edge'
@@ -40,6 +50,9 @@ def test_create_stretch_from_stretch_pack(stretch_box_holes):
     assert stretch_recovered.pivots[0].cargo['test'] == 'pivot'
     assert stretch_recovered.edges[0].cargo['test'] == 'edge'
     assert stretch_recovered.closures[0].cargo['test'] == 'closure'
+    assert stretch_recovered._default_pivot_cargo_dict['default'] == 'pivot'
+    assert stretch_recovered._default_edge_cargo_dict['default'] == 'edge'
+    assert stretch_recovered._default_closure_cargo_dict['default'] == 'closure'
 
     assert stretch is not stretch_recovered
     for pivot, pivot_recover in zip(stretch.pivots, stretch_recovered.pivots):
