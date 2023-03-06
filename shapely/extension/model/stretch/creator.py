@@ -171,10 +171,10 @@ class ClosureReconstructor:
                 if edge.reverse in edge_seq:
                     continue
                 self._exteriors.append(edge_seq)
+                edge_set.difference_update(edge_seq)
             elif edge_seq.interior_available:
                 self._interiors.append(edge_seq)
-
-            edge_set.difference_update(edge_seq)
+                edge_set.difference_update(edge_seq)
 
         return self
 
