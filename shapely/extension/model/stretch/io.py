@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 from shapely.extension.model.stretch.stretch_v3 import Stretch, Pivot, Edge, Closure, EdgeSeq
 from shapely.extension.util.iter_util import win_slice
@@ -66,8 +66,10 @@ class StretchPack:
                    edge_packs=edge_packs,
                    closure_packs=closure_packs)
 
-    def unpack(self) -> Stretch:
-        stretch = Stretch()
+    def unpack(self, default_pivot_cargo_dict: Optional[dict] = None,
+               default_edge_cargo_dict: Optional[dict] = None,
+               default_closure_cargo_dict: Optional[dict] = None) -> Stretch:
+        stretch = Stretch(default_pivot_cargo_dict, default_edge_cargo_dict, default_closure_cargo_dict)
 
         pivots = [Pivot(origin=pivot_pack.origin,
                         stretch=stretch,
