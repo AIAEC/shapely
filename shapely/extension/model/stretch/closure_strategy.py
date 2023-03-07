@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Optional, List
+from typing import Optional, List, Set
 
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.stretch.stretch_v3 import Edge, EdgeSeq
@@ -76,13 +76,20 @@ class ClosureStrategy:
         return min(in_edges, key=given_edge_rotating_to_reverse_of_other, default=None)
 
     @classmethod
-    def consecutive_edges(cls, edge: Edge) -> EdgeSeq:
+    def consecutive_edges(cls, edge: Edge, candidate_edges: Optional[Set[Edge]] = None) -> EdgeSeq:
         assert isinstance(edge, Edge)
 
         edges = [edge]
         seen = set(edges)
+        candidate_edges = candidate_edges or set(edge.stretch.edges)
+
+        if edge not in candidate_edges:
+            return EdgeSeq([])
 
         while (next_edge := edge.next()) and (next_edge not in seen):
+            if next_edge not in candidate_edges:
+                break
+
             edges.append(next_edge)
             seen.add(next_edge)
             edge = next_edge

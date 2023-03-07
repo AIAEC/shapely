@@ -159,13 +159,14 @@ class ClosureReconstructor:
     def from_edges(self, edges: List[Edge],
                    closure_strategy: Optional[ClosureStrategy] = None) -> 'ClosureReconstructor':
         assert all(edge.stretch is self._stretch for edge in edges)
+        origin_edge_set = set(edges)
         edge_set = OrderedSet(edges)
 
         closure_strategy = closure_strategy or ClosureStrategy()
 
         while edge_set:
             edge = edge_set.pop()
-            edge_seq = closure_strategy.consecutive_edges(edge)
+            edge_seq = closure_strategy.consecutive_edges(edge, origin_edge_set)
 
             if edge_seq.exterior_available:
                 if edge.reverse in edge_seq:

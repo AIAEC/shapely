@@ -5,7 +5,7 @@ from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.creator import ClosureReconstructor
 from shapely.extension.model.stretch.stretch_v3 import Closure, Edge
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import LineString, MultiLineString
+from shapely.geometry import LineString, MultiLineString, Point
 
 
 class Cut:
