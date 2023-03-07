@@ -1398,3 +1398,12 @@ class TestOffset:
         closures = sorted(stretch.closures, key=lambda c: c.shape.centroid.x)
         assert closures[0].shape.equals(loads('POLYGON ((0 0, 0.5 0, 0.5 1, 0 1, 0 0))'))
         assert closures[1].shape.equals(loads('POLYGON ((1 0, 2 0, 2 1, 1 1, 0.5 1, 0.5 0, 1 0))'))
+
+
+    def test_offset_dangling_edge(self, stretch_4_dangling_edge):
+        stretch = stretch_4_dangling_edge
+
+        edge = stretch.edge('(0,1)')
+
+        with pytest.raises(AssertionError):
+            Offset(edge, VerticalAttachOffsetHandler).offset(0.5)
