@@ -169,11 +169,14 @@ class ClosureReconstructor:
             edge_seq = closure_strategy.consecutive_edges(edge, origin_edge_set)
 
             if edge_seq.exterior_available:
+                # try to handle exterior back and forth edge, which is illegal
                 if edge.reverse in edge_seq:
                     continue
+
                 self._exteriors.append(edge_seq)
                 edge_set.difference_update(edge_seq)
             elif edge_seq.interior_available:
+                # for interior, back and forth is not illegal
                 self._interiors.append(edge_seq)
                 edge_set.difference_update(edge_seq)
 
