@@ -43,3 +43,17 @@ class TestClosureReconstruction:
         assert len(stretch.closures) == 1
         assert stretch.closure('0').shape.equals(Polygon([(0, 0), (10, 0), (10, 10), (0, 10)],
                                                          [[(1, 1), (2, 1), (2, 2), (1, 2)]]))
+
+    def test_reconstruct_closures_given_redundant_reverse_edge(self, stretch_2_groups_dangling_edges):
+        stretch = stretch_2_groups_dangling_edges
+
+        assert len(stretch.pivots) == 6
+        assert len(stretch.edges) == 8
+        assert len(stretch.closures) == 0
+
+        closures = ClosureReconstructor(stretch).from_edges(stretch.edges[:6]).reconstruct()
+        assert len(closures) == 1
+        assert len(stretch.pivots) == 6
+        assert len(stretch.edges) == 8
+        assert len(stretch.closures) == 1
+        assert stretch.closure('0').shape.equals(Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]))

@@ -81,7 +81,9 @@ class ClosureStrategy:
 
         edges = [edge]
         seen = set(edges)
-        candidate_edges = candidate_edges or set(edge.stretch.edges)
+
+        if candidate_edges is None:
+            candidate_edges = set(edge.stretch.edges)
 
         if edge not in candidate_edges:
             return EdgeSeq([])

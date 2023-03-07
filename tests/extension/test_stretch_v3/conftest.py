@@ -126,6 +126,48 @@ def stretch_4_dangling_edge() -> Stretch:
 
 
 @pytest.fixture
+def stretch_2_groups_dangling_edges() -> Stretch:
+    """
+    Returns
+    -------
+     3         2         5
+     o◄────────o◄────────o
+     │         ▲         ▲
+     │         │         │
+     │         │         │
+     ▼         ▼         │
+     o────────►o────────►o
+     0         1         4
+    """
+    stretch = Stretch()
+    pivots = [
+        Pivot((0, 0), stretch, '0'),
+        Pivot((10, 0), stretch, '1'),
+        Pivot((10, 10), stretch, '2'),
+        Pivot((0, 10), stretch, '3'),
+        Pivot((20, 0), stretch, '4'),
+        Pivot((20, 10), stretch, '5'),
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges = [
+        Edge('0', '1', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '3', stretch),
+        Edge('3', '0', stretch),
+        Edge('2', '1', stretch),
+        Edge('4', '5', stretch),
+        Edge('1', '4', stretch),
+        Edge('5', '2', stretch),
+    ]
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+    stretch.shrink_id_gen()
+    return stretch
+
+
+@pytest.fixture
 def stretch_back_and_forth_edge_seq() -> Stretch:
     """
     Returns

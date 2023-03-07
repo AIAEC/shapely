@@ -62,6 +62,32 @@ class TestClosureStrategy:
         assert edge_seq[2] is stretch.edge('(2,1)')
         assert edge_seq[3] is stretch.edge('(1,0)')
 
+    def test_consecutive_seq_when_given_candidates(self, stretch_box):
+        stretch = stretch_box
+
+        edge = stretch.edge('(0,1)')
+        edge_seq = ClosureStrategy.consecutive_edges(edge, candidate_edges={stretch.edge('(1,2)'), stretch.edge('(0,1)')})
+        assert len(edge_seq) == 2
+        assert not edge_seq.closed
+        assert edge_seq[0] is stretch.edge('(0,1)')
+        assert edge_seq[1] is stretch.edge('(1,2)')
+
+    def test_consecutive_seq_when_given_empty_candidates(self, stretch_box):
+        stretch = stretch_box
+
+        edge = stretch.edge('(0,1)')
+        edge_seq = ClosureStrategy.consecutive_edges(edge, candidate_edges=set())
+        assert len(edge_seq) == 0
+        assert not edge_seq.closed
+
+    def test_consecutive_seq_when_given_candidates_not_include_self(self, stretch_box):
+        stretch = stretch_box
+
+        edge = stretch.edge('(0,1)')
+        edge_seq = ClosureStrategy.consecutive_edges(edge, candidate_edges={stretch.edge('(1,2)')})
+        assert len(edge_seq) == 0
+        assert not edge_seq.closed
+
     def test_next(self, stretch_for_closure_strategy):
         stretch = stretch_for_closure_strategy
         next_ = stretch.edge('(15,7)').next(ClosureStrategy)
