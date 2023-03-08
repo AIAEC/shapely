@@ -87,3 +87,67 @@ class TestEdgeSequence:
 
         for origin_edge, edge in zip(edge_seq, edge_seq_copy):
             assert origin_edge == edge
+
+    def test_edge_seq_dangling(self, stretch_back_and_forth_edge_seq):
+        stretch = stretch_back_and_forth_edge_seq
+
+        edge_seq = EdgeSeq([stretch.edge('(0,1)'),
+                            stretch.edge('(1,2)'),
+                            stretch.edge('(2,1)'),
+                            stretch.edge('(1,0)')])
+
+        assert edge_seq.dangling
+
+        edge_seq = EdgeSeq([stretch.edge('(0,1)'),
+                            stretch.edge('(1,2)'),
+                            stretch.edge('(2,1)')])
+        assert not edge_seq.dangling
+
+    def test_straight_edge_seq_dangling(self, stretch_back_and_forth_edge_seq_straight):
+        stretch = stretch_back_and_forth_edge_seq_straight
+
+        edge_seq = EdgeSeq([stretch.edge('(0,1)'),
+                            stretch.edge('(1,2)'),
+                            stretch.edge('(2,3)'),
+                            stretch.edge('(3,2)'),
+                            stretch.edge('(2,1)'),
+                            stretch.edge('(1,0)')])
+
+        assert edge_seq.dangling
+
+        edge_seq = EdgeSeq([stretch.edge('(0,1)'),
+                            stretch.edge('(1,2)'),
+                            stretch.edge('(2,1)')])
+        assert not edge_seq.dangling
+
+    def test_straight_edge_availability(self, stretch_back_and_forth_edge_seq_straight):
+        stretch = stretch_back_and_forth_edge_seq_straight
+
+        edge_seq = EdgeSeq([stretch.edge('(0,1)'),
+                            stretch.edge('(1,2)'),
+                            stretch.edge('(2,3)'),
+                            stretch.edge('(3,2)'),
+                            stretch.edge('(2,1)'),
+                            stretch.edge('(1,0)')])
+
+        assert not edge_seq.exterior_available
+        assert edge_seq.interior_available
+
+    def test_closure_edge_seq_dangling(self, stretch_box_with_inner_crack):
+        stretch = stretch_box_with_inner_crack
+
+        closure = stretch.closures[0]
+        assert not closure.exterior.dangling
+        for interior in closure.interiors:
+            assert interior.dangling
+
+    def test_closure_edge_seq_availability(self, stretch_box_with_inner_crack):
+        stretch = stretch_box_with_inner_crack
+        closure = stretch.closures[0]
+
+        assert closure.exterior.exterior_available
+        assert not closure.exterior.interior_available
+
+        for interior in closure.interiors:
+            assert not interior.exterior_available
+            assert interior.interior_available

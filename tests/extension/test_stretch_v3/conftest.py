@@ -222,6 +222,39 @@ def stretch_back_and_forth_edge_seq() -> Stretch:
     stretch.shrink_id_gen()
     return stretch
 
+@pytest.fixture
+def stretch_back_and_forth_edge_seq_straight() -> Stretch:
+    """
+    Returns
+    -------
+     o┌───────►o───────►o───────►o
+     0◄───────┘1◄──────┘2◄───────┘3
+    """
+    stretch = Stretch()
+
+    pivots = [
+        Pivot((-16.741118015258667, -23.73459795490389), stretch, '0'),
+        Pivot((-15.106879141804978, -14.682014325325804), stretch, '1'),
+        Pivot((-13.249485717477986, -4.39330465143675), stretch, '2'),
+        Pivot((-7.799375724810199, 25.796637162123016), stretch, '3')
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges = [
+        Edge('0', '1', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '3', stretch),
+        Edge('3', '2', stretch),
+        Edge('2', '1', stretch),
+        Edge('1', '0', stretch),
+    ]
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+
+    stretch.shrink_id_gen()
+    return stretch
+
 
 @pytest.fixture
 def stretch_box() -> Stretch:

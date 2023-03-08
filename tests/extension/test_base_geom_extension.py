@@ -6,8 +6,8 @@ from shapely.extension.model.alignment import AlignLineString
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.vector import Vector
-
-from shapely.geometry import Polygon, LineString, MultiLineString, box, Point
+from shapely.geometry import Polygon, LineString, MultiLineString, box, Point, MultiPoint, MultiPolygon, \
+    GeometryCollection
 
 
 class BaseGeomExtensionTest(TestCase):
@@ -134,3 +134,47 @@ class BaseGeomExtensionTest(TestCase):
         self.assertEqual(4, len(skeleton.full_segments()))
         self.assertFalse(skeleton.trunk_segments())
         self.assertFalse(skeleton.trunks())
+
+    def test_longest_piece(self):
+        point = Point(0, 0)
+        self.assertTrue(point.equals(point.ext.longest_piece()))
+
+        line = LineString([(0, 0), (1, 0)])
+        self.assertTrue(line.equals(line.ext.longest_piece()))
+
+        polygon = box(0, 0, 1, 1)
+        self.assertTrue(polygon.equals(polygon.ext.longest_piece()))
+
+        self.assertTrue(MultiPoint([(0, 0), (1, 0)]).ext.longest_piece().equals(Point(0, 0)))
+
+        result = MultiLineString([LineString([(0, 0), (1, 0)]),
+                                  LineString([(0, 0), (2, 0)])]).ext.longest_piece()
+        self.assertTrue(result.equals(LineString([(0, 0), (2, 0)])))
+
+        result = MultiPolygon([box(0, 0, 1, 1), box(0, 0, 2, 2)]).ext.longest_piece()
+        self.assertTrue(result.equals(box(0, 0, 2, 2)))
+
+        result = GeometryCollection([Point(0, 0), LineString([(0, 0), (10, 0)]), box(0, 0, 1, 1)]).ext.longest_piece()
+        self.assertTrue(result.equals(LineString([(0, 0), (10, 0)])))
+
+    def test_largest_piece(self):
+        point = Point(0, 0)
+        self.assertTrue(point.equals(point.ext.largest_piece()))
+
+        line = LineString([(0, 0), (1, 0)])
+        self.assertTrue(line.equals(line.ext.largest_piece()))
+
+        polygon = box(0, 0, 1, 1)
+        self.assertTrue(polygon.equals(polygon.ext.largest_piece()))
+
+        self.assertTrue(MultiPoint([(0, 0), (1, 0)]).ext.largest_piece().equals(Point(0, 0)))
+
+        result = MultiLineString([LineString([(0, 0), (1, 0)]),
+                                  LineString([(0, 0), (2, 0)])]).ext.largest_piece()
+        self.assertTrue(result.equals(LineString([(0, 0), (1, 0)])))
+
+        result = MultiPolygon([box(0, 0, 1, 1), box(0, 0, 2, 2)]).ext.largest_piece()
+        self.assertTrue(result.equals(box(0, 0, 2, 2)))
+
+        result = GeometryCollection([Point(0, 0), LineString([(0, 0), (10, 0)]), box(0, 0, 1, 1)]).ext.largest_piece()
+        self.assertTrue(result.equals(box(0, 0, 1, 1)))

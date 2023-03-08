@@ -553,10 +553,17 @@ class EdgeSeq:
         if not self.closed:
             return False
 
-        try:
-            return Polygon(self.shape).area == 0
-        except Exception:
-            return False
+        stack = []
+        for pid in self.pids:
+            if stack and stack[-1] == pid:
+                stack.pop()
+            elif len(stack) > 1 and stack[-2] == pid:
+                stack.pop()
+                stack.pop()
+            else:
+                stack.append(pid)
+
+        return not bool(stack)
 
     @property
     def exterior_available(self) -> bool:
@@ -565,7 +572,15 @@ class EdgeSeq:
                 return False
 
             assert isinstance(self.shape, LinearRing)
-            return self.shape.is_ccw
+            is_ccw = self.shape.is_ccw
+
+            try:
+                occupation = Polygon(self.shape).area > 0
+            except Exception:
+                occupation = False
+
+            return is_ccw and occupation
+
         return False
 
     @property
@@ -575,7 +590,14 @@ class EdgeSeq:
                 return True
 
             assert isinstance(self.shape, LinearRing)
-            return not self.shape.is_ccw
+            is_cw = not self.shape.is_ccw
+
+            try:
+                occupation = Polygon(self.shape).area > 0
+            except Exception:
+                occupation = False
+
+            return is_cw or not occupation
         return False
 
     @property
