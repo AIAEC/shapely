@@ -38,6 +38,9 @@ class Offset:
         self._shape_offset_strategy = self._offset_handler_cls(edge_seq=self._edge_seq, closure=self._closure)
 
     def query_the_offset_edge_seq(self, line_after_offset: LineString) -> List[EdgeSeq]:
+        if not line_after_offset.is_valid or line_after_offset.is_empty:
+            return []
+
         offset_line_region = line_after_offset.ext.buffer().rect(MATH_MIDDLE_EPS)
         edges: List[Edge] = (seq(self._stretch.edges_by_query(offset_line_region))
                              .filter(lambda e: e.shape.intersection(offset_line_region).length > 2 * MATH_MIDDLE_EPS)
