@@ -2,8 +2,8 @@ import json
 from collections import OrderedDict
 from copy import deepcopy
 from itertools import count
-from operator import truth
-from typing import List, Optional, Dict, Union, Tuple
+from operator import truth, itemgetter
+from typing import List, Optional, Dict, Union, Tuple, Callable
 from weakref import ref, ReferenceType
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
@@ -316,9 +316,18 @@ class Edge:
         return edge
 
     @classmethod
-    def twist(cls, primary_edge: 'Edge', secondary_edge: 'Edge') -> 'Edge':
+    def twist(cls, primary_edge: 'Edge',
+              secondary_edge: 'Edge',
+              cargo_target: Optional[Callable[['Edge', 'Edge'], 'Edge']] = None) -> 'Edge':
         """
         [LOW LEVEL API] twist primary edge and secondary edge into 1 edge
+        Parameters
+        -------
+        primary_edge
+        secondary_edge
+        cargo_target: function that given primary edge and secondary edge, return the chosen one of them that the result
+            cargo will follow
+
         Returns
         -------
         edge instance, which cargo, will inherit from primary edge's cargo
@@ -337,9 +346,17 @@ class Edge:
         if primary_edge.reverse_closure is not secondary_edge.reverse_closure:
             raise ValueError('current edge and given edge should belong to the same reverse closure, or no closure')
 
+        # pick the right edge for cargo inheritance
+        cargo_target_edge = cargo_target(primary_edge, secondary_edge) if cargo_target else primary_edge
+        cargo = cargo_target_edge.cargo.data
+
+        reverse_cargo_target_edge = (secondary_edge if cargo_target_edge is primary_edge else primary_edge).reverse
+        reverse_cargo = reverse_cargo_target_edge.cargo.data if reverse_cargo_target_edge else None
+
         stretch = primary_edge.stretch
         from_pid = primary_edge.from_pid
         to_pid = secondary_edge.to_pid
+
         origin_pivots = [primary_edge.from_pivot,
                          primary_edge.to_pivot,
                          secondary_edge.from_pivot,
@@ -353,7 +370,7 @@ class Edge:
         stretch.discard_edge(secondary_edge)
         twisted_edge: Edge = (stretch
                               .create_edge()
-                              .cargo(primary_edge.cargo.data)
+                              .cargo(cargo)
                               .from_pivot_by_id(from_pid)
                               .to_pivot_by_id(to_pid)
                               .create())
@@ -375,7 +392,7 @@ class Edge:
             stretch.discard_edge(secondary_edge_reverse)
             reverse_twisted_edge = (stretch
                                     .create_edge()
-                                    .cargo(secondary_edge_reverse.cargo.data)
+                                    .cargo(reverse_cargo)
                                     .from_pivot_by_id(to_pid)
                                     .to_pivot_by_id(from_pid)
                                     .create())
@@ -646,13 +663,16 @@ class EdgeSeq:
             old_edge_to_pivot._in_edges.append(ref_to_last_new_edge)
 
     def simplify(self, angle_tol: float = MATH_MIDDLE_EPS,
-                 consider_cargo_equality: bool = True) -> None:
+                 consider_cargo_equality: bool = True,
+                 cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None) -> None:
         """
         [MID LEVEL API] simplify the edge sequence by merging edges that are almost parallel
         Parameters
         ----------
         angle_tol: float, angle degree tolerance
         consider_cargo_equality:
+        cargo_target: callable, given 2 edges, return the one whose cargo simplified edge should take, if None,
+            always that the cargo of primary edge.
 
         Returns
         -------
@@ -678,12 +698,12 @@ class EdgeSeq:
         merged_edges = [self._edges[0]]
         for edge in self._edges[1:]:
             if should_be_simplified(merged_edges[-1], edge):
-                merged_edges[-1] = Edge.twist(merged_edges[-1], edge)
+                merged_edges[-1] = Edge.twist(merged_edges[-1], edge, cargo_target)
             else:
                 merged_edges.append(edge)
 
         if closed and should_be_simplified(merged_edges[-1], merged_edges[0]):
-            merged_edges[0] = Edge.twist(merged_edges.pop(), merged_edges[0])
+            merged_edges[0] = Edge.twist(merged_edges.pop(), merged_edges[0], cargo_target)
 
         self._edges = merged_edges
 
@@ -981,21 +1001,24 @@ class Closure:
 
         return new_closures
 
-    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS, consider_cargo_equality: bool = True) -> None:
+    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS,
+                 consider_cargo_equality: bool = True,
+                 cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None) -> None:
         """
         [MID LEVEL API] simplify the exterior and interiors of the closure
         Parameters
         ----------
         angle_tol: angle degree tolerance
         consider_cargo_equality:
+        cargo_target
 
         Returns
         -------
         None
         """
-        self.exterior.simplify(angle_tol, consider_cargo_equality)
+        self.exterior.simplify(angle_tol, consider_cargo_equality, cargo_target)
         for interior in self.interiors:
-            interior.simplify(angle_tol, consider_cargo_equality)
+            interior.simplify(angle_tol, consider_cargo_equality, cargo_target)
 
     def remove_crack(self, from_pivots: Optional[List[Pivot]] = None, gc: bool = False) -> None:
         self.exterior.remove_crack(from_pivots=from_pivots, gc=gc)
@@ -1568,9 +1591,18 @@ class Stretch:
         edges: List[Edge] = []
 
         for edge in edges_without_pivot_attaching:
-            pivots_on_edge = self.pivots_by_query(edge.shape, buffer_dist=dist_tol_to_edge)
-            pivots_on_edge.sort(key=lambda pivot: edge.shape.project(pivot.shape))
-            edges.extend(edge.expand().by(pivots_on_edge))
+            pivots_nearby = self.pivots_by_query(edge.shape, buffer_dist=dist_tol_to_edge)
+            pivot_projection_tuples = [(pivot, edge.shape.project(pivot.shape, normalized=True))
+                                       for pivot in pivots_nearby]
+
+            pivots = (seq(pivot_projection_tuples)
+                      .sorted(itemgetter(1))
+                      .drop_while(lambda pivot_projection: pivot_projection[1] == 0)
+                      .take_while(lambda pivot_projection: pivot_projection[1] < 1)
+                      .map(itemgetter(0))
+                      .list())
+
+            edges.extend(edge.expand().by(pivots))
 
         return EdgeSeq(edges)
 
@@ -1618,17 +1650,22 @@ class Stretch:
                           closure_strategy=closure_strategy)
         return self
 
-    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS, consider_cargo_equality: bool = True) -> None:
+    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS,
+                 consider_cargo_equality: bool = True,
+                 cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None) -> None:
         """
         [MID LEVEL API] simplify the stretch by simplifying closure
         Parameters
         ----------
         angle_tol: angle degree tolerance
         consider_cargo_equality:
+        cargo_target
 
         Returns
         -------
         None
         """
         for closure in self.closures:
-            closure.simplify(angle_tol=angle_tol, consider_cargo_equality=consider_cargo_equality)
+            closure.simplify(angle_tol=angle_tol,
+                             consider_cargo_equality=consider_cargo_equality,
+                             cargo_target=cargo_target)

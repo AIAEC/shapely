@@ -7,6 +7,32 @@ from shapely.wkt import loads
 
 
 @pytest.fixture
+def stretch_dangling_pivots_in_a_row() -> Stretch:
+    """
+    Returns
+    -------
+    0    1    2
+    o    o    o
+      o    o
+      3    4
+    """
+    stretch = Stretch()
+
+    pivots = [
+        Pivot((0, 0), stretch, '0'),
+        Pivot((2, 0), stretch, '1'),
+        Pivot((4, 0), stretch, '2'),
+        Pivot((1, -1), stretch, '3'),
+        Pivot((3, -1), stretch, '4'),
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+    stretch.shrink_id_gen()
+
+    return stretch
+
+
+@pytest.fixture
 def stretch_4_dangling_pivots() -> Stretch:
     """
     Returns
@@ -227,6 +253,50 @@ def stretch_box() -> Stretch:
 
     closure = Closure(exterior_seq, stretch, '0')
     stretch._closure_map = OrderedDict([(closure.id, closure)])
+
+    stretch.shrink_id_gen()
+    return stretch
+
+
+@pytest.fixture
+def stretch_box_duplicate_pivots() -> Stretch:
+    """
+    Returns
+    -------
+     3             2
+      ┌───────────┐
+      │           │
+      │           │
+      └──o────────┘
+     0   4         1
+     """
+    stretch = Stretch()
+
+    pivots = [
+        Pivot((0, 0), stretch, '0'),
+        Pivot((1, 0), stretch, '1'),
+        Pivot((1, 1), stretch, '2'),
+        Pivot((0, 1), stretch, '3'),
+        Pivot((0.3, 0), stretch, '4'),
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges = [
+        Edge('0', '4', stretch),
+        Edge('4', '1', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '3', stretch),
+        Edge('3', '0', stretch),
+    ]
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+
+    closures = [
+        Closure(EdgeSeq(edges), stretch, '0'),
+    ]
+
+    stretch._closure_map = OrderedDict([(c.id, c) for c in closures])
 
     stretch.shrink_id_gen()
     return stretch
