@@ -331,8 +331,7 @@ class Edge:
         Returns
         -------
         edge instance, which cargo, will inherit from primary edge's cargo
-        and if their reverse edge exists, the reverse edge should inherit the cargo of reverse edge of secondary edge,
-        for symmetry reason
+        and if their reverse edge exists, the reverse edge should inherit the cargo of reverse edge of primary edge
         """
         if primary_edge.to_pid != secondary_edge.from_pid:
             raise ValueError('current edge and given edge should be connected')
@@ -350,7 +349,7 @@ class Edge:
         cargo_target_edge = cargo_target(primary_edge, secondary_edge) if cargo_target else primary_edge
         cargo = cargo_target_edge.cargo.data
 
-        reverse_cargo_target_edge = (secondary_edge if cargo_target_edge is primary_edge else primary_edge).reverse
+        reverse_cargo_target_edge = cargo_target_edge.reverse
         reverse_cargo = reverse_cargo_target_edge.cargo.data if reverse_cargo_target_edge else None
 
         stretch = primary_edge.stretch

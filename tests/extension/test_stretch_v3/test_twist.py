@@ -136,7 +136,7 @@ class TestTwist:
         edge = Edge.twist(edge12, stretch.edge('(2,3)'))
         assert isinstance(edge, Edge)
         assert edge.cargo['test'] == 'edge12'
-        assert edge.reverse.cargo['test'] == 'edge32'
+        assert edge.reverse.cargo['test'] == 'edge21'
         assert stretch.pivot('1').cargo['test'] == 'pivot1'
         assert stretch.pivot('2') is None
         assert stretch.pivot('3').cargo['test'] == 'pivot3'
