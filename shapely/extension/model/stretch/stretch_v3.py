@@ -1088,7 +1088,8 @@ class Stretch:
 
         for edge in stretch.edges:
             edge._stretch = ref(stretch)
-            edge.closure = stretch.closure(edge.closure.id)
+            if edge.closure:
+                edge.closure = stretch.closure(edge.closure.id)
 
         for closure in stretch.closures:
             closure._stretch = ref(stretch)
