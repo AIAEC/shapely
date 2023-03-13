@@ -6,7 +6,7 @@ from operator import truth, itemgetter
 from typing import List, Optional, Dict, Union, Tuple, Callable
 from weakref import ref, ReferenceType
 
-from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.constant import MATH_MIDDLE_EPS, MATH_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
@@ -574,7 +574,7 @@ class EdgeSeq:
             is_ccw = self.shape.is_ccw
 
             try:
-                occupation = Polygon(self.shape).area > 0
+                occupation = Polygon(self.shape).area > MATH_EPS
             except Exception:
                 occupation = False
 
@@ -592,7 +592,7 @@ class EdgeSeq:
             is_cw = not self.shape.is_ccw
 
             try:
-                occupation = Polygon(self.shape).area > 0
+                occupation = Polygon(self.shape).area > MATH_EPS
             except Exception:
                 occupation = False
 
