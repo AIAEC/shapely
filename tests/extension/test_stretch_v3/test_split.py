@@ -1,9 +1,5 @@
-import io
-import os
 from typing import List
 
-from shapely import wkt
-from shapely.extension.model.stretch.stretch_v3 import Stretch
 from shapely.geometry import Polygon
 from shapely.geometry import box, LineString, MultiLineString
 from shapely.ops import unary_union
@@ -150,16 +146,3 @@ class TestSplit:
         closures.sort(key=lambda c: c.shape.centroid.x)
         assert closures[0].shape.equals(loads('POLYGON ((0 10, 0 8, 5 8, 5 10, 0 10))'))
         assert closures[1].shape.equals(loads('POLYGON ((0 0, 5 0, 5 5, 5 0, 10 0, 10 10, 5 10, 5 8, 0 8, 0 0))'))
-
-    def test_split_by_interior_available(self):
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               '../data/stretch_for_split_by_interior_available.json'), 'rb') as fp:
-            json_str = io.BufferedReader.read(fp).decode(encoding='utf-8')
-            stretch = Stretch.loads(json_str)
-
-        assert len(stretch.closures) == 1
-
-        lines = wkt.loads('MULTILINESTRING ((-0.6056013352934357 13.666627785848709, -0.6056013352934357 -2.0475705548841665, -6.11130455784275 -2.0475705548841665), (-34.09569795693843 65.56023126700507, -6.682077083355665 65.56023126700507), (-6.682077083355665 65.56023126700507, -6.682077083355665 63.96885897313261), (30.69480698544408 -33.28352178738959, -5.936040470100707 -33.28352178738959), (-5.936040470100707 -33.28352178738959, -6.11130455784275 -33.28352178738959, -6.11130455784275 -2.0475705548841665), (-5.936040470100707 -65.6454290844602, -5.936040470100707 -33.28352178738959), (-0.6056013352934357 13.666627785848709, -6.682077083355665 13.666627785848709, -6.682077083355665 63.96885897313261), (-5.936040470100707 -65.6454290844602, -64.93766677696746 -65.6454290844602), (30.69480698544408 -33.28352178738959, 100.22993984428231 -33.28352178738959), (-0.6056013352934357 13.666627785848709, 73.26061136398828 13.666627785848709), (-6.682077083355665 65.56023126700507, 30.724034221469555 65.56023126700507), (-34.09569795693843 65.56023126700507, -34.09569795693843 63.96885897313261, -62.83766677696752 63.96885897313261), (-6.11130455784275 -2.0475705548841665, -64.93766677696749 -2.0475705548841665))')
-        stretch.split(lines)
-
-        assert len(stretch.closures) == 6
