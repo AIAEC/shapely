@@ -349,8 +349,9 @@ class LineStringExtension(BaseGeomExtension):
         """
         point_on_line = self.projected_point(point)
         project = self._geom.project(point)
-        vector = Vector.from_origin_to_target(self._geom.ext.interpolate(project - MATH_EPS),
-                                              self._geom.ext.interpolate(project + MATH_EPS))
+        vector = Vector.from_origin_to_target(self._geom.ext.interpolate(project - 1e-9),
+                                              # can not be smaller than 1e-9, will cause same interpolation result
+                                              self._geom.ext.interpolate(project + 1e-9))
         perpendicular_vec_ccw = vector.ccw_perpendicular
         perpendicular_vec_cw = vector.cw_perpendicular
         if position == 'mid':

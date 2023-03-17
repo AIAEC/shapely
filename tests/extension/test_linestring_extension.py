@@ -258,6 +258,14 @@ class LineStringExtensionTest(TestCase):
         result = line.ext.perpendicular_line(Point(0.5, 0), 1, 'right')
         self.assertTrue(LineString([(0.5, 0), (0.5, -1)]).equals(result))
 
+    def test_perpendicular_line_eps(self):
+        segment = shapely.wkt.loads(
+            "LINESTRING (489022.2789287367 2493968.052269809, 489022.264108756 2493967.8528196453)")
+        result = segment.ext.perpendicular_line(segment.centroid, 1, 'left')
+        assert result == shapely.wkt.loads(
+            'LINESTRING (489023.2671529724 2493967.8592040185, 489022.27151874633 2493967.9525447274)')
+        assert result.length == pytest.approx(1)
+
     def test_tangent_line(self):
         arc = Point(0, 0).buffer(10).exterior
         result = arc.ext.tangent_line(Point(0, 11), 2)
