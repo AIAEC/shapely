@@ -4,6 +4,7 @@ import pytest
 
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.stretch_v3 import Edge
+from shapely.extension.util.iter_util import win_slice
 
 
 class TestClosureStrategy:
@@ -66,7 +67,8 @@ class TestClosureStrategy:
         stretch = stretch_box
 
         edge = stretch.edge('(0,1)')
-        edge_seq = ClosureStrategy.consecutive_edges(edge, candidate_edges={stretch.edge('(1,2)'), stretch.edge('(0,1)')})
+        edge_seq = ClosureStrategy.consecutive_edges(edge,
+                                                     candidate_edges={stretch.edge('(1,2)'), stretch.edge('(0,1)')})
         assert len(edge_seq) == 2
         assert not edge_seq.closed
         assert edge_seq[0] is stretch.edge('(0,1)')
@@ -182,10 +184,8 @@ class TestClosureStrategy:
                  Edge('0', '1', stretch=stretch)]
         sorted_edges = ClosureStrategy.sort_edges_by_chain(edges)
         assert len(sorted_edges) == 4
-        assert sorted_edges[0] == edges[3]
-        assert sorted_edges[0].id == '(0,1)'
-        assert sorted_edges[-1].id == '(3,0)'
-        assert sorted_edges[0].from_pid == sorted_edges[-1].to_pid
+        for edge, next_edge in win_slice(sorted_edges, win_size=2, tail_cycling=True):
+            assert edge.to_pid == next_edge.from_pid
 
         edges = [Edge('7', '4', stretch=stretch),
                  Edge('5', '6', stretch=stretch),
@@ -193,5 +193,68 @@ class TestClosureStrategy:
                  Edge('6', '7', stretch=stretch)]
         sorted_edges = ClosureStrategy.sort_edges_by_chain(edges)
         assert len(sorted_edges) == 4
-        assert sorted_edges[0] == edges[2]
-        assert sorted_edges[0].from_pid == sorted_edges[-1].to_pid
+        for edge, next_edge in win_slice(sorted_edges, win_size=2, tail_cycling=True):
+            assert edge.to_pid == next_edge.from_pid
+
+    def test_sort_edges_belonging_to_2_closures(self, stretch_2_boxes):
+        stretch = stretch_2_boxes
+
+        edges = [stretch.edge('(1,4)'), stretch.edge('(0,1)')]
+
+        assert edges[0].closure != edges[1].closure
+        sorted_edges = ClosureStrategy.sort_edges_by_chain(edges)
+        assert len(sorted_edges) == 2
+        assert sorted_edges[0] is stretch.edge('(0,1)')
+        assert sorted_edges[1] is stretch.edge('(1,4)')
+
+    def test_sort_edges_of_back_and_forth(self, stretch_2_groups_dangling_edges):
+        stretch = stretch_2_groups_dangling_edges
+
+        edges = [
+            stretch.edge('(2,1)'),
+            stretch.edge('(0,1)'),
+            stretch.edge('(1,4)'),
+            stretch.edge('(1,2)'),
+        ]
+
+        sorted_edges = ClosureStrategy.sort_edges_by_chain(edges)
+        assert len(sorted_edges) == 4
+
+    def test_sort_edges_of_flower_cracks_which_form_closed_ring(self, stretch_8_dangling_pivots):
+        stretch = stretch_8_dangling_pivots
+
+        edges = [
+            Edge('0', '4', stretch=stretch),
+            Edge('4', '7', stretch=stretch),
+            Edge('7', '4', stretch=stretch),
+            Edge('4', '6', stretch=stretch),
+            Edge('6', '4', stretch=stretch),
+            Edge('4', '5', stretch=stretch),
+            Edge('5', '4', stretch=stretch),
+            Edge('4', '0', stretch=stretch),
+        ]
+
+        for i in range(len(edges)):
+            other_edges = edges[:i] + edges[i + 1:]
+            shuffle(other_edges)
+            composite_edges = [edges[i]] + other_edges
+            sorted_edges = ClosureStrategy.sort_edges_by_chain(composite_edges)
+            assert len(sorted_edges) == len(edges)
+            for edge, next_edge in win_slice(sorted_edges, win_size=2, tail_cycling=True):
+                assert edge.to_pid == next_edge.from_pid
+
+    def test_sorted_edges_of_flower_cracks_with_self_intersection(self, stretch_8_dangling_pivots):
+        stretch = stretch_8_dangling_pivots
+
+        edges = [
+            Edge('7', '4', stretch=stretch),
+            Edge('0', '4', stretch=stretch),
+            Edge('4', '7', stretch=stretch),
+            Edge('4', '6', stretch=stretch),
+            Edge('6', '4', stretch=stretch),
+            Edge('4', '5', stretch=stretch),
+            Edge('5', '4', stretch=stretch),
+        ]
+
+        with pytest.raises(ValueError):
+            ClosureStrategy.sort_edges_by_chain(edges)

@@ -6,7 +6,7 @@ from operator import truth, itemgetter
 from typing import List, Optional, Dict, Union, Tuple, Callable
 from weakref import ref, ReferenceType
 
-from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.constant import MATH_MIDDLE_EPS, MATH_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
@@ -331,8 +331,7 @@ class Edge:
         Returns
         -------
         edge instance, which cargo, will inherit from primary edge's cargo
-        and if their reverse edge exists, the reverse edge should inherit the cargo of reverse edge of secondary edge,
-        for symmetry reason
+        and if their reverse edge exists, the reverse edge should inherit the cargo of reverse edge of primary edge
         """
         if primary_edge.to_pid != secondary_edge.from_pid:
             raise ValueError('current edge and given edge should be connected')
@@ -350,7 +349,7 @@ class Edge:
         cargo_target_edge = cargo_target(primary_edge, secondary_edge) if cargo_target else primary_edge
         cargo = cargo_target_edge.cargo.data
 
-        reverse_cargo_target_edge = (secondary_edge if cargo_target_edge is primary_edge else primary_edge).reverse
+        reverse_cargo_target_edge = cargo_target_edge.reverse
         reverse_cargo = reverse_cargo_target_edge.cargo.data if reverse_cargo_target_edge else None
 
         stretch = primary_edge.stretch
@@ -575,7 +574,7 @@ class EdgeSeq:
             is_ccw = self.shape.is_ccw
 
             try:
-                occupation = Polygon(self.shape).area > 0
+                occupation = Polygon(self.shape).area > MATH_EPS
             except Exception:
                 occupation = False
 
@@ -593,7 +592,7 @@ class EdgeSeq:
             is_cw = not self.shape.is_ccw
 
             try:
-                occupation = Polygon(self.shape).area > 0
+                occupation = Polygon(self.shape).area > MATH_EPS
             except Exception:
                 occupation = False
 
@@ -1088,7 +1087,8 @@ class Stretch:
 
         for edge in stretch.edges:
             edge._stretch = ref(stretch)
-            edge.closure = stretch.closure(edge.closure.id)
+            if edge.closure:
+                edge.closure = stretch.closure(edge.closure.id)
 
         for closure in stretch.closures:
             closure._stretch = ref(stretch)

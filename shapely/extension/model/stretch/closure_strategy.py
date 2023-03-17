@@ -1,6 +1,10 @@
 from collections import deque
-from typing import Optional, List, Set
+from operator import attrgetter
+from typing import Optional, List, Set, Dict, Deque, Callable
 
+from toolz import curry
+
+from shapely.extension.functional import seq
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.stretch.stretch_v3 import Edge, EdgeSeq
 from shapely.extension.util.func_util import lfilter
@@ -11,6 +15,23 @@ class ClosureStrategy:
     strategy to form closure
     Basically contains methods to search edge sequence
     """
+
+    @staticmethod
+    @curry
+    def edge_to_base_ccw_angle(edge: Edge, base_angle: Angle) -> float:
+        if edge.shape.length == 0:
+            return 0
+        angle = edge.shape.ext.angle().rotating_angle(base_angle, direct='ccw').degree
+
+        if angle == 0:
+            return 360  # make sure the edge with same angle to base_angle is the last to consider
+
+        return angle
+
+    @classmethod
+    def next_edge_score_func(cls, cur_edge: Edge) -> Callable[[Edge], float]:
+        reverse_edge_angle: Angle = cur_edge.shape.ext.reverse().ext.angle()
+        return cls.edge_to_base_ccw_angle(base_angle=reverse_edge_angle)
 
     @classmethod
     def next_edge(cls, edge: Edge) -> Optional[Edge]:
@@ -29,19 +50,25 @@ class ClosureStrategy:
                                        and e.shape.is_valid),
                             out_edges)
 
-        reverse_edge_angle: Angle = edge.shape.ext.reverse().ext.angle()
+        return min(out_edges, key=cls.next_edge_score_func(edge), default=None)
 
-        def other_ccw_rotating_angle_to_inversion_of_given_edge(other_edge: Edge):
-            if other_edge.shape.length == 0:
-                return 0
-            angle = other_edge.shape.ext.angle().rotating_angle(reverse_edge_angle, direct='ccw').degree
+    @staticmethod
+    @curry
+    def base_to_edge_reverse_ccw_angle(edge: Edge, base_angle: Angle):
+        if edge.shape.length == 0:
+            return 0
 
-            if angle == 0:
-                return 360  # make sure the edge with same angle as reverse_edge is the last to consider
+        angle = base_angle.rotating_angle(edge.shape.ext.reverse().ext.angle()).degree
 
-            return angle
+        if angle == 0:
+            return 360  # make sure the edge with same angle to base_angle is the last to consider
 
-        return min(out_edges, key=other_ccw_rotating_angle_to_inversion_of_given_edge, default=None)
+        return angle
+
+    @classmethod
+    def prev_edge_score_func(cls, edge: Edge) -> Callable[[Edge], float]:
+        edge_angle: Angle = edge.shape.ext.angle()
+        return cls.base_to_edge_reverse_ccw_angle(base_angle=edge_angle)
 
     @classmethod
     def prev_edge(cls, edge: Edge) -> Optional[Edge]:
@@ -60,20 +87,7 @@ class ClosureStrategy:
                                       and e.shape.is_valid),
                            in_edges)
 
-        edge_angle: Angle = edge.shape.ext.angle()
-
-        def given_edge_rotating_to_reverse_of_other(other_edge: Edge):
-            if other_edge.shape.length == 0:
-                return 0
-
-            angle = edge_angle.rotating_angle(other_edge.shape.ext.reverse().ext.angle()).degree
-
-            if angle == 0:
-                return 360  # make sure the edge with same angle as reverse_edge is the last to consider
-
-            return angle
-
-        return min(in_edges, key=given_edge_rotating_to_reverse_of_other, default=None)
+        return min(in_edges, key=cls.prev_edge_score_func(edge), default=None)
 
     @classmethod
     def consecutive_edges(cls, edge: Edge, candidate_edges: Optional[Set[Edge]] = None) -> EdgeSeq:
@@ -103,6 +117,8 @@ class ClosureStrategy:
         """
         Sort the edges to make a chain list of edges.
         If given edges cannot form a chain, raise ValueError
+        CAUTION: given edges either form a closed ring or a chain without self intersection, otherwise the order is not
+        deterministic. Self intersection excludes case of back and forth edges.
         Parameters
         ----------
         edges: list of edges
@@ -114,29 +130,28 @@ class ClosureStrategy:
         if len(edges) <= 1:
             return edges
 
-        head = min(edges, key=lambda e: e.id)
-        edge_set = set(edges).difference([head])
+        from_pids_map: Dict[str, List[Edge]] = seq(edges).group_by(attrgetter('from_pid')).dict()
+        to_pid_map: Dict[str, List[Edge]] = seq(edges).group_by(attrgetter('to_pid')).dict()
 
-        queue = deque([head])
-        cur = head
-        while ((next_ := cur.next(cls))
-               and (next_ in edge_set)
-               and (next_ is not head)):
-            queue.append(next_)
-            edge_set.remove(next_)
-            cur = next_
+        edge_deque: Deque[Edge] = deque([edges[0]])
+        seen: Set[Edge] = set(edge_deque)
 
-        if edge_set:
-            cur = head
-            while ((last := cur.prev(cls))
-                   and (last in edge_set)
-                   and (last is not head)):
-                queue.appendleft(last)
-                edge_set.remove(last)
-                cur = last
+        while next_edges := from_pids_map.get(edge_deque[-1].to_pid, []):
+            next_edge = min(next_edges, key=cls.next_edge_score_func(edge_deque[-1]))
+            next_edges.remove(next_edge)
+            if next_edge not in seen:
+                edge_deque.append(next_edge)
+                seen.add(next_edge)
 
-        if len(queue) != len(edges):
-            raise ValueError('Edges are not connected')
+        while prev_edges := to_pid_map.get(edge_deque[0].from_pid, []):
+            prev_edge = min(prev_edges, key=cls.prev_edge_score_func(edge_deque[0]))
+            prev_edges.remove(prev_edge)
+            if prev_edge not in seen:
+                edge_deque.appendleft(prev_edge)
+                seen.add(prev_edge)
 
-        return list(queue)
+        if len(edge_deque) != len(edges):
+            raise ValueError(
+                f'given {edges}, sorted edges are {list(edge_deque)}, probably given edges cannot form a chain')
 
+        return list(edge_deque)
