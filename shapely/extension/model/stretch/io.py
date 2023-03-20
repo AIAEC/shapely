@@ -53,9 +53,9 @@ class ClosurePack:
 
 @dataclass
 class StretchPack:
-    pivot_packs: List[PivotPack] = field()
-    edge_packs: List[EdgePack] = field()
-    closure_packs: List[ClosurePack] = field()
+    pivot_packs: List[PivotPack] = field(default_factory=list)
+    edge_packs: List[EdgePack] = field(default_factory=list)
+    closure_packs: List[ClosurePack] = field(default_factory=list)
     default_pivot_cargo_dict: dict = field(default_factory=dict)
     default_edge_cargo_dict: dict = field(default_factory=dict)
     default_closure_cargo_dict: dict = field(default_factory=dict)
