@@ -5,7 +5,9 @@ from typing import Union, Tuple, Optional, Iterable, Callable, List, overload, L
 
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
+from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
+from shapely.extension.model.aggregation import Aggregation
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.coord import Coord
 from shapely.extension.model.interval import Interval
@@ -124,6 +126,12 @@ class LineStringExtension(BaseGeomExtension):
         point
         """
         return Point(list(self._geom.coords)[-1])
+
+    def endpoints(self) -> Aggregation:
+        return seq([self.start(), self.end()])
+
+    def endpoint_nearby(self, orient: BaseGeometry):
+        return self.endpoints().min_by(orient.distance)
 
     def prolong(self, absolute: bool = True) -> Prolong:
         """

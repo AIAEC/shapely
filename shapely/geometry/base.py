@@ -185,6 +185,7 @@ class BaseGeometry:
 
     ## EXTENSION_START
     ext = ext_entry()
+    x = ext_entry()  # short entry
     ## EXTENSION_END
 
     def empty(self, val=EMPTY):

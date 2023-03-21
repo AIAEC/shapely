@@ -119,6 +119,14 @@ class LineStringExtensionTest(TestCase):
         self.assertEqual(Point(0, 0), line.ext.start())
         self.assertEqual(Point(100, 0), line.ext.end())
 
+    def test_endpoints(self):
+        line = LineString([(0, 0), (100, 0)])
+        self.assertListEqual([Point(0, 0), Point(100, 0)], line.ext.endpoints().list())
+
+    def test_endpoint_nearby(self):
+        line = LineString([(0, 0), (100, 0)])
+        self.assertEqual(Point(0, 0), line.ext.endpoint_nearby(Point(-1, 0)))
+
     def test_prolong(self):
         line = LineString([(0, 0), (1, 0), (1, 1)])
         result = line.ext.prolong().from_head(1)
