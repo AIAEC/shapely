@@ -282,3 +282,11 @@ class ProjectionTest(TestCase):
         line = loads(
             "LINESTRING (67.01927745644537 53.576699441685626, 67.0193324050094 30.746379134911713)")
         line.ext.projection_by(obs).negative_intervals()  # assert no raise
+
+    def test_projection_under_floating_error(self):
+        projector = loads('LINESTRING (16.162333183815875 -50.612093227141756, 21.51233318381587 -50.612093227141756)')
+        target = loads('LINESTRING (15.621890008496287 -33.28352178738958, 15.621890008496289 -59.11500092309821)')
+
+        seg_results = Projection(projector).onto(target).segments
+        self.assertTrue(len(seg_results) > 0)
+        self.assertEqual(seg_results[0].length, 0)

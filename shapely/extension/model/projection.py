@@ -142,11 +142,9 @@ class ProjectionOnLine:
             return [projected_seg]
 
         if projected_seg.length == 0:
-            projected_seg = Point(projected_seg.coords[0])
+            projected_seg = Point(projected_seg.coords[0]).buffer(MATH_MIDDLE_EPS).intersection(self.target_line).centroid
         else:
-            projected_seg = _rect_buffer(projected_seg, MATH_MIDDLE_EPS)
-
-        projected_seg = projected_seg.intersection(self.target_line)
+            projected_seg = projected_seg.ext.buffer().rect(MATH_MIDDLE_EPS).intersection(self.target_line)
 
         def seg_to_line(projected_seg_):
             if isinstance(projected_seg_, Point) and not projected_seg_.is_empty:
