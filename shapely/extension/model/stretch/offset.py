@@ -43,9 +43,11 @@ class Offset:
 
         # since offset might cause deformation, we need to make query distance larger than MATH_MIDDLE_EPS
         offset_line_region = line_after_offset.ext.buffer().rect(COMPARE_EPS / 10)
-        edges: List[Edge] = (seq(self._stretch.edges_by_query(offset_line_region))
-                             .filter(lambda e: e.shape.intersection(offset_line_region).length > e.shape.length / 2)
-                             .list())
+        edges: List[Edge] = (
+            seq(self._stretch.edges_by_query(offset_line_region))
+            .filter(lambda e: e.shape.intersection(offset_line_region).length > max(e.shape.length / 2,
+                                                                                    2 * COMPARE_EPS / 10))
+            .list())
         edge_pairs: List[List[Edge]] = group(lambda e0, e1: e0.reverse == e1, edges)
 
         direction = Vector.from_endpoints_of(line_after_offset)
