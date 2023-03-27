@@ -5,6 +5,7 @@ from unittest import TestCase
 import pytest
 
 import shapely.wkt
+from shapely import wkt
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
@@ -197,6 +198,11 @@ class LineStringExtensionTest(TestCase):
         self.assertFalse(line0.ext.is_collinear_to(line2))
         self.assertTrue(line0.ext.is_collinear_to(line2, angle_tol=1))
         self.assertTrue(line0.ext.is_collinear_to(line3))
+
+    def test_is_collinear_to_with_short_line(self):
+        line0 = wkt.loads('LINESTRING (-70.34597629450535 -58.692238158269916, -70.34597629450535 -58.79223807837735)')
+        line1 = wkt.loads('LINESTRING (80.23872131601202 -58.69223815826359, 61.17341787658172 -58.69223815826365)')
+        self.assertFalse(line0.ext.is_collinear_to(line1, 0.1))
 
     def test_is_collinear_for_overlapping_lines(self):
         line0 = LineString([(0, 0), (1, 0)])
