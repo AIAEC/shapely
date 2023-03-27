@@ -1,6 +1,6 @@
 from typing import Union, List, Optional
 
-from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.constant import MATH_MIDDLE_EPS, COMPARE_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
@@ -41,10 +41,13 @@ class Offset:
         if not line_after_offset.is_valid or line_after_offset.is_empty:
             return []
 
-        offset_line_region = line_after_offset.ext.buffer().rect(MATH_MIDDLE_EPS)
-        edges: List[Edge] = (seq(self._stretch.edges_by_query(offset_line_region))
-                             .filter(lambda e: e.shape.intersection(offset_line_region).length > 2 * MATH_MIDDLE_EPS)
-                             .list())
+        # since offset might cause deformation, we need to make query distance larger than MATH_MIDDLE_EPS
+        offset_line_region = line_after_offset.ext.buffer().rect(COMPARE_EPS / 10)
+        edges: List[Edge] = (
+            seq(self._stretch.edges_by_query(offset_line_region))
+            .filter(lambda e: e.shape.intersection(offset_line_region).length > max(e.shape.length / 2,
+                                                                                    2 * COMPARE_EPS / 10))
+            .list())
         edge_pairs: List[List[Edge]] = group(lambda e0, e1: e0.reverse == e1, edges)
 
         direction = Vector.from_endpoints_of(line_after_offset)
