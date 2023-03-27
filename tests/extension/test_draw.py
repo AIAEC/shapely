@@ -24,4 +24,7 @@ def test_draw_polygon():
 @pytest.mark.skip
 def test_draw_text():
     from shapely.extension.draw import Draw
-    Draw().draw_text('123', Point(-1, -1)).show()
+    draw = Draw()
+    draw.draw_text('123', Point(0, 0), fontsize=10)
+    draw.draw_point(Point(0, 0))
+    draw.show()

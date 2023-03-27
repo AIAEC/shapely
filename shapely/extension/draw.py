@@ -91,10 +91,16 @@ class Draw:
         self.ax.plot(point.x, point.y, 'o',
                      color=self.color(color),
                      alpha=0.7,
-                     zorder=2)
+                     zorder=3)
         return self
 
-    def draw_text(self, text: str, origin: Point):
-        self.ax.text(origin.x, origin.y, text, fontsize=12)
+    def draw_text(self, text: str, origin: Point, fontsize: int = 12):
+        # draw text aligned middle
+        self.ax.text(origin.x, origin.y, text,
+                     horizontalalignment='center',
+                     verticalalignment='center',
+                     fontsize=fontsize,
+                     color=self.BLACK,
+                     zorder=4)
         self.ax.autoscale_view()
         return self
