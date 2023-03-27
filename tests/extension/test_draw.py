@@ -19,3 +19,9 @@ def test_draw_line():
 def test_draw_polygon():
     from shapely.extension.draw import Draw
     Draw().draw(box(-1, -1, 1, 1)).show()
+
+
+@pytest.mark.skip
+def test_draw_text():
+    from shapely.extension.draw import Draw
+    Draw().draw_text('123', Point(-1, -1)).show()

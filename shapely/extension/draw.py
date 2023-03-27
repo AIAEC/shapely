@@ -93,3 +93,8 @@ class Draw:
                      alpha=0.7,
                      zorder=2)
         return self
+
+    def draw_text(self, text: str, origin: Point):
+        self.ax.text(origin.x, origin.y, text, fontsize=12)
+        self.ax.autoscale_view()
+        return self
