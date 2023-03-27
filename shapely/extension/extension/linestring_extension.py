@@ -241,6 +241,8 @@ class LineStringExtension(BaseGeomExtension):
         -------
         bool
         """
+        if not self.is_parallel_to(other, angle_tol=angle_tol, angle_strategy=angle_strategy):
+            return False
         lines = [LineString([pt0, pt1])
                  for pt0, pt1 in product([self.start(), self.end()], [other.ext.start(), other.ext.end()])
                  if not pt0.equals(pt1)]
