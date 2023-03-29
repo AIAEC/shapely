@@ -1,4 +1,8 @@
-from shapely.geometry import Point, box
+import math
+
+from shapely.extension.constant import MATH_EPS
+from shapely.extension.geometry.arc import Arc
+from shapely.geometry import Point, box, Polygon
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 
 
@@ -20,6 +24,7 @@ class Buffer:
     def rect(self, dist: float,
              cap_style=CAP_STYLE.flat,
              mitre_limit: float = 5.0) -> BaseGeometry:
+
         if isinstance(self._geom, Point) and dist > 0:
             x, y = self._geom.x, self._geom.y
             xmin, ymin, xmax, ymax = (x - dist / 2,

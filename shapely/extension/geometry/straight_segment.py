@@ -1,3 +1,6 @@
+import math
+
+from shapely.extension.constant import MATH_EPS
 from shapely.geometry import LineString
 
 
@@ -54,3 +57,21 @@ class StraightSegment(LineString):
         """
         coords = list(self.coords)
         return (coords[1][0] - coords[0][0]) * (point.y - coords[0][1]) - (coords[1][1] - coords[0][1]) * (point.x - coords[0][0]) == 0
+
+    def point_on_segment(self, point: 'Point', tol: float = MATH_EPS) -> bool:
+        """
+        check if given point is on this segment
+        Parameters
+        ----------
+        point: Point
+        tol: Distance tolerance
+
+        Returns
+        -------
+        bool
+        """
+        coords = list(self.coords)
+        dist_between_start_and_point: float = math.hypot(coords[0][0] - point.x, coords[0][1] - point.y)
+        dist_between_end_and_point: float = math.hypot(coords[1][0] - point.x, coords[1][1] - point.y)
+        return math.isclose(dist_between_start_and_point + dist_between_end_and_point, self.length, abs_tol=tol)
+

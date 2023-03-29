@@ -15,7 +15,7 @@ class Circle(Arc):
 
     def __init__(self, center: Union[Point, CoordType] = (0, 0),
                  radius: float = 1,
-                 angle_step: float = 1):
+                 angle_step: float = 16):
         if radius <= 0:
             raise ValueError(f'radius must be greater than 0, given {radius}')
 

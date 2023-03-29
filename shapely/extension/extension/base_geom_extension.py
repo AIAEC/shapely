@@ -5,6 +5,7 @@ from typing import Union, Optional, Tuple, Callable, Dict, Sequence, List
 
 from shapely.affinity import rotate, scale
 from shapely.extension.constant import MATH_EPS
+from shapely.extension.geometry.arc import Arc
 from shapely.extension.model.aggregation import Aggregation
 from shapely.extension.model.alignment import AlignPolygon, AlignLineString, AlignPoint, BaseAlignMultiPartGeom, \
     BaseAlignGeom
@@ -27,6 +28,7 @@ from shapely.extension.util.ccw import ccw
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
+from shapely.extension.util.func_util import lmap
 from shapely.extension.util.legalize import legalize
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.extension.util.similar import similar
@@ -256,16 +258,24 @@ class BaseGeomExtension:
         -------
         geometry or multi-geometry
         """
+        intersection_result = []
         self_geom = self._geom
         if self_buffer != 0:
             self_geom = self._geom.buffer(self_buffer, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
 
-        given_geom_union = unary_union(geom_or_geoms)
+        geoms = geom_or_geoms if isinstance(geom_or_geoms, Iterable) else [geom_or_geoms]
         if component_buffer != 0:
-            given_geom_union = given_geom_union.buffer(component_buffer,
-                                                       cap_style=CAP_STYLE.flat,
-                                                       join_style=JOIN_STYLE.mitre)
-        return self_geom.intersection(given_geom_union)
+            geoms = lmap(lambda _geom: _geom.buffer(component_buffer,
+                                                    cap_style=CAP_STYLE.flat,
+                                                    join_style=JOIN_STYLE.mitre),
+                         geoms)
+        for _geom in geoms:
+            if isinstance(_geom, Arc):
+                intersection_result.append(_geom.intersection(self_geom))
+            else:
+                intersection_result.append(self_geom.intersection(_geom))
+
+        return unary_union(intersection_result)
 
     def is_(self, *conditions: Iterable[str]) -> bool:
         """

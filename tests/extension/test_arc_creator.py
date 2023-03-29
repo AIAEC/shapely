@@ -63,3 +63,14 @@ class FixedRadiusArcCreatorTest(TestCase):
                 .intersects_with(line0, dist_tol=1e-2)
                 .create_arcs(touched_every_geoms=True))
         self.assertEqual(2, len(arcs))
+
+    def test_real_case(self):
+        line0 = loads('LINESTRING (-73.1837460895258 -35.81606622708422, -73.39921442697728 24.642203905834293)')
+        line1 = loads('LINESTRING (-73.2786930956943 -9.174881655531589, -28.217091449089548 -9.174881655531589)')
+        arcs = (FixedRadiusArcCreator(6, angle_step=16)
+                .intersects_with(line0)
+                .intersects_with(line1)
+                .create_arcs())
+        self.assertTrue(len(arcs) == 6)
+        self.assertTrue(len(list(filter(lambda arc: arc.is_minor_arc, arcs))) == 2)
+        self.assertTrue(len(list(filter(lambda arc: arc.is_prior_arc, arcs))) == 4)

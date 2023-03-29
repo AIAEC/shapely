@@ -1,5 +1,8 @@
 from unittest import TestCase
 
+from shapely import wkt
+from shapely.extension.geometry.arc import Arc
+from shapely.extension.geometry.circle import Circle
 from shapely.geometry import Point, Polygon, box, LineString
 
 
@@ -47,3 +50,52 @@ class BufferTest(TestCase):
 
         result2 = point.ext.buffer().single_sided().round(-1)
         self.assertTrue(result2.is_empty)
+
+    def test_circle_buffer(self):
+        empty_polygon = wkt.loads("POLYGON EMPTY")
+        circle = Circle(center=Point(0, 0), radius=10, angle_step=16)
+        result = circle.ext.buffer().rect(5)
+        expect = Polygon(Circle(center=Point(0, 0), radius=15, angle_step=16),
+                         [list(reversed(Circle(center=Point(0, 0), radius=5, angle_step=16).coords))])
+        self.assertTrue(isinstance(result, Polygon))
+        self.assertTrue(result.equals(expect))
+        self.assertEqual(len(result.interiors), 1)
+
+        result = circle.ext.buffer().rect(10)
+        expect = Polygon(Circle(center=Point(0, 0), radius=20, angle_step=16))
+        self.assertTrue(isinstance(result, Polygon))
+        self.assertTrue(result.equals(expect))
+        self.assertEqual(len(result.interiors), 0)
+
+        result = circle.ext.buffer().rect(30)
+        expect = Polygon(Circle(center=Point(0, 0), radius=40, angle_step=16))
+        self.assertTrue(isinstance(result, Polygon))
+        self.assertTrue(result.equals(expect))
+        self.assertEqual(len(result.interiors), 0)
+
+        result = circle.ext.buffer().rect(0)
+        self.assertTrue(result.equals(empty_polygon))
+
+    def test_arc_buffer(self):
+        arc = Arc(center=Point(0, 0), radius=10, start_angle=10, rotate_angle=90, angle_step=16)
+        result = arc.ext.buffer().rect(5)
+        expect = Polygon(
+            list(Arc(center=Point(0, 0), radius=15, start_angle=10, rotate_angle=90, angle_step=16).coords)
+            + list(reversed(Arc(center=Point(0, 0), radius=5, start_angle=10, rotate_angle=90, angle_step=16).coords)))
+        self.assertTrue(isinstance(result, Polygon))
+        self.assertTrue(result.almost_equals(expect))
+        self.assertEqual(len(result.interiors), 0)
+
+        result = arc.ext.buffer().rect(10)
+        expect = Polygon(
+            list(Arc(center=Point(0, 0), radius=20, start_angle=10, rotate_angle=90, angle_step=16).coords) + [(0, 0)])
+        self.assertTrue(isinstance(result, Polygon))
+        self.assertTrue(result.almost_equals(expect))
+        self.assertEqual(len(result.interiors), 0)
+
+        result = arc.ext.buffer().rect(30)
+        expect = Polygon(
+            list(Arc(center=Point(0, 0), radius=40, start_angle=10, rotate_angle=90, angle_step=16).coords) + [(0, 0)])
+        self.assertTrue(isinstance(result, Polygon))
+        self.assertTrue(result.almost_equals(expect))
+        self.assertEqual(len(result.interiors), 0)

@@ -1,6 +1,7 @@
 from operator import attrgetter
 from unittest import TestCase
 
+from shapely.affinity import rotate
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.envelope import Envelope, PointPosition, EdgePosition, HalfEdgePosition, DiagonalPosition, \
     HalfDiagonalPosition, EnvelopeCreator
