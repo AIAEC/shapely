@@ -27,10 +27,7 @@ class Buffer:
 
         if isinstance(self._geom, Point) and dist > 0:
             x, y = self._geom.x, self._geom.y
-            xmin, ymin, xmax, ymax = (x - dist / 2,
-                                      y - dist / 2,
-                                      x + dist / 2,
-                                      y + dist / 2)
+            xmin, ymin, xmax, ymax = x - dist, y - dist, x + dist, y + dist
             return box(xmin, ymin, xmax, ymax)
 
         return self._geom.buffer(distance=dist,

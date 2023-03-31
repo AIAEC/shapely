@@ -178,3 +178,20 @@ class BaseGeomExtensionTest(TestCase):
 
         result = GeometryCollection([Point(0, 0), LineString([(0, 0), (10, 0)]), box(0, 0, 1, 1)]).ext.largest_piece()
         self.assertTrue(result.equals(box(0, 0, 1, 1)))
+
+    def test_rbuf(self):
+        point = Point(0, 0)
+        result = point.ext.rbuf(1)
+        self.assertTrue(result.equals(box(-1, -1, 1, 1)))
+
+        polygon = box(0, 0, 1, 1)
+        result = polygon.ext.rbuf(1)
+        self.assertTrue(result.equals(box(-1, -1, 2, 2)))
+
+        line = LineString([(0, 0), (1, 0)])
+        result = line.ext.rbuf(1)
+        self.assertTrue(result.equals(box(0, -1, 1, 1)))
+
+        empty = GeometryCollection()
+        result = empty.ext.rbuf(1)
+        self.assertTrue(result.is_empty)

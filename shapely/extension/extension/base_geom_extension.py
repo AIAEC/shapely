@@ -113,6 +113,9 @@ class BaseGeomExtension:
     def buffer(self) -> Buffer:
         return Buffer(self._geom)
 
+    def rbuf(self, distance: float, single_sided=False, mitre_limit=5.0) -> BaseGeometry:
+        return Buffer(self._geom, single_sided=single_sided).rect(dist=distance, mitre_limit=mitre_limit)
+
     def divided_by(self, line_or_lines: Union[LineString, Iterable[LineString], MultiLineString],
                    dist_tol: float = MATH_EPS) -> Aggregation:
         """
