@@ -11,7 +11,7 @@ class BufferTest(TestCase):
         point = Point(0, 0)
         result = point.ext.buffer().rect(1)
         self.assertTrue(isinstance(result, Polygon))
-        self.assertTrue(result.equals(box(-0.5, -0.5, 0.5, 0.5)))
+        self.assertTrue(result.equals(box(-1, -1, 1, 1)))
 
         result2 = point.ext.buffer().rect(-2)
         self.assertTrue(isinstance(result2, Polygon))
