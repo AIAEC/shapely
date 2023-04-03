@@ -12,6 +12,7 @@ from shapely.extension.model.alignment import AlignPolygon, AlignLineString, Ali
 from shapely.extension.model.angle import Angle
 from shapely.extension.model.buffer import Buffer
 from shapely.extension.model.envelope import EnvelopeCreator
+from shapely.extension.model.mould import mould
 from shapely.extension.model.projection import Projection, ProjectionTowards
 from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.vector import Vector
@@ -32,7 +33,7 @@ from shapely.extension.util.func_util import lmap
 from shapely.extension.util.legalize import legalize
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.extension.util.similar import similar
-from shapely.geometry import Point, LineString, MultiLineString, Polygon
+from shapely.geometry import Point, LineString, MultiLineString, Polygon, GeometryCollection, MultiPolygon
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 from shapely.ops import unary_union
 
@@ -516,3 +517,6 @@ class BaseGeomExtension:
         valid geometry
         """
         return legalize(self._geom)
+
+    def mould(self, margin: float = 1.0) -> Union[Polygon, MultiPolygon, GeometryCollection]:
+        return mould(self._geom, margin=margin)
