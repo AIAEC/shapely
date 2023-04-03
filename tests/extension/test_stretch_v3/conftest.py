@@ -222,6 +222,7 @@ def stretch_back_and_forth_edge_seq() -> Stretch:
     stretch.shrink_id_gen()
     return stretch
 
+
 @pytest.fixture
 def stretch_back_and_forth_edge_seq_straight() -> Stretch:
     """
@@ -582,6 +583,61 @@ def stretch_2_boxes() -> Stretch:
     closure0 = Closure(exterior=exterior_seq0, stretch=stretch, id_='0')
     closure1 = Closure(exterior=exterior_seq1, stretch=stretch, id_='1')
     stretch._closure_map = OrderedDict([(closure0.id, closure0), (closure1.id, closure1)])
+
+    stretch.shrink_id_gen()
+    return stretch
+
+
+@pytest.fixture
+def stretch_3_boxes() -> Stretch:
+    """
+      3        2        5        7
+      ┌────────┬────────┬────────┐
+      │        │        │        │
+      │        │        │        │
+      └────────┴────────┴────────┘
+      0        1        4        6
+    Returns
+    -------
+
+    """
+    stretch = Stretch()
+
+    pivots = [Pivot((0, 0), stretch, '0'),
+              Pivot((1, 0), stretch, '1'),
+              Pivot((1, 1), stretch, '2'),
+              Pivot((0, 1), stretch, '3'),
+              Pivot((2, 0), stretch, '4'),
+              Pivot((2, 1), stretch, '5'),
+              Pivot((3, 0), stretch, '6'),
+              Pivot((3, 1), stretch, '7')]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges = [
+        Edge('0', '1', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '3', stretch),
+        Edge('3', '0', stretch),
+        Edge('1', '4', stretch),
+        Edge('4', '5', stretch),
+        Edge('5', '2', stretch),
+        Edge('2', '1', stretch),
+        Edge('4', '6', stretch),
+        Edge('6', '7', stretch),
+        Edge('7', '5', stretch),
+        Edge('5', '4', stretch),
+    ]
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+
+    closures = [
+        Closure(exterior=EdgeSeq(edges[:4]), stretch=stretch, id_='0'),
+        Closure(exterior=EdgeSeq(edges[4:8]), stretch=stretch, id_='1'),
+        Closure(exterior=EdgeSeq(edges[8:]), stretch=stretch, id_='2'),
+    ]
+
+    stretch._closure_map = OrderedDict([(c.id, c) for c in closures])
 
     stretch.shrink_id_gen()
     return stretch

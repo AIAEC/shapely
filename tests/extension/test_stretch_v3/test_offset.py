@@ -1399,11 +1399,53 @@ class TestOffset:
         assert closures[0].shape.equals(loads('POLYGON ((0 0, 0.5 0, 0.5 1, 0 1, 0 0))'))
         assert closures[1].shape.equals(loads('POLYGON ((1 0, 2 0, 2 1, 1 1, 0.5 1, 0.5 0, 1 0))'))
 
-
-    def test_offset_dangling_edge(self, stretch_4_dangling_edge):
-        stretch = stretch_4_dangling_edge
+    def test_offset_edge_to_overlap_with_another_edge_with_1_box(self, stretch_box):
+        stretch = stretch_box
+        assert len(stretch.pivots) == 4
+        assert len(stretch.edges) == 4
+        assert len(stretch.closures) == 1
 
         edge = stretch.edge('(0,1)')
+        edge_seq = Offset(edge).offset(1)
+        # after offset, original closure will be gone
+        assert len(edge_seq) == 0
+        assert len(stretch.pivots) == 0
+        assert len(stretch.edges) == 0
+        assert len(stretch.closures) == 0
 
-        with pytest.raises(AssertionError):
-            Offset(edge, VerticalAttachOffsetHandler).offset(0.5)
+    def test_offset_edge_to_overlap_with_another_edge_with_2_boxes(self, stretch_2_boxes):
+        stretch = stretch_2_boxes
+
+        assert len(stretch.pivots) == 6
+        assert len(stretch.edges) == 8
+        assert len(stretch.closures) == 2
+
+        edge = stretch.edge('(1,2)')
+        edge_seq = Offset(edge).offset(1)
+
+        assert len(edge_seq) == 1
+        assert len(edge_seq[0]) == 1
+        assert len(stretch.pivots) == 6
+        assert len(stretch.edges) == 6
+        assert len(stretch.closures) == 1
+        assert stretch.closures[0].shape.equals(Polygon([(0, 0), (1, 0), (2, 0), (2, 1), (1, 1), (0, 1)]))
+
+    def test_offset_edge_to_overlap_with_another_edge_with_3_boxes(self, stretch_3_boxes):
+        stretch = stretch_3_boxes
+
+        assert len(stretch.pivots) == 8
+        assert len(stretch.edges) == 12
+        assert len(stretch.closures) == 3
+
+        edge = stretch.edge('(4,5)')
+        edge_seq = Offset(edge).offset(1)
+
+        assert len(edge_seq) == 1
+        assert len(edge_seq[0]) == 1
+        assert len(stretch.pivots) == 8
+        assert len(stretch.edges) == 10
+        assert len(stretch.closures) == 2
+
+        closures = sorted(stretch.closures, key=lambda closure: closure.shape.centroid.x)
+        assert closures[0].shape.equals(loads('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))'))
+        assert closures[1].shape.equals(loads('POLYGON ((2 0, 3 0, 3 1, 2 1, 1 1, 1 0, 2 0))'))
