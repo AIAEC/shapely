@@ -1,11 +1,10 @@
 from unittest import TestCase
 
-from shapely.extension.geometry.empty import EMPTY_GEOM
-
 from shapely import wkt
+from shapely.extension.constant import MATH_EPS, COMPARE_EPS
+from shapely.extension.geometry.empty import EMPTY_GEOM
 from shapely.extension.model.vector import Vector
 from shapely.geometry import box, LineString, Polygon, Point
-from shapely.extension.constant import MATH_EPS, COMPARE_EPS
 
 
 class PolygonExtensionTest(TestCase):
@@ -117,3 +116,14 @@ class PolygonExtensionTest(TestCase):
         self.assertLessEqual(abs(result2.area - 0.5), MATH_EPS)
         self.assertTrue(expect2.within(result2.buffer(COMPARE_EPS)))
         self.assertTrue(result2.within(expect2.buffer(COMPARE_EPS)))
+
+    def test_convex_points_of_polygon(self):
+        # with duplicate coords and concave coords
+        poly = Polygon([(0, 0), (2, 0), (2, 2), (1, 2), (1, 1), (0, 1), (0, 1), (0, 1)])
+        convex_points = poly.ext.convex_points()
+        self.assertEqual(5, len(convex_points))
+        self.assertTrue(Point(0, 0) in convex_points)
+        self.assertTrue(Point(2, 0) in convex_points)
+        self.assertTrue(Point(2, 2) in convex_points)
+        self.assertTrue(Point(1, 2) in convex_points)
+        self.assertTrue(Point(0, 1) in convex_points)

@@ -1,11 +1,12 @@
 from itertools import product
-from typing import Union, Optional, Iterable, Tuple
+from typing import Union, Optional, Iterable, Tuple, List
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
+from shapely.extension.util.ccw import ccw
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.polygon_cutter import PolygonCutter
 from shapely.geometry import Polygon, LineString, JOIN_STYLE, CAP_STYLE, MultiPolygon, Point
@@ -15,12 +16,44 @@ from shapely.ops import unary_union
 class PolygonExtension(BaseGeomExtension):
     @property
     def shell(self) -> Polygon:
+        """
+        Returns
+        -------
+        the polygon made by exterior of current polygon without any holes
+        """
         return Polygon(self._geom.exterior)
 
     @property
     def holes(self) -> Iterable[Polygon]:
+        """
+        Returns
+        -------
+        iterator of polygon made by interior of current polygon
+        """
         for hole in self._geom.interiors:
             yield Polygon(hole)
+
+    def convex_points(self) -> List[Point]:
+        """
+        Returns
+        -------
+        return the convex points on current polygon's exterior
+        """
+        coords = list(ccw(self._geom.exterior.simplify(0)).coords)
+        if len(coords) < 3:  # empty polygon or invalid case
+            return []
+
+        if coords[-1] == coords[0]:
+            coords.pop()
+
+        points: List[Point] = []
+        for i, coord in enumerate(coords):
+            prev = coords[i - 1]
+            next_ = coords[(i + 1) % len(coords)]
+            if Vector.from_origin_to_target(prev, coord).cross_prod(Vector.from_origin_to_target(coord, next_)) > 0:
+                points.append(Point(coord))
+
+        return points
 
     def edge_pair_with(self, poly_or_line: Union[Polygon, LineString],
                        decompose_strategy: Optional[BaseDecomposeStrategy] = None
@@ -134,4 +167,4 @@ class PolygonExtension(BaseGeomExtension):
         -------
         specified area polygon or multipolygon
         """
-        return PolygonCutter(self._geom, point, vector, target_area,).cut()
+        return PolygonCutter(self._geom, point, vector, target_area, ).cut()
