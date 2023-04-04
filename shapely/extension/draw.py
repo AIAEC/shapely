@@ -35,6 +35,7 @@ class Draw:
 
     def save(self, filename):
         self.fig.savefig(filename)
+        self.free()
         return self
 
     def show(self):

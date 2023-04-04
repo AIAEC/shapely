@@ -16,6 +16,10 @@ class StraightSegment(LineString):
         if len(coords_list) != 2 and coordinates is not None:
             raise ValueError(f'input coordinates must have 2 coordinates, given {coords_list}')
 
+    @classmethod
+    def of(cls, line: LineString):
+        return cls([line.coords[0], line.coords[-1]])
+
     def point_on_left(self, point: 'Point') -> bool:
         """
         check if given point is on the left side of this segment
@@ -28,7 +32,8 @@ class StraightSegment(LineString):
         bool
         """
         coords = list(self.coords)
-        return (coords[1][0] - coords[0][0]) * (point.y - coords[0][1]) - (coords[1][1] - coords[0][1]) * (point.x - coords[0][0]) > 0
+        return (coords[1][0] - coords[0][0]) * (point.y - coords[0][1]) - (coords[1][1] - coords[0][1]) * (
+                    point.x - coords[0][0]) > 0
 
     def point_on_right(self, point: 'Point') -> bool:
         """
@@ -42,7 +47,8 @@ class StraightSegment(LineString):
         bool
         """
         coords = list(self.coords)
-        return (coords[1][0] - coords[0][0]) * (point.y - coords[0][1]) - (coords[1][1] - coords[0][1]) * (point.x - coords[0][0]) < 0
+        return (coords[1][0] - coords[0][0]) * (point.y - coords[0][1]) - (coords[1][1] - coords[0][1]) * (
+                    point.x - coords[0][0]) < 0
 
     def point_on_line(self, point: 'Point') -> bool:
         """
@@ -56,7 +62,8 @@ class StraightSegment(LineString):
         bool
         """
         coords = list(self.coords)
-        return (coords[1][0] - coords[0][0]) * (point.y - coords[0][1]) - (coords[1][1] - coords[0][1]) * (point.x - coords[0][0]) == 0
+        return (coords[1][0] - coords[0][0]) * (point.y - coords[0][1]) - (coords[1][1] - coords[0][1]) * (
+                    point.x - coords[0][0]) == 0
 
     def point_on_segment(self, point: 'Point', tol: float = MATH_EPS) -> bool:
         """
@@ -74,4 +81,3 @@ class StraightSegment(LineString):
         dist_between_start_and_point: float = math.hypot(coords[0][0] - point.x, coords[0][1] - point.y)
         dist_between_end_and_point: float = math.hypot(coords[1][0] - point.x, coords[1][1] - point.y)
         return math.isclose(dist_between_start_and_point + dist_between_end_and_point, self.length, abs_tol=tol)
-
