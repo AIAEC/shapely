@@ -12,7 +12,7 @@ from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.bypassing_strategy import LongerBypassingStrategy
 from shapely.extension.strategy.linemerge_strategy import as_longest_straight_line
 from shapely.extension.util.func_util import lmap
-from shapely.geometry import Point, LineString, box
+from shapely.geometry import Point, LineString, box, Polygon
 
 
 class LineStringExtensionTest(TestCase):
@@ -350,6 +350,13 @@ class LineStringExtensionTest(TestCase):
         self.assertTrue(all(isinstance(seg, StraightSegment) for seg in segments))
         self.assertEqual(segments[0], StraightSegment([(0, 0), (0, 1)]))
         self.assertEqual(segments[1], StraightSegment([(0, 1), (0, 2)]))
+
+    def test_segments_longer_than_zero(self):
+        poly = Polygon([(0, 0), (0, 1), (1, 1), (1, 1), (1, 0)])
+        segments = poly.exterior.ext.segments()
+        assert len(segments) == 4
+        for seg in segments:
+            assert seg.length == 1
 
     def test_endpoints_vector(self):
         line = LineString([(0, 0), (0, 1)])

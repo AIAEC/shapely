@@ -98,7 +98,7 @@ class LineStringExtension(BaseGeomExtension):
                          normalized=not absolute)
 
     def segments(self) -> List[StraightSegment]:
-        return self.decompose(target_class=StraightSegment).to_list()
+        return self.decompose(target_class=StraightSegment).filter(lambda segment: segment.length > 0).list()
 
     def reverse(self) -> LineString:
         """
