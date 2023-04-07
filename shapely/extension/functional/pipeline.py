@@ -1,12 +1,14 @@
 """
 The pipeline module contains the transformations and actions API of PyFunctional
 """
-from numbers import Real
-from operator import mul, add
 import collections
 from functools import reduce, wraps, partial
+from numbers import Real
+from operator import mul, add
 
+from shapely.extension.functional import transformations
 from shapely.extension.functional.execution import ExecutionEngine
+from shapely.extension.functional.execution import ExecutionStrategies
 from shapely.extension.functional.lineage import Lineage
 from shapely.extension.functional.util import (
     is_iterable,
@@ -14,8 +16,6 @@ from shapely.extension.functional.util import (
     is_namedtuple,
     identity,
 )
-from shapely.extension.functional import transformations
-from shapely.extension.functional.execution import ExecutionStrategies
 
 
 class Sequence(object):
@@ -129,7 +129,7 @@ class Sequence(object):
         :return: item at index key
         """
         self.cache()
-        return _wrap(self.sequence[item])
+        return self.sequence[item]
 
     def __reversed__(self):
         """
@@ -228,7 +228,7 @@ class Sequence(object):
 
         :return: first element of sequence
         """
-        return _wrap(self.take(1)[0])
+        return self.take(1)[0]
 
     def first(self):
         """
@@ -280,7 +280,7 @@ class Sequence(object):
 
         :return: last element of sequence
         """
-        return _wrap(self.sequence[-1])
+        return self.sequence[-1]
 
     def last_option(self):
         """
@@ -739,9 +739,9 @@ class Sequence(object):
         """
 
         if 'default' in kwargs:
-            return _wrap(max(self, default=kwargs.get('default')))
+            return max(self, default=kwargs.get('default'))
 
-        return _wrap(max(self))
+        return max(self)
 
     def min(self, **kwargs):
         """
@@ -778,9 +778,9 @@ class Sequence(object):
         :return: Minimal value of sequence
         """
         if 'default' in kwargs:
-            return _wrap(min(self, default=kwargs.get('default')))
+            return min(self, default=kwargs.get('default'))
 
-        return _wrap(min(self))
+        return min(self)
 
     def max_by(self, func, **kwargs):
         """
@@ -810,9 +810,9 @@ class Sequence(object):
         :return: Maximal element by func(element)
         """
         if 'default' in kwargs:
-            return _wrap(max(self, key=func, default=kwargs.get('default')))
+            return max(self, key=func, default=kwargs.get('default'))
 
-        return _wrap(max(self, key=func))
+        return max(self, key=func)
 
     def min_by(self, func, **kwargs):
         """
@@ -842,8 +842,8 @@ class Sequence(object):
         :return: Maximal element by func(element)
         """
         if 'default' in kwargs:
-            return _wrap(min(self, key=func, default=kwargs.get('default')))
-        return _wrap(min(self, key=func))
+            return min(self, key=func, default=kwargs.get('default'))
+        return min(self, key=func)
 
     def find(self, func):
         """
