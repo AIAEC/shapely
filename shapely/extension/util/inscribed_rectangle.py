@@ -3,6 +3,7 @@ from operator import attrgetter
 from typing import List, Literal, Optional
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.geometry.rect import Rect
 from shapely.extension.model.interval import Interval
 from shapely.extension.util.func_util import sign
 from shapely.geometry import Polygon, LineString, Point
@@ -19,13 +20,13 @@ class InscribedRectangle:
         if self._polygon.interiors:
             raise NotImplementedError("InscribedRectangle does not support polygon with holes")
 
-    def by_straight_line(self, line: LineString, towards: Literal['left', 'right', 'both'] = 'both') -> List[Polygon]:
+    def by_straight_line(self, line: LineString, towards: Literal['left', 'right', 'both'] = 'both') -> List[Rect]:
         line_inside: LineString = line.ext.prolong().from_ends(self._polygon.length)
 
         if not line_inside:
             return []
 
-        inscribed_rects: List[Polygon] = []
+        inscribed_rects: List[Rect] = []
 
         end_lines = self._end_lines(line_inside, 'left') + self._end_lines(line_inside, 'right')
         if towards != 'both':
@@ -51,7 +52,7 @@ class InscribedRectangle:
         return end_lines
 
     def _inner_rectangle(self, start_line: LineString,
-                         end_line: LineString) -> Optional[Polygon]:
+                         end_line: LineString) -> Optional[Rect]:
         start_line = start_line.intersection(self._polygon).ext.longest_piece()
         end_line = end_line.intersection(self._polygon).ext.longest_piece()
 
@@ -76,6 +77,6 @@ class InscribedRectangle:
         end_segment = max(opposite_segments, key=attrgetter('length'), default=None)
 
         if end_segment:
-            return start_segment.union(end_segment).minimum_rotated_rectangle.ext.ccw()
+            return Rect(start_segment.union(end_segment).minimum_rotated_rectangle.ext.ccw())
 
         return None
