@@ -1,4 +1,4 @@
-from shapely.extension.constant import MATH_EPS
+from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.model.angle import Angle
 from shapely.extension.strategy.angle_strategy import PolygonAngleStrategy
 from shapely.geometry import Polygon
@@ -12,11 +12,11 @@ class Rect(Polygon):
 
     def __init__(self, shell=None):
         super().__init__(shell, None)
-        if not self.is_rect(self, MATH_EPS):
+        if not self.is_rect(self):
             raise ValueError('shell cannot form a rectangle')
 
     @classmethod
-    def is_rect(cls, geom: BaseGeometry, area_tol: float = MATH_EPS):
+    def is_rect(cls, geom: BaseGeometry, area_tol: float = MATH_MIDDLE_EPS):
         return geom.minimum_rotated_rectangle.symmetric_difference(geom).area <= area_tol
 
     @property
