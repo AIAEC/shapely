@@ -6,6 +6,7 @@ from typing import Union, Optional, Tuple, Callable, Dict, Sequence, List
 from shapely.affinity import rotate, scale
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.geometry.arc import Arc
+from shapely.extension.geometry.empty import EMPTY_GEOM
 from shapely.extension.model.aggregation import Aggregation
 from shapely.extension.model.alignment import AlignPolygon, AlignLineString, AlignPoint, BaseAlignMultiPartGeom, \
     BaseAlignGeom
@@ -91,7 +92,7 @@ class BaseGeomExtension:
         -------
         BaseGeometry
         """
-        return flatten(self._geom).max_by(attrgetter('length'))
+        return flatten(self._geom).max_by(attrgetter('length'), default=EMPTY_GEOM)
 
     def largest_piece(self) -> BaseGeometry:
         """
@@ -100,7 +101,7 @@ class BaseGeomExtension:
         -------
         BaseGeometry
         """
-        return flatten(self._geom).max_by(attrgetter('area'))
+        return flatten(self._geom).max_by(attrgetter('area'), default=EMPTY_GEOM)
 
     def envelope(self) -> EnvelopeCreator:
         """
