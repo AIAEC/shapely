@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from shapely.extension.geometry.circle import Circle
+from shapely.extension.geometry.rect import Rect
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.util.decompose import decompose
 from shapely.geometry import MultiPolygon, box, Point, LineString, GeometryCollection, MultiPoint, Polygon, \
@@ -76,3 +78,15 @@ class DecomposeTest(TestCase):
         ring = LinearRing([(0, 0), (0.5, 0), (0.5, 0.5), (0.5, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
         points = decompose(ring, target_class=Point)
         self.assertEqual(8, len(points))
+
+    def test_special_rect_decompose_to_straight_segment(self):
+        poly = loads(
+            'POLYGON ((-46.23766681563377 54.337907793168114, -46.23766681528697 57.51790779351439, -50.33766681516296 57.51790779396153, -50.33766681550976 54.33790779361525, -46.23766681563377 54.337907793168114))')
+        rect = Rect(poly)
+        assert len(rect.ext.decompose(StraightSegment).to_list()) == 4
+
+    def test_circle_decompose_to_segments(self):
+        circle = Circle()
+        segments = circle.ext.decompose(StraightSegment).list()
+        assert len(segments) > 0
+        assert all(isinstance(segment, StraightSegment) for segment in segments)

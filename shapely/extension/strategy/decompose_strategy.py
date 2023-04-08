@@ -4,6 +4,9 @@ from typing import Union, Sequence, Callable, List, Dict
 
 import numpy as np
 
+from shapely.extension.geometry.arc import Arc
+from shapely.extension.geometry.circle import Circle
+from shapely.extension.geometry.rect import Rect
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.coord import Coord
 from shapely.extension.util.flatten import flatten
@@ -20,17 +23,29 @@ class BaseDecomposeStrategy(ABC):
                 StraightSegment: self.segment_to_multipoint,
                 LinearRing: self.linestring_to_segment,
                 LineString: self.linestring_to_segment,
+                Arc: self.linestring_to_segment,
+                Circle: self.linestring_to_segment,
                 MultiLineString: self.multilinestring_to_linestring,
                 Polygon: self.polygon_to_multilinestring,
+                Rect: self.polygon_to_multilinestring,
                 MultiPolygon: self.multipolygon_to_polygons}.get(self.type_of(geom_or_geoms), self.empty_handler)
 
     @staticmethod
     def decompose_order() -> Dict[type, int]:
-        types = [GeometryCollection, MultiPolygon, Polygon, MultiLineString, LineString, LinearRing, StraightSegment,
-                 MultiPoint, Point]
-        type_dict = {type_: i for i, type_ in enumerate(types)}
-        type_dict[LinearRing] = type_dict[LineString]
-        return type_dict
+        return {
+            GeometryCollection: 0,
+            MultiPolygon: 1,
+            Polygon: 2,
+            Rect: 2,
+            MultiLineString: 3,
+            LineString: 4,
+            LinearRing: 4,
+            Arc: 4,
+            Circle: 4,
+            StraightSegment: 5,
+            MultiPoint: 6,
+            Point: 7,
+        }
 
     @classmethod
     def decomposing_index(cls, type_) -> int:
