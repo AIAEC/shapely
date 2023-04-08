@@ -19,7 +19,7 @@ class InscribedRectangle:
         if self._polygon.interiors:
             raise NotImplementedError("InscribedRectangle does not support polygon with holes")
 
-    def by_straight_line(self, line: LineString) -> List[Polygon]:
+    def by_straight_line(self, line: LineString, towards: Literal['left', 'right', 'both'] = 'both') -> List[Polygon]:
         line_inside: LineString = line.ext.prolong().from_ends(self._polygon.length)
 
         if not line_inside:
@@ -27,7 +27,11 @@ class InscribedRectangle:
 
         inscribed_rects: List[Polygon] = []
 
-        for end_line in self._end_lines(line_inside, 'left') + self._end_lines(line_inside, 'right'):
+        end_lines = self._end_lines(line_inside, 'left') + self._end_lines(line_inside, 'right')
+        if towards != 'both':
+            end_lines = self._end_lines(line_inside, towards)
+
+        for end_line in end_lines:
 
             if rectangle := self._inner_rectangle(line_inside, end_line):
                 inscribed_rects.append(rectangle)
