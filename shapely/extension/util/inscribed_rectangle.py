@@ -3,6 +3,7 @@ from operator import attrgetter
 from typing import List, Literal
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
+from shapely.extension.geometry.empty import EMPTY_GEOM
 from shapely.extension.geometry.rect import Rect
 from shapely.extension.model.interval import Interval
 from shapely.extension.util.func_util import sign
@@ -39,7 +40,9 @@ class InscribedRectangle:
     def _end_lines(self, start_line: LineString, searching_side: Literal['left', 'right'] = 'left') -> List[LineString]:
         _sign = sign(searching_side == 'left')
         query_region = start_line.ext.rbuf(self._polygon.length * _sign, single_sided=True)
-        end_lines = (query_region.intersection(self._polygon.boundary)
+        end_lines = (query_region.intersection(self._polygon)
+                     .ext.flatten(Polygon)
+                     .min_by(start_line.distance, default=EMPTY_GEOM)
                      .ext.decompose(Point)
                      .map(lambda point: point.distance(start_line))
                      .distinct()

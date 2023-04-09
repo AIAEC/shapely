@@ -18,7 +18,7 @@ def start_line0_for_poly0():
 def test_polygon_with_holes():
     poly = box(0, 0, 100, 100).difference(box(10, 10, 90, 90))
     result = InscribedRectangle(poly).by_straight_line(LineString([(0, 0), (100, 0)]))
-    print(result)
+    assert len(result) > 0
 
 
 def test_inscribed_rectangle_by_line_on_boundary():
