@@ -13,7 +13,19 @@ from shapely.ops import unary_union
 
 
 class PointPosition(EasyEnum):
-    # TODO(WIP): add comment
+    """
+     left   mid   right
+       top   top   top
+        ┌─────┬─────┐
+   left │     │     │right
+ horizon├─────o─────┤horizon
+        │     │     │
+        └─────┴─────┘
+      left   mid    right
+     bottom bottom bottom
+
+        o:mid horizon
+    """
     LEFT_BOTTOM = 'left_bottom'
     MID_BOTTOM = 'mid_bottom'
     RIGHT_BOTTOM = 'right_bottom'
@@ -26,7 +38,17 @@ class PointPosition(EasyEnum):
 
 
 class EdgePosition(EasyEnum):
-    # TODO(WIP): add comment
+    """
+              top
+ left▲─────▲────►▲right
+     │  mid│     │
+     │     │     │
+     ├─────┼────►│horizon
+     │     │     │
+     │     │     │
+     └─────┴────►┘
+             bottom
+    """
     LEFT = 'left'
     MID = 'mid'
     RIGHT = 'right'

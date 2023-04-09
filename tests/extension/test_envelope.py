@@ -184,3 +184,6 @@ def test_edge_direction():
 
     assert LineString([(0, 0), (1, 0)]) == envelope.edge(EdgePosition.BOTTOM)
     assert LineString([(0, 1), (1, 1)]) == envelope.edge(EdgePosition.TOP)
+
+    assert LineString([(0, 0.5), (1, 0.5)]) == envelope.edge(EdgePosition.HORIZON)
+    assert LineString([(0.5, 0), (0.5, 1)]) == envelope.edge(EdgePosition.MID)
