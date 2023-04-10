@@ -19,9 +19,7 @@ class InscribedRectangle:
         """
         self._polygon = polygon
 
-    def by_straight_line(self, line: LineString, towards: Literal['left', 'right', 'both'] = 'both') -> List[Rect]:
-        start_line: LineString = line.ext.prolong().from_ends(self._polygon.length)
-
+    def by_straight_line(self, start_line: LineString, towards: Literal['left', 'right', 'both'] = 'both') -> List[Rect]:
         if not start_line:
             return []
 
