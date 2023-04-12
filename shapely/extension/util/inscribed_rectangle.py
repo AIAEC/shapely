@@ -73,7 +73,8 @@ class InscribedRectangle:
             opposite_segments = end_line.ext.projection_by(start_segment).segments
             end_segment = max(opposite_segments, key=attrgetter('length'), default=None)
 
-            if end_segment and end_segment.length > 0:
-                result.append(Rect(start_segment.union(end_segment).minimum_rotated_rectangle.ext.ccw()))
+            rect_poly = start_segment.union(end_segment).minimum_rotated_rectangle.ext.ccw()
+            if end_segment and end_segment.length > 0 and Rect.is_rect(rect_poly):
+                result.append(Rect(rect_poly))
 
         return result
