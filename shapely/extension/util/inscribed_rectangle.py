@@ -51,9 +51,6 @@ class InscribedRectangle:
 
     def _inner_rectangle(self, start_line: LineString,
                          end_line: LineString) -> List[Rect]:
-        start_line = start_line.intersection(self._polygon).ext.longest_piece()
-        end_line = end_line.intersection(self._polygon).ext.longest_piece()
-
         if not (start_line and end_line and isinstance(start_line, LineString) and isinstance(end_line, LineString)):
             return []
 

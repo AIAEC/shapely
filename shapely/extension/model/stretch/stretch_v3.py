@@ -11,12 +11,13 @@ from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
 from shapely.extension.model.interval import Interval
+from shapely.extension.strategy.simplify_strategy import BufferSimplifyStrategy
 from shapely.extension.typing import CoordType
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, argmin
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import Point, LineString, Polygon, LinearRing, MultiLineString
+from shapely.geometry import Point, LineString, Polygon, LinearRing, MultiLineString, GeometryCollection
 from shapely.geometry.base import BaseGeometry
 
 
@@ -857,6 +858,14 @@ class Closure:
         return edges
 
     @property
+    def pivots(self) -> List[Pivot]:
+        pivot_set = set()
+        for edge in self.edges:
+            pivot_set.add(edge.from_pivot)
+            pivot_set.add(edge.to_pivot)
+        return list(pivot_set)
+
+    @property
     def stretch(self) -> Optional['Stretch']:
         if self._stretch is not None:
             return self._stretch()
@@ -1006,16 +1015,35 @@ class Closure:
         if polygon.disjoint(self.shape):
             return [self]
 
-        new_shape = self.shape.difference(polygon)
+        new_shape = self.shape.difference(polygon.ext.rbuf(dist_tol_to_edge / 10))
 
         stretch = self.stretch
+
+        # saving the cargos in order to recover them later
+        closure_cargo_dict: dict = self.cargo.data
+        edge_cargo_dict: Dict[LineString, dict] = {edge.shape: edge.cargo.data for edge in self.edges}
+        point_cargo_dict: Dict[Point, dict] = {pivot.shape: pivot.cargo.data for pivot in self.pivots}
+
         stretch.delete_closure(self, gc=True)
 
         new_closures: List[Closure] = []
         for poly in new_shape.ext.flatten(Polygon):
             new_closures.append(stretch.add_closure(polygon=poly,
                                                     dist_tol_to_pivot=dist_tol_to_pivot,
-                                                    dist_tol_to_edge=dist_tol_to_edge))
+                                                    dist_tol_to_edge=dist_tol_to_edge,
+                                                    cargo_dict=closure_cargo_dict))
+
+        # recover pivot and edge cargo
+        for edge_line, cargo_dict in edge_cargo_dict.items():
+            for edge in (edge_line.difference(polygon).ext.flatten(LineString)
+                    .map(stretch.find_edge)
+                    .filter(truth)
+                    .list()):
+                edge.cargo.update(cargo_dict)
+
+        for point, cargo_dict in point_cargo_dict.items():
+            if pivot := stretch.find_pivot(point):
+                pivot.cargo.update(cargo_dict)
 
         # might create dangling pivots, remove these pivots
         stretch.remove_dangling_pivots()
