@@ -5,6 +5,8 @@ from shapely.extension.constant import MATH_EPS, COMPARE_EPS
 from shapely.extension.geometry.empty import EMPTY_GEOM
 from shapely.extension.model.vector import Vector
 from shapely.geometry import box, LineString, Polygon, Point
+from shapely.ops import nearest_points
+from shapely.wkt import loads
 
 
 class PolygonExtensionTest(TestCase):
@@ -33,6 +35,13 @@ class PolygonExtensionTest(TestCase):
         result = polygon.ext.union(large_poly, direction=Vector(1, 1), dist_tol=2)
         self.assertTrue(isinstance(result, Polygon))
         self.assertTrue(result.area > polygon.area + large_poly.area)
+
+    def test_union_without_direction(self):
+        polygon0 = loads('POLYGON ((3 8, 5 8, 5 6, 3 6, 3 8))')
+        polygon1 = loads('POLYGON ((0 8, 2 10, 3 9, 1 7, 0 8))')
+        result = polygon0.ext.union(polygon1, dist_tol=2)
+        self.assertTrue(isinstance(result, Polygon))
+        self.assertTrue(result.area > polygon0.area + polygon1.area)
 
     def test_cut_not_intersect(self):
         poly1 = Polygon([(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)])

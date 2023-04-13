@@ -10,7 +10,7 @@ from shapely.extension.util.ccw import ccw
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.polygon_cutter import PolygonCutter
 from shapely.geometry import Polygon, LineString, JOIN_STYLE, CAP_STYLE, MultiPolygon, Point
-from shapely.ops import unary_union
+from shapely.ops import unary_union, nearest_points
 
 
 class PolygonExtension(BaseGeomExtension):
@@ -141,6 +141,8 @@ class PolygonExtension(BaseGeomExtension):
         """
         if self._geom.intersects(poly):
             return self._geom.union(poly)
+
+        direction = direction or Vector.from_origin_to_target(*nearest_points(self._geom, poly))
         if self._geom.ext.distance(poly, direction) > dist_tol:
             return unary_union([self._geom, poly])
 

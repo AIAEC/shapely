@@ -11,9 +11,9 @@ def tol_union(geom_list: List[BaseGeometry], eps: float = MATH_EPS):
     先把所有的geom用eps分别buffer一下，再union到一起，然后simplify，再用-eps buffer回来
 
     :param geom_list: 要融合的List[BaseGeometry]
-    :param eps: 判断阈值
+    :param eps: 融合距离阈值
     :return: 融合成一个之后的geom
     """
     buffered_geom_list = [geom.buffer(eps, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre) for geom in geom_list]
-    unioned_geom = unary_union(buffered_geom_list)
-    return legalize(unioned_geom.simplify(eps).buffer(-eps, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre))
+    geom_union = unary_union(buffered_geom_list)
+    return legalize(geom_union.simplify(eps).buffer(-eps, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre))
