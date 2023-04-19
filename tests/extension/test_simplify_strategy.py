@@ -14,7 +14,7 @@ class SimplifyStrategyTest(TestCase):
         burr_len = 0.1
         burr_height = MATH_MIDDLE_EPS
         burr = box(0.5, 1 - burr_height, 0.5 + burr_len, 1 + burr_height)
-        poly_with_burr = poly.ext.union(burr)
+        poly_with_burr = poly.union(burr)
 
         simplified_geom = ConservativeSimplifyStrategy._conservative_simplify(geom=poly_with_burr,
                                                                               simplify_dist=2 * burr_height,
