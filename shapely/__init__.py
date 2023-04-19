@@ -1,4 +1,4 @@
-__version__ = "1.8.5.26.dev18"
+__version__ = "1.8.5.26.dev19"
 
 # NOTICE: only change the last number for our customized shapely packages
 

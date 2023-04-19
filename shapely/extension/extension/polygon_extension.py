@@ -139,8 +139,9 @@ class PolygonExtension(BaseGeomExtension):
         -------
         polygon or multi-polygon
         """
-        if self._geom.intersects(poly):
-            return self._geom.union(poly)
+        union_polys = self._geom.union(poly).ext.flatten(Polygon).list()
+        if len(union_polys) == 1:
+            return union_polys[0]
 
         direction = direction or Vector.from_origin_to_target(*nearest_points(self._geom, poly))
         if self._geom.ext.distance(poly, direction) > dist_tol:

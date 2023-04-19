@@ -62,9 +62,9 @@ class Draw:
             return f'#{int(random() * 0x1000000):06x}'
         return color_code
 
-    def draw_line(self, line: LineString, color=BLUE):
+    def draw_line(self, line: LineString, color=BLUE, line_width: float = 1.5, alpha=0.7):
         x, y = line.xy
-        self.ax.plot(x, y, color=self.color(color), alpha=0.7, linewidth=1.5, solid_capstyle='round', zorder=2)
+        self.ax.plot(x, y, color=self.color(color), alpha=alpha, linewidth=line_width, solid_capstyle='round', zorder=2)
         return self
 
     def draw_polygon(self, polygon: Polygon, color=GRAY, edge_color=BLACK, alpha=0.5):
