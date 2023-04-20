@@ -132,3 +132,12 @@ def test_ring_simplify_flat_ring():
     flat_ring = flat_ring.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=0.1))[0]
     assert flat_ring == LinearRing([(0, 0), (10, 0), (0, 0)])
     assert len(flat_ring.coords) == 4
+
+
+def test_simplify_poly_with_crack_and_spike():
+    poly_with_crack_and_spike = (box(0, 0, 10, 10)
+                                 .difference(box(5, 5, 5 + 0.5 * 1e-3, 100))
+                                 .union(box(1, 5, 1 + 0.5 * 1e-3, 20)))
+    simplified = poly_with_crack_and_spike.ext.simplify(strategy=BufferSimplifyStrategy().mitre(1 * 1e-3))[0]
+    assert simplified.ext.similar(Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]), area_diff_tol=1e-13)
+
