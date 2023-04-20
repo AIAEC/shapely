@@ -165,7 +165,7 @@ class BufferSimplifyStrategy(BaseSimplifyStrategy):
         for _ in range(self._n_iter):
             for i, g in enumerate(result):
                 if isinstance(g, Polygon):
-                    for factor in [-1, 1]:
+                    for factor in [-1, 2, -1]:
                         g = g.buffer(distance=self._buffer_param.buffer_dist * factor,
                                      join_style=self._buffer_param.join_style,
                                      cap_style=self._buffer_param.cap_style,
