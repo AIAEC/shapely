@@ -27,11 +27,13 @@ class Draw:
     PURPLE = '#660066'
     RANDOM = 'random'
 
-    def __init__(self, size=SIZE, dpi=90):
+    def __init__(self, size=SIZE, dpi=90, axis: bool = False):
         self.fig = pyplot.figure(1, figsize=size, dpi=dpi, frameon=False)
         self.ax = self.fig.add_subplot(111)
         self.ax.set_facecolor(self.WHITE)
         self.ax.set_aspect('equal')
+        if not axis:
+            self.ax.axis('off')
 
     def save(self, filename):
         self.fig.savefig(filename)
