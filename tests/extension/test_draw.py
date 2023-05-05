@@ -1,4 +1,5 @@
 import pytest
+from shapely import wkt
 
 from shapely.geometry import Point, LineString, box
 
@@ -28,3 +29,10 @@ def test_draw_text():
     draw.draw_text('123', Point(0, 0), fontsize=10)
     draw.draw_point(Point(0, 0))
     draw.show()
+
+
+@pytest.mark.skip
+def test_draw_polygon_with_hole():
+    from shapely.extension.draw import Draw
+    poly = wkt.loads("POLYGON ((-210 100, -45 100, -45 -62, -210 -62, -210 100), (-160 60, -97 60, -97 -15, -160 -15, -160 60))")
+    Draw().draw(poly).show()
