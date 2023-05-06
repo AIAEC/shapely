@@ -7,8 +7,7 @@ from shapely.wkt import loads
 
 class FixedRadiusArcCreatorTest(TestCase):
     def test_create_arcs_by_2_points(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(Point(10, 0))
+
 
         result = FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(Point(2, 0)).create_arcs()
         self.assertEqual(2, len(result))

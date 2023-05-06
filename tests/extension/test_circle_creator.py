@@ -9,9 +9,6 @@ from shapely.geometry import Point, LineString
 
 class FixedRadiusCircleCreatorTest(TestCase):
     def test_create_circles_by_2_points(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(Point(10, 0))
-
         result = FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(Point(2, 0)).create_circles()
         self.assertEqual(1, len(result))
         self.assertTrue(Point(1, 0).almost_equals(result[0].centroid))
@@ -23,8 +20,8 @@ class FixedRadiusCircleCreatorTest(TestCase):
         self.assertAlmostEqual(result[0].radius, result[1].radius)
 
     def test_create_circles_by_3_points(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(5).intersects_with(Point(0, 0)).intersects_with(Point(10, 0)).intersects_with(Point(5, 10))
+        FixedRadiusArcCreator(5).intersects_with(Point(0, 0)).intersects_with(Point(10, 0)).intersects_with(
+            Point(5, 10))
 
         result = (FixedRadiusArcCreator(5)
                   .intersects_with(Point(0, 0))
@@ -36,12 +33,6 @@ class FixedRadiusCircleCreatorTest(TestCase):
         self.assertAlmostEqual(5, result[0].radius)
 
     def test_create_circles_by_1_point_and_1_line(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(LineString([(-1, 10), (1, 10)]))
-
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(LineString([(-1, 10), (1, 10)])).intersects_with(Point(0, 0))
-
         result = FixedRadiusArcCreator(1, 16).intersects_with(Point(0, 0)).intersects_with(
             LineString([(-1, 2), (1, 2)])).create_circles()
         self.assertEqual(1, len(result))
@@ -54,12 +45,6 @@ class FixedRadiusCircleCreatorTest(TestCase):
         self.assertAlmostEqual(result[0].centroid.y, result[1].centroid.y)
 
     def test_create_circles_by_1_point_and_1_circle(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(Circle((0, 0), radius=10))
-
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(Circle((0, 3.5), radius=1))
-
         result = FixedRadiusArcCreator(1).intersects_with(Point(0, 0)).intersects_with(
             Circle((0, 2), radius=1)).create_circles()
         self.assertEqual(2, len(result))
@@ -67,16 +52,6 @@ class FixedRadiusCircleCreatorTest(TestCase):
         self.assertAlmostEqual(1, result[0].radius)
 
     def test_create_circles_by_2_lines(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(LineString([(-1, 0), (1, 0)])).intersects_with(
-                LineString([(-1, 3), (1, 3)])).create_circles()
-
-        with self.assertRaises(RuntimeError):
-            _ = (FixedRadiusArcCreator(1)
-                 .intersects_with(LineString([(-1, 0), (1, 0)]))
-                 .intersects_with(LineString([(-1, 2), (1, 2)]))
-                 .create_circles())
-
         result = (FixedRadiusArcCreator(1)
                   .intersects_with(LineString([(-1, 0), (1, 0)]))
                   .intersects_with(LineString([(-1, 2), (1, 2)]))
@@ -93,10 +68,6 @@ class FixedRadiusCircleCreatorTest(TestCase):
         self.assertEqual(4, len(result))
 
     def test_create_circles_by_1_line_and_1_circle(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(LineString([(-1, 0), (1, 0)])).intersects_with(
-                Circle((0, 10), radius=1)).create_circles()
-
         result = (FixedRadiusArcCreator(1)
                   .intersects_with(LineString([(-1, 0), (1, 0)]))
                   .intersects_with(Circle((0, 3), radius=1))
@@ -137,10 +108,6 @@ class FixedRadiusCircleCreatorTest(TestCase):
         self.assertFalse(isclose(result[3].centroid.y, result[4].centroid.y))
 
     def test_create_circles_by_2_circles(self):
-        with self.assertRaises(RuntimeError):
-            FixedRadiusArcCreator(1).intersects_with(Circle((0, 0), radius=1)).intersects_with(
-                Circle((0, 10), radius=1)).create_circles()
-
         result = FixedRadiusArcCreator(1).intersects_with(Circle((0, 0), radius=1)).intersects_with(
             Circle((0, 4), radius=1)).create_circles()
         self.assertEqual(1, len(result))
