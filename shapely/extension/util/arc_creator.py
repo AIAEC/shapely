@@ -89,10 +89,6 @@ class FixedRadiusArcCreator:
 
             self.constraints = flatten(intersections).to_list()
 
-        if not self.constraints:
-            raise RuntimeError('center hints have turned to be empty geometry,'
-                               ' meaning too many constrains have been set')
-
         return self
 
     def create_circles(self, touched_every_geoms: bool = False, dist_tol: float = MATH_EPS) -> List[Circle]:
@@ -108,13 +104,11 @@ class FixedRadiusArcCreator:
         list of circles
         """
         if not self.constraints:
-            raise RuntimeError('center hints have turned to be empty geometry,'
-                               ' meaning too many constrains have been set')
+            return []  # center hints have turned to be empty geometry  meaning too many constrains have been set
         if (not all([isinstance(constraint, (Point, MultiPoint, GeometryCollection))
                      for constraint in self.constraints])
                 or not decompose(self.constraints, Point)):
-            raise RuntimeError('center hints cannot lead to center points, '
-                               'meaning not enough constrains set')
+            return []  # center hints cannot lead to center points, meaning not enough constrains set
 
         centers: List[Point] = decompose(self.constraints, Point)
         circles = lmap(lambda pt: Circle(center=pt, radius=self._radius, angle_step=self._angle_step), centers)
