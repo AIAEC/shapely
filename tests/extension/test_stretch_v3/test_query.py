@@ -1,3 +1,4 @@
+import shapely.wkt
 from shapely.extension.model.stretch.stretch_v3 import Edge, Pivot
 from shapely.geometry import Point, LineString, box
 
@@ -79,3 +80,10 @@ class TestQuery:
 
         pivot = stretch.find_pivot(Point(-1, -1))
         assert pivot is None
+
+    def test_find_edge_with_reverse_edge(self, stretch_002):
+        query_line = shapely.wkt.loads(
+            'LINESTRING (144.0640604486713 31.58116830738623, 102.2051447298799 31.5835747533993)')
+        edge = stretch_002.find_edge(query_geom=query_line)
+        assert isinstance(edge, Edge)
+        assert edge.shape.ext.angle().including_angle(query_line.ext.angle()) < 1e-10

@@ -218,6 +218,9 @@ class BaseGeometry:
     def __str__(self):
         return self.wkt
 
+    def __repr__(self):
+        return self.wkt
+
     # To support pickling
     def __reduce__(self):
         return (self.__class__, (), self.wkb)

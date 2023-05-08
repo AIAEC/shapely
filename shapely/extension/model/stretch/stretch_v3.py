@@ -6,18 +6,17 @@ from operator import truth, itemgetter
 from typing import List, Optional, Dict, Union, Tuple, Callable
 from weakref import ref, ReferenceType
 
-from shapely.extension.constant import MATH_MIDDLE_EPS, MATH_EPS
+from shapely.extension.constant import MATH_MIDDLE_EPS, MATH_EPS, ANGLE_AROUND_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
 from shapely.extension.model.interval import Interval
-from shapely.extension.strategy.simplify_strategy import BufferSimplifyStrategy
 from shapely.extension.typing import CoordType
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, argmin
 from shapely.extension.util.iter_util import first, win_slice
 from shapely.extension.util.ordered_set import OrderedSet
-from shapely.geometry import Point, LineString, Polygon, LinearRing, MultiLineString, GeometryCollection
+from shapely.geometry import Point, LineString, Polygon, LinearRing, MultiLineString
 from shapely.geometry.base import BaseGeometry
 
 
@@ -1033,10 +1032,19 @@ class Closure:
                                                     dist_tol_to_edge=dist_tol_to_edge,
                                                     cargo_dict=closure_cargo_dict))
 
+        def find_overlapping_edges(query_line: LineString) -> List[Edge]:
+            edges = stretch.edges_by_query(query_line, dist_tol_to_edge)
+            query_poly = query_line.ext.rbuf(dist_tol_to_edge)
+            query_angle = query_line.ext.angle()
+
+            return lfilter(lambda edge: query_poly.contains(edge.shape)
+                                        and query_angle.including_angle(edge.shape.ext.angle()) < ANGLE_AROUND_EPS,
+                           edges)
+
         # recover pivot and edge cargo
         for edge_line, cargo_dict in edge_cargo_dict.items():
             for edge in (edge_line.difference(polygon).ext.flatten(LineString)
-                    .map(stretch.find_edge)
+                    .flat_map(find_overlapping_edges)
                     .filter(truth)
                     .list()):
                 edge.cargo.update(cargo_dict)
@@ -1280,16 +1288,20 @@ class Stretch:
         if len(edges) == 1:
             return edges[0]
 
-        def projection_direction_tuple(edge: Edge) -> float:
+        def projection_direction_tuple(edge: Edge) -> Tuple[float, float]:
             projection_len = (seq(edge.shape.ext.projection_by(query_geom).positive_intervals())
                               .map(lambda interval: interval.length)
                               .sum())
             including_angle = edge.shape.ext.angle().including_angle(query_geom.ext.angle()).degree
             # projection length as the primary sorting key, the larger, the better
             # including angle as the secondary sorting key, the smaller, the better
-            return (projection_len, -including_angle)
+            return projection_len, -including_angle
 
-        return max(edges, key=projection_direction_tuple)
+        candidate = max(edges, key=projection_direction_tuple)
+        if candidate.reverse and candidate.reverse in edges:
+            if projection_direction_tuple(candidate.reverse)[1] > projection_direction_tuple(candidate)[1]:
+                return candidate.reverse
+        return candidate
 
     def pivot(self, pid: str) -> Optional[Pivot]:
         """

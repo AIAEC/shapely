@@ -1,6 +1,9 @@
 from unittest import TestCase
 
+import pytest
+
 from shapely.extension.constant import MATH_EPS
+from shapely.extension.functional import seq
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.projection import Projection, shadow
 from shapely.extension.model.vector import Vector
@@ -290,3 +293,10 @@ class ProjectionTest(TestCase):
         seg_results = Projection(projector).onto(target).segments
         self.assertTrue(len(seg_results) > 0)
         self.assertEqual(seg_results[0].length, 0)
+
+    def test_projection_floating_error(self):
+        line = loads('LINESTRING (144.0640604486713 31.58116830738623, 102.2051447298799 31.5835747533993)')
+        projection1, projection2 = [
+            seq(l.ext.projection_by(line).positive_intervals()).map(lambda interval: interval.length).sum() for l in
+            [line, line.ext.reverse()]]
+        assert projection1 == pytest.approx(projection2, abs=1e-10)
