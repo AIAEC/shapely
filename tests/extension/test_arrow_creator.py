@@ -75,6 +75,18 @@ class FixHeadStrategyTest(TestCase):
         self.assertTrue(len(result7.arrow_direction()) == 1)
         self.assertTrue(result7.arrow_direction()[0].invert().almost_equal(vector))
 
+    def test_polygonal_Line(self):
+        strategy = FixHeadArrowFactory(1, 2, 1)
+        vector = Vector(1, 0)
+        line = LineString([(0, -1), (1, 0), (2, 0), (3, 0)])
+        result8 = strategy.from_line(line)
+        print(result8.shape)
+        self.assertTrue(result8.axis.equals(LineString([(0, -1), (1, 0), (2, 0), (3, 0)])))
+        self.assertFalse(result8.is_closed)
+        self.assertTrue(len(result8.coords) == 4)
+        self.assertTrue(len(result8.arrow_direction()) == 1)
+        self.assertTrue(result8.arrow_direction()[0].almost_equal(vector))
+
     def test_raise(self):
         with self.assertRaises(ValueError):
             strategy = FixHeadArrowFactory(0, 2, 1)
