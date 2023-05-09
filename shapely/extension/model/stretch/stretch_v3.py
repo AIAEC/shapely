@@ -851,6 +851,8 @@ class Closure:
 
     @property
     def edges(self) -> List[Edge]:
+        if not self.exterior:
+            return []
         edges = list(self.exterior)
         for interior in self.interiors:
             edges.extend(interior)
