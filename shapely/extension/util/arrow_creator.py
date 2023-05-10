@@ -9,8 +9,8 @@ from shapely.geometry import Point, LineString
 
 class FixHeadArrowFactory:
     def __init__(self, head_length: float, head_width: float, shaft_width: float):
-        self._head_width = head_width
         self._head_length = head_length
+        self._head_width = head_width
         self._shaft_width = shaft_width
         if self._head_length <= 0:
             raise ValueError('The result is straight line')
@@ -51,6 +51,26 @@ class FixHeadArrowFactory:
                                            direction=Vector.from_endpoints_of(straight_line),
                                            arrow_length=straight_line.length,
                                            reverse=reverse)
+
+    def from_line(self, line: LineString, reverse: bool = False) -> Arrow:
+        shaft_width = self._shaft_width / 2
+        head_width = self._head_width / 2
+        coords = line.coords[:]
+        if len(coords) < 3:
+            raise ValueError('invalid line')
+        if reverse:
+            coords.reverse()
+        coords_widths = [(shaft_width, 0)]
+        if len(coords) == 3:
+            coords_widths.extend([(head_width, shaft_width), (0, 0)])
+        else:
+            num_middle_points = len(coords) - 3
+            for i in range(0, num_middle_points):
+                coords_widths.append((shaft_width, shaft_width))
+            coords_widths.append((head_width, shaft_width))
+            coords_widths.append((0, 0))
+        return Arrow(coords,
+                     coords_widths)
 
 
 class FixRatioArrowFactory:
