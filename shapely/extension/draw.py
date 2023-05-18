@@ -37,7 +37,7 @@ class Draw:
     def __init__(self, size=SIZE, dpi=90, axis: bool = False, use_gui: bool = True):
         if not use_gui and pyplot.get_backend() != 'agg':
             pyplot.switch_backend('agg')
-        elif pyplot.get_backend() != 'Tkagg':
+        elif use_gui and pyplot.get_backend() != 'Tkagg':
             pyplot.switch_backend('Tkagg')
         self.fig = pyplot.figure(1, figsize=size, dpi=dpi, frameon=False)
         self.ax = self.fig.add_subplot(111)
