@@ -170,7 +170,7 @@ extra_reqs['all'] = list(it.chain.from_iterable(extra_reqs.values()))
 # Make a dict of setup arguments. Some items will be updated as
 # the script progresses.
 setup_args = dict(
-    install_requires    = ['toolz==0.12.0', 'euclid3 == 0.1'],
+    install_requires    = ['toolz==0.12.0', 'euclid3 == 0.1', 'descartes == 1.1.0', 'matplotlib == 3.7.1'],
     name                = 'Shapely',
     version             = str(shapely_version),
     description         = 'Geometric objects, predicates, and operations',
