@@ -1,11 +1,8 @@
-from typing import Literal, List
-
-from py2d import Math
+from typing import List
 
 from shapely.extension.util.func_util import lmap
+from shapely.extension.util.partition._poly_decompose import polygonQuickDecomp
 from shapely.geometry import Polygon
-
-PARTITION_MODE = Literal['convex']
 
 
 class PolygonPartitioner:
@@ -29,7 +26,7 @@ class PolygonPartitioner:
         """
         if polygon.interiors:
             raise NotImplementedError('holes are not supported')
-        math_poly = Math.Polygon.from_tuples(polygon.exterior.coords[1:])
-        math_partitions = math_poly.convex_decompose(math_poly)
-        partitions = lmap(lambda math_poly_: Polygon([(p.x, p.y) for p in math_poly_.points]), math_partitions)
+        math_poly = list(lmap(list, polygon.exterior.ext.ccw().coords[1:]))
+        math_partitions = polygonQuickDecomp(math_poly)
+        partitions = lmap(Polygon, math_partitions)
         return partitions

@@ -8,7 +8,7 @@ from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
 from shapely.extension.util.ccw import ccw
 from shapely.extension.util.decompose import decompose
-from shapely.extension.util.partitions import PolygonPartitioner
+from shapely.extension.util.partition import PolygonPartitioner
 from shapely.extension.util.polygon_cutter import PolygonCutter
 from shapely.extension.util.union import tol_union
 from shapely.geometry import Polygon, LineString, JOIN_STYLE, CAP_STYLE, MultiPolygon, Point
