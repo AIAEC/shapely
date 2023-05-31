@@ -1,6 +1,6 @@
 from typing import Union, List, Optional
 
-from shapely.extension.constant import MATH_MIDDLE_EPS, COMPARE_EPS, END_ATTACH_RATIO_DIGIT
+from shapely.extension.constant import MATH_MIDDLE_EPS, COMPARE_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy

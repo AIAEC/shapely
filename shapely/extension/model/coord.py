@@ -7,7 +7,7 @@ from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.angle import Angle
 from shapely.extension.typing import Num, CoordType
 from shapely.extension.util.iter_util import win_slice
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point
 
 
 @dataclass
