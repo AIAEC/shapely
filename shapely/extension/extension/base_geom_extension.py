@@ -17,8 +17,6 @@ from shapely.extension.model.mould import mould
 from shapely.extension.model.projection import Projection, ProjectionTowards
 from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.vector import Vector
-from shapely.extension.predicator.alignment_predicator_creator import AlignmentPredicatorCreator
-from shapely.extension.predicator.angle_predicator_creator import AnglePredicatorCreator
 from shapely.extension.predicator.distance_predicator_creator import DistancePredicatorCreator
 from shapely.extension.predicator.relation_predicator_creator import RelationPredicatorCreator
 from shapely.extension.strategy.angle_strategy import PolygonAngleStrategy, LineAngleStrategy, default_angle_strategy, \
@@ -84,15 +82,6 @@ class BaseGeomExtension:
 
         return flatten(self._geom, target_class_or_callable=target_class_or_callable, validate=validate,
                        filter_valid=filter_valid, filter_out_empty=filter_out_empty)
-
-    def longest_piece(self) -> BaseGeometry:
-        """
-        flatten current geometry and return the one with largest length
-        Returns
-        -------
-        BaseGeometry
-        """
-        return flatten(self._geom).max_by(attrgetter('length'), default=EMPTY_GEOM)
 
     def largest_piece(self) -> BaseGeometry:
         """
@@ -340,24 +329,6 @@ class BaseGeomExtension:
         strategy = strategy or NativeSimplifyStrategy()
         return strategy.simplify(self._geom)
 
-    def move_towards(self, geom: BaseGeometry, direction: Optional[Vector] = None, util: Optional = None):
-        """
-        move the current geometry to hit the given geometry
-        Parameters
-        ----------
-        geom: other geometry
-        direction: direction vector, if None, use the direction for nearest points
-        util: not implemented
-
-        Returns
-        -------
-        moved current geometry
-        """
-        warnings.warn("move_towards's util parameter is not implemented")
-
-        move_vector = Vector.from_endpoints_of(self.connect_path(geom, direction=direction))
-        return move_vector.apply(self._geom)
-
     def projection_towards(self, poly: Polygon, direction: Vector) -> ProjectionTowards:
         """
         project the current geometry onto the given polygon
@@ -433,39 +404,6 @@ class BaseGeomExtension:
         the instance of RelationPredicatorCreator
         """
         return RelationPredicatorCreator(self._geom)
-
-    def f_alignment(self, direction: Optional[Vector] = None,
-                    direction_dist_tol: float = MATH_EPS,
-                    angle_tol: float = MATH_EPS) -> AlignmentPredicatorCreator:
-        """
-        used for predicating the alignment relationship between other geometry and current geometry
-        Parameters
-        ----------
-        direction:
-        direction_dist_tol:
-        angle_tol:
-
-        Returns
-        -------
-        the instance of AlignmentPredicatorCreator
-        """
-        return AlignmentPredicatorCreator(self._geom,
-                                          direction=direction,
-                                          direction_dist_tol=direction_dist_tol,
-                                          angle_tol=angle_tol)
-
-    def f_angle(self, strategy: Optional[Callable[[BaseGeometry], float]] = None) -> AnglePredicatorCreator:
-        """
-        used for predicating the angle relationship between other geometry and current geometry
-        Parameters
-        ----------
-        strategy:
-
-        Returns
-        -------
-
-        """
-        return AnglePredicatorCreator(self._geom, strategy)
 
     def almost_intersects(self, geom_or_geoms: Union[BaseGeometry, Iterable[BaseGeometry]],
                           dist_tol: float = MATH_EPS) -> bool:

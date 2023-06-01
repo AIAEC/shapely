@@ -76,54 +76,6 @@ class PolygonExtension(BaseGeomExtension):
         own_lines = self.decompose(StraightSegment, decompose_strategy)
         yield from product(own_lines, target_lines)
 
-    def has_edge_parallel_to(self, poly_or_line: Union[Polygon, LineString],
-                             decompose_strategy: Optional[BaseDecomposeStrategy] = None) -> bool:
-        """
-        whether current polygon has at least 1 edge parallel to the given polygon or linestring
-        Parameters
-        ----------
-        poly_or_line: polygon or linestring
-        decompose_strategy: decompose strategy, if None, use the default decompose strategy
-
-        Returns
-        -------
-        bool
-        """
-        return any(
-            line0.ext.is_parallel_to(line1) for line0, line1 in self.edge_pair_with(poly_or_line, decompose_strategy))
-
-    def has_edge_perpendicular_to(self, poly_or_line: Union[Polygon, LineString],
-                                  decompose_strategy: Optional[BaseDecomposeStrategy] = None):
-        """
-        whether current polygon has at least 1 edge perpendicular to the given polygon or linestring
-        Parameters
-        ----------
-        poly_or_line: polygon or linestring
-        decompose_strategy: decompose strategy, if None, use the default decompose strategy
-
-        Returns
-        -------
-        bool
-        """
-        return any(line0.ext.is_perpendicular_to(line1) for line0, line1 in
-                   self.edge_pair_with(poly_or_line, decompose_strategy))
-
-    def has_edge_collinear_to(self, poly_or_line: Union[Polygon, LineString],
-                              decompose_strategy: Optional[BaseDecomposeStrategy] = None):
-        """
-        whether current polygon has at least 1 edge collinear to the given polygon or linestring
-        Parameters
-        ----------
-        poly_or_line: polygon or linestring
-        decompose_strategy: decompose strategy, if None, use the default decompose strategy
-
-        Returns
-        -------
-        bool
-        """
-        return any(
-            line0.ext.is_collinear_to(line1) for line0, line1 in self.edge_pair_with(poly_or_line, decompose_strategy))
-
     def union(self, poly: Polygon,
               direction: Optional[Vector] = None,
               dist_tol: float = MATH_EPS) -> Union[Polygon, MultiPolygon]:

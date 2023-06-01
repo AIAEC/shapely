@@ -375,34 +375,6 @@ class LineStringExtension(BaseGeomExtension):
             pt1 = perpendicular_vec_cw.unit(length).apply(point_on_line)
         return LineString([pt0, pt1])
 
-    def tangent_line(self, point: Point,
-                     length: float,
-                     position: Literal['mid', 'forward', 'backward'] = 'mid') -> LineString:
-        """
-        project the given point onto the current linestring and return the tangent linestring of the projected point
-        Parameters
-        ----------
-        point:
-        length:
-        position: mid | forward | backward
-
-        Returns
-        -------
-        linestring
-        """
-        point_on_line = self.projected_point(point)
-        project = self._geom.project(point)
-        vector = Vector.from_origin_to_target(self._geom.interpolate(project - MATH_EPS),
-                                              self._geom.interpolate(project + MATH_EPS))
-        if position == 'mid':
-            start_point = vector.invert().unit(length / 2).apply(point_on_line)
-        elif position == 'backward':
-            start_point = vector.invert().unit(length).apply(point_on_line)
-        else:
-            start_point = point_on_line
-
-        return vector.ray(start_point, length)
-
     def perpendicular_distance(self, geom: BaseGeometry) -> float:
         """
         Parameters

@@ -14,21 +14,6 @@ class PolygonExtensionTest(TestCase):
         polygon = box(0, 0, 1, 1)
         self.assertEqual(4, len(list(polygon.ext.edge_pair_with(LineString([(0, 0), (1, 0)])))))
 
-    def test_has_edge_parallel_to(self):
-        polygon = box(0, 0, 1, 1)
-        self.assertTrue(polygon.ext.has_edge_parallel_to(LineString([(0, 0), (1, 0)])))
-        self.assertFalse(polygon.ext.has_edge_parallel_to(LineString([(0, 0), (1, 1)])))
-
-    def test_has_edge_perpendicular_to(self):
-        polygon = box(0, 0, 1, 1)
-        self.assertTrue(polygon.ext.has_edge_perpendicular_to(LineString([(0, 0), (1, 0)])))
-        self.assertFalse(polygon.ext.has_edge_perpendicular_to(LineString([(0, 0), (1, 1)])))
-
-    def test_has_edge_collinear_to(self):
-        polygon = box(0, 0, 1, 1)
-        self.assertTrue(polygon.ext.has_edge_collinear_to(LineString([(0, 0), (1, 0)])))
-        self.assertFalse(polygon.ext.has_edge_collinear_to(LineString([(0, 0), (1, 1)])))
-
     def test_union(self):
         polygon = box(0, 0, 1, 1)
         large_poly = box(2, -10, 100, 100)

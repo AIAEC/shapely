@@ -80,10 +80,6 @@ class BaseGeomExtensionTest(TestCase):
         # simplify
         self.assertTrue(polygon.ext.simplify()[0].equals(polygon))
 
-        # move_towards
-        result = polygon.ext.move_towards(LineString([(10, 0), (0, 10)]), direction=Vector(1, 0))
-        self.assertTrue(result.equals(Polygon([(8, 0), (7, 1), (8, 2), (9, 1)])))
-
         # distance
         dist = polygon.ext.distance(LineString([(10, 0), (0, 10)]), direction=Vector(1, 0))
         self.assertAlmostEqual(8, dist)
@@ -106,20 +102,6 @@ class BaseGeomExtensionTest(TestCase):
         self.assertEqual(1, len(polys))
         self.assertTrue(Point(0, 2).buffer(1).equals(polys[0]))
 
-        # f_alignment
-        alignments = [LineString([(0, 0), (1, -1)]),
-                      LineString([(0, 0), (1, 0)])]
-        result = list(filter(polygon.ext.f_alignment().alignable(), alignments))
-        self.assertEqual(1, len(result))
-
-        result = list(filter(polygon.ext.f_alignment(angle_tol=46).alignable(), alignments))
-        self.assertEqual(2, len(result))
-
-        # f_angle
-        polys = [Point(2, 2).buffer(0.5), Point(2, 2).buffer(3)]
-        result = list(filter(polygon.ext.f_angle().angle_range_relation(10, 10).contains(), polys))
-        self.assertEqual(1, len(result))
-
         # almost_intersects
         self.assertTrue(polygon.ext.almost_intersects(Point(0, 2.000001), dist_tol=0.001))
         self.assertFalse(polygon.ext.almost_intersects(Point(0, 2.000001), dist_tol=0.00000001))
@@ -134,28 +116,6 @@ class BaseGeomExtensionTest(TestCase):
         self.assertEqual(4, len(skeleton.full_segments()))
         self.assertFalse(skeleton.trunk_segments())
         self.assertFalse(skeleton.trunks())
-
-    def test_longest_piece(self):
-        point = Point(0, 0)
-        self.assertTrue(point.equals(point.ext.longest_piece()))
-
-        line = LineString([(0, 0), (1, 0)])
-        self.assertTrue(line.equals(line.ext.longest_piece()))
-
-        polygon = box(0, 0, 1, 1)
-        self.assertTrue(polygon.equals(polygon.ext.longest_piece()))
-
-        self.assertTrue(MultiPoint([(0, 0), (1, 0)]).ext.longest_piece().equals(Point(0, 0)))
-
-        result = MultiLineString([LineString([(0, 0), (1, 0)]),
-                                  LineString([(0, 0), (2, 0)])]).ext.longest_piece()
-        self.assertTrue(result.equals(LineString([(0, 0), (2, 0)])))
-
-        result = MultiPolygon([box(0, 0, 1, 1), box(0, 0, 2, 2)]).ext.longest_piece()
-        self.assertTrue(result.equals(box(0, 0, 2, 2)))
-
-        result = GeometryCollection([Point(0, 0), LineString([(0, 0), (10, 0)]), box(0, 0, 1, 1)]).ext.longest_piece()
-        self.assertTrue(result.equals(LineString([(0, 0), (10, 0)])))
 
     def test_largest_piece(self):
         point = Point(0, 0)

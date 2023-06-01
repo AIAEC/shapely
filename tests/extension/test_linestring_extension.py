@@ -124,10 +124,6 @@ class LineStringExtensionTest(TestCase):
         line = LineString([(0, 0), (100, 0)])
         self.assertListEqual([Point(0, 0), Point(100, 0)], line.ext.endpoints().list())
 
-    def test_endpoint_nearby(self):
-        line = LineString([(0, 0), (100, 0)])
-        self.assertEqual(Point(0, 0), line.ext.endpoint_nearby(Point(-1, 0)))
-
     def test_prolong(self):
         line = LineString([(0, 0), (1, 0), (1, 1)])
         result = line.ext.prolong().from_head(1)
@@ -279,11 +275,6 @@ class LineStringExtensionTest(TestCase):
         assert result == shapely.wkt.loads(
             'LINESTRING (489023.2671529724 2493967.8592040185, 489022.27151874633 2493967.9525447274)')
         assert result.length == pytest.approx(1)
-
-    def test_tangent_line(self):
-        arc = Point(0, 0).buffer(10).exterior
-        result = arc.ext.tangent_line(Point(0, 11), 2)
-        self.assertTrue(LineString([(-1, 10), (1, 10)]).buffer(1e-6).contains(result))
 
     def test_perpendicular_distance(self):
         line = LineString([(0, 0), (0, 1)])
