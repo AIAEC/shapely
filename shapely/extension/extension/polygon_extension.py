@@ -136,3 +136,7 @@ class PolygonExtension(BaseGeomExtension):
         valid convex sub polygons
         """
         return PolygonPartitioner()(self._geom)
+
+    @property
+    def is_convex(self) -> bool:
+        return self._geom.convex_hull.equals(self._geom)

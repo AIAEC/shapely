@@ -26,6 +26,8 @@ class PolygonPartitioner:
         """
         if polygon.interiors:
             raise NotImplementedError('holes are not supported')
+        if polygon.ext.is_convex:
+            return [polygon]
         math_poly = list(lmap(list, polygon.exterior.ext.ccw().coords[1:]))
         math_partitions = polygonQuickDecomp(math_poly)
         partitions = lmap(Polygon, math_partitions)
