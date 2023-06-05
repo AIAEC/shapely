@@ -15,6 +15,7 @@ from shapely.extension.model.buffer import Buffer
 from shapely.extension.model.envelope import EnvelopeCreator
 from shapely.extension.model.mould import mould
 from shapely.extension.model.projection import Projection, ProjectionTowards
+from shapely.extension.model.raster import DEFAULT_SCALE_FACTOR, RasterFactory
 from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.distance_predicator_creator import DistancePredicatorCreator
@@ -29,6 +30,7 @@ from shapely.extension.util.decompose import decompose
 from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lmap
+from shapely.extension.util.insertion.inserter import raster_inserter, rect_inserter
 from shapely.extension.util.legalize import legalize
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.extension.util.similar import similar
@@ -459,3 +461,17 @@ class BaseGeomExtension:
 
     def mould(self, margin: float = 1.0) -> Union[Polygon, MultiPolygon, GeometryCollection]:
         return mould(self._geom, margin=margin)
+
+    def raster(self, scale_factor: float = DEFAULT_SCALE_FACTOR):
+        return RasterFactory(scale_factor).from_geom(self._geom)
+
+    def insertion(self, geom: BaseGeometry,
+                  inserter: Optional[Callable[[BaseGeometry], List[BaseGeometry]]] = None) -> List[BaseGeometry]:
+        """
+        find all possible space in geom to insert self._geom
+        rect_insertion should be used when self._geom is a rectangle, otherwise may return an unwilling result
+        raster_insertion can deal with more shape, but will have a loss of precision
+        """
+        if not inserter:
+            inserter = raster_inserter(insert_geom=self._geom, scale_factor=DEFAULT_SCALE_FACTOR)
+        return inserter(obstacle=geom)
