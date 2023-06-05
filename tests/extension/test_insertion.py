@@ -5,7 +5,7 @@ from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.envelope import Envelope
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.simplify_strategy import BufferSimplifyStrategy
-from shapely.extension.util.insertion import Insertion
+from shapely.extension.util.insertion.insertion import Insertion
 from shapely.geometry import Polygon, box, LineString, Point
 from shapely.ops import unary_union
 from shapely.wkt import loads
