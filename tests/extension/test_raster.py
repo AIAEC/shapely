@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from PIL.Image import new as new_img
-from numpy import ones, array
+from numpy import ones, array, int32
 from shapely.geometry.base import BaseGeometry
 
 from shapely.wkt import loads
@@ -45,13 +44,18 @@ class TestRaster(TestCase):
         point = Point(1, 1)
         line = LineString([(1, 2), (2, 4)])
         poly = Polygon(([(3, 0), (5, 1), (5, 2), (3, 2)]))
-        img = new_img(mode='L', size=(6, 6))
+        img = array([[0, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0]], dtype=int32)
         RasterFactory()._draw_on(img, unary_union([point, line, poly]))
         arr = array(img)
-        self.assertTrue((arr == array([[0, 0, 0, 1, 0, 0],
+        self.assertTrue((arr == array([[0, 0, 0, 1, 1, 0],
                                        [0, 1, 0, 1, 1, 1],
                                        [0, 1, 0, 1, 1, 1],
-                                       [0, 0, 1, 0, 0, 0],
+                                       [0, 1, 0, 0, 0, 0],
                                        [0, 0, 1, 0, 0, 0],
                                        [0, 0, 0, 0, 0, 0]])).all())
 
@@ -72,7 +76,7 @@ class TestRaster(TestCase):
         result = kernel.ext.insertion(polys)
         self.assertTrue(all([isinstance(single_result, BaseGeometry) for single_result in result]))
 
-    def test_vectorize_by_cv2(self):
+    def test_vectorize(self):
         poly_with_hole = Polygon(shell=([(0, 0), (20, 0), (20, 20), (0, 20)]),
                                  holes=[([(7, 7), (9, 7), (9, 9), (7, 9)]), ([(11, 11), (13, 11), (13, 13), (11, 13)])])
         poly2 = Polygon(shell=([(0, 30), (20, 30), (20, 50), (0, 50)]),
@@ -82,7 +86,7 @@ class TestRaster(TestCase):
         # 20个角,每个角有缩放倍数*像素面积的误差
         self.assertTrue(unary_union(result).ext.similar(unary_union([poly_with_hole, poly2]), 20 * 0.5 / 10))
 
-    def test_vectorize_by_cv2_without_holes(self):
+    def test_vectorize_without_holes(self):
         poly1 = Polygon(([(10, 0), (20, 10), (10, 30), (0, 10)]))
         poly2 = Polygon(([(30, 0), (40, 0), (40, 10), (30, 10)]))
         poly = unary_union([poly1, poly2])

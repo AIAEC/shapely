@@ -2,10 +2,7 @@ from math import ceil
 from typing import List, Tuple, Optional
 
 import cv2
-from PIL import Image
-from PIL.Image import Image as Img
-from PIL.ImageDraw import Draw
-from numpy import ndarray, array
+from numpy import ndarray, array, zeros, uint8, int32
 
 from shapely.affinity import translate, scale
 from shapely.extension.util.flatten import flatten
@@ -48,7 +45,8 @@ class Raster:
         self.scale_factor = scale_factor
 
     def vectorize(self) -> List[BaseGeometry]:
-        contours, hierarchy = cv2.findContours(self.array, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE)
+        # 计算contours时需要用uint8,这样才能正确认为0是空白;当为np.int32(即画图的格式)时会把0当作一个正常颜色;或者使用cv2自己的转化为特殊格式的方法
+        contours, hierarchy = cv2.findContours(self.array.astype(uint8), mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE)
         geom_list: List[Optional[AssembleGeom]] = []
         # hierarchy[2]为-1则代表对应contour为hole,并且从属于hierarchy[3]所记录的数值为index的contour
         # 顺序上是exterior之后就是所有的interiors TODO 尝试不依赖此特性重构一个更稳定的方法
@@ -106,9 +104,10 @@ class RasterFactory:
         scaled_geom = self._scale(moved_geom)
         # 假如某直线坐标为(0, 0), (10, 0),可以知道事实上这个直线会占据11个点
         image_size = self._cal_size(bounds)
-        img = Image.new(mode='L', size=image_size)  # L代表灰度图,数据类型uint8,取值0~255
+        # size代表长宽,array为行列,所以二者的结果是反直觉的.目前array向image妥协
+        img = zeros((image_size[1], image_size[0]), dtype=int32)
         self._draw_on(img, scaled_geom)
-        matrix = array(img)
+        matrix = array(img).astype(uint8)
         return Raster(array=matrix,
                       origin=anchor_point,
                       scale_factor=self.scale_factor)
@@ -129,17 +128,21 @@ class RasterFactory:
     def _scale(self, geom: BaseGeometry) -> BaseGeometry:
         return scale(geom, xfact=self.scale_factor, yfact=self.scale_factor, origin=Point(0, 0))
 
-    def _draw_on(self, img: Img, geom: BaseGeometry):
-        # 当斜线的中间某个点距离两边像素点距离相同时,总是画靠近该线终点方向的那边的像素点
+    def _draw_on(self, img: ndarray, geom: BaseGeometry):
+        # TODO 当斜线的中间某个点距离两边像素点距离相同时,具体会选择哪个点还没有总结出规律,但肯定适配vectorize
+        # 画图需使用int32;使用uint8或uint32会报错
         if isinstance(geom, BaseMultipartGeometry):
             lmap(lambda geom_: self._draw_on(img, geom_), geom)
         elif isinstance(geom, Polygon):
-            Draw(img).polygon(geom.exterior.coords, fill=1, outline=1)
+            cv2.fillPoly(img, array([geom.exterior.coords], dtype=int32), color=[1])
             for interior in geom.interiors:
-                Draw(img).polygon(interior.coords, fill=0, outline=1)  # outline=1让polygon占位尽量大
+                cv2.fillPoly(img, array([interior.coords], dtype=int32), color=[0])
+                # 上面画孔是带边框的,所以还要把边框填上
+                cv2.polylines(img, array([interior.coords], dtype=int32), isClosed=True, color=[1], thickness=1)
         elif isinstance(geom, LineString):
-            Draw(img).line(geom.coords, fill=1)
+            cv2.polylines(img, array([geom.coords], dtype=int32), isClosed=False, color=[1], thickness=1)
         elif isinstance(geom, Point):
-            Draw(img).point(geom.coords, fill=1)
+            # 没有直接画点的方法,手动指定坐标设值为1:img[x][y] = 1
+            img[round(geom.x)][round(geom.y)] = 1
         else:
             raise TypeError(f'expect BaseGeometry, but got {type(geom)}')
