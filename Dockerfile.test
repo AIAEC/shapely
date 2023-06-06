@@ -1,0 +1,19 @@
+FROM harbor.aiacesz.com/debian/python:core
+
+ENV GEOS_VERSION 3.10.3
+
+# Install build tools
+RUN apt-get update \
+    && apt-get install -y build-essential
+
+# Install geos
+RUN mkdir -p /src \
+    && cd /src \
+    && curl -f -L -O http://download.osgeo.org/geos/geos-$GEOS_VERSION.tar.bz2 \
+    && tar jxf geos-$GEOS_VERSION.tar.bz2 \
+    && cd /src/geos-$GEOS_VERSION \
+    && ./configure \
+    && make \
+    && make install \
+    && rm -rf /src
+

@@ -10,7 +10,7 @@ spec:
   containers:
     - name: python
       imagePullPolicy: IfNotPresent
-      image: harbor.aiacesz.com/debian/python:core
+      image: harbor.aiacesz.com/debian/python:test_shapely
       command:
         - /bin/cat
       tty: true
