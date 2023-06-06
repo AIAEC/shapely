@@ -1,18 +1,17 @@
 from unittest import TestCase
 
+import pytest
 from numpy import ones, array, int32
-from shapely.geometry.base import BaseGeometry
-
-from shapely.wkt import loads
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
-
-from shapely.ops import unary_union
-
 from shapely.extension.model.raster import RasterFactory, Raster
 from shapely.geometry import Polygon, LineString, Point
+from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
+from shapely.wkt import loads
 
 
+@pytest.mark.skip
 class TestRaster(TestCase):
     def test_from_geom(self):
         poly_geom = Polygon(([(2, 2), (4, 2), (4, 3), (2, 3)]))

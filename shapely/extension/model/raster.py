@@ -1,19 +1,14 @@
 from math import ceil
 from typing import List, Tuple, Optional
 
-import cv2
 from numpy import ndarray, array, zeros, uint8, int32
 
 from shapely.affinity import translate, scale
 from shapely.extension.util.flatten import flatten
-
-from shapely.ops import unary_union
-
 from shapely.extension.util.func_util import lmap
-
-from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
-
 from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+from shapely.ops import unary_union
 
 DEFAULT_SCALE_FACTOR = 10
 
@@ -33,11 +28,11 @@ class AssembleGeom:
 
 
 class Raster:
-
     """
     位图
     origin: 原图左下角点,用于还原原本位置
     """
+
     def __init__(self, array: ndarray, origin: Point, scale_factor: float = DEFAULT_SCALE_FACTOR):
 
         self.array = array
@@ -45,8 +40,10 @@ class Raster:
         self.scale_factor = scale_factor
 
     def vectorize(self) -> List[BaseGeometry]:
+        import cv2
         # 计算contours时需要用uint8,这样才能正确认为0是空白;当为np.int32(即画图的格式)时会把0当作一个正常颜色;或者使用cv2自己的转化为特殊格式的方法
-        contours, hierarchy = cv2.findContours(self.array.astype(uint8), mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(self.array.astype(uint8), mode=cv2.RETR_CCOMP,
+                                               method=cv2.CHAIN_APPROX_SIMPLE)
         geom_list: List[Optional[AssembleGeom]] = []
         # hierarchy[2]为-1则代表对应contour为hole,并且从属于hierarchy[3]所记录的数值为index的contour
         # 顺序上是exterior之后就是所有的interiors TODO 尝试不依赖此特性重构一个更稳定的方法
@@ -79,6 +76,7 @@ class Raster:
         return flatten(moved_shape).list()
 
     def convolution(self, kernel: 'Raster') -> 'Raster':
+        import cv2
         result = cv2.filter2D(src=self.array, ddepth=-1, kernel=kernel.array)  # ddepth指定输出元素的类型,-1为保持原状,此处为uint8
         return Raster(array=result, origin=self.origin, scale_factor=self.scale_factor).reverse()
 
@@ -129,6 +127,7 @@ class RasterFactory:
         return scale(geom, xfact=self.scale_factor, yfact=self.scale_factor, origin=Point(0, 0))
 
     def _draw_on(self, img: ndarray, geom: BaseGeometry):
+        import cv2
         # TODO 当斜线的中间某个点距离两边像素点距离相同时,具体会选择哪个点还没有总结出规律,但肯定适配vectorize
         # 画图需使用int32;使用uint8或uint32会报错
         if isinstance(geom, BaseMultipartGeometry):
