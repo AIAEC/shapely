@@ -1,6 +1,0 @@
-FROM harbor.aiacesz.com/debian/python:core
-
-RUN pip config set global.index-url https://shoebill:quokka@pypi.aiacesz.com/simple
-RUN pip install shapely==1.8.5.25.0
-
-
