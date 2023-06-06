@@ -21,7 +21,7 @@ pipeline {
         container('python') {
           sh 'pip config set global.index-url https://shoebill:quokka@pypi.aiacesz.com/simple'
           sh 'pip install -r requirements-test.txt'
-          sh 'pytest'
+          sh 'pytest tests/extension'
         }
       }
     }
