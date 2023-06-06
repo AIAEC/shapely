@@ -1,6 +1,6 @@
 import math
 from functools import partial
-from operator import itemgetter, attrgetter
+from operator import itemgetter
 from typing import Callable
 
 from shapely.extension.model.angle import Angle

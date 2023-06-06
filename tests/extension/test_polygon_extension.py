@@ -5,7 +5,6 @@ from shapely.extension.constant import MATH_EPS, COMPARE_EPS
 from shapely.extension.geometry.empty import EMPTY_GEOM
 from shapely.extension.model.vector import Vector
 from shapely.geometry import box, LineString, Polygon, Point
-from shapely.ops import nearest_points
 from shapely.wkt import loads
 
 
@@ -13,21 +12,6 @@ class PolygonExtensionTest(TestCase):
     def test_edge_pair_with(self):
         polygon = box(0, 0, 1, 1)
         self.assertEqual(4, len(list(polygon.ext.edge_pair_with(LineString([(0, 0), (1, 0)])))))
-
-    def test_has_edge_parallel_to(self):
-        polygon = box(0, 0, 1, 1)
-        self.assertTrue(polygon.ext.has_edge_parallel_to(LineString([(0, 0), (1, 0)])))
-        self.assertFalse(polygon.ext.has_edge_parallel_to(LineString([(0, 0), (1, 1)])))
-
-    def test_has_edge_perpendicular_to(self):
-        polygon = box(0, 0, 1, 1)
-        self.assertTrue(polygon.ext.has_edge_perpendicular_to(LineString([(0, 0), (1, 0)])))
-        self.assertFalse(polygon.ext.has_edge_perpendicular_to(LineString([(0, 0), (1, 1)])))
-
-    def test_has_edge_collinear_to(self):
-        polygon = box(0, 0, 1, 1)
-        self.assertTrue(polygon.ext.has_edge_collinear_to(LineString([(0, 0), (1, 0)])))
-        self.assertFalse(polygon.ext.has_edge_collinear_to(LineString([(0, 0), (1, 1)])))
 
     def test_union(self):
         polygon = box(0, 0, 1, 1)
@@ -136,3 +120,11 @@ class PolygonExtensionTest(TestCase):
         self.assertTrue(Point(2, 2) in convex_points)
         self.assertTrue(Point(1, 2) in convex_points)
         self.assertTrue(Point(0, 1) in convex_points)
+
+    def test_is_convex(self):
+        assert box(0, 0, 1, 1).ext.ccw().ext.is_convex
+        assert Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]).ext.is_convex
+        assert not box(0, 0, 10, 10).difference(box(-1, -1, 1, 1)).ext.is_convex
+
+        assert Polygon([(0, 0), (1, 0), (1, 0.5), (1, 1), (0, 1)]).ext.is_convex
+        assert Polygon([(0, 1), (1, 1), (1, 0.5), (1, 0), (0, 0)]).ext.is_convex

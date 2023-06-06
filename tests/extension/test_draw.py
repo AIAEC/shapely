@@ -26,7 +26,7 @@ def test_draw_polygon():
 def test_draw_text():
     from shapely.extension.draw import Draw
     draw = Draw()
-    draw.draw_text('123', Point(0, 0), fontsize=10)
+    draw.draw_text('123四五六abc', Point(0, 0), fontsize=10)
     draw.draw_point(Point(0, 0))
     draw.show()
 

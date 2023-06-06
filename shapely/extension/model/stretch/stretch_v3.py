@@ -6,7 +6,7 @@ from operator import truth, itemgetter
 from typing import List, Optional, Dict, Union, Tuple, Callable
 from weakref import ref, ReferenceType
 
-from shapely.extension.constant import MATH_MIDDLE_EPS, MATH_EPS, ANGLE_AROUND_EPS
+from shapely.extension.constant import MATH_MIDDLE_EPS, MATH_EPS, ANGLE_AROUND_EPS, END_ATTACH_RATIO_DIGIT
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
@@ -899,6 +899,7 @@ class Closure:
     def cut(self, line: Union[LineString, MultiLineString],
             dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
             dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+            end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
             closure_strategy: Optional['ClosureStrategy'] = None) -> List['Closure']:
         """
         cut the closure by the given line, if failed return list with only current closure itself
@@ -908,6 +909,7 @@ class Closure:
         line: non empty linestring
         dist_tol_to_pivot: max attaching distance to existed pivots
         dist_tol_to_edge: max attaching distance to existed edges
+        end_attach_ratio_digit: round n digits. when nearby pivot is too close to the end of edge, do not attach
         closure_strategy: closure strategy class
 
         Returns
@@ -917,12 +919,16 @@ class Closure:
 
         from shapely.extension.model.stretch.cut import Cut
         return (Cut([self], closure_strategy)
-                .by(line=line, dist_tol_to_pivot=dist_tol_to_pivot, dist_tol_to_edge=dist_tol_to_edge)
+                .by(line=line,
+                    dist_tol_to_pivot=dist_tol_to_pivot,
+                    dist_tol_to_edge=dist_tol_to_edge,
+                    end_attach_ratio_digit=end_attach_ratio_digit)
                 .closures())
 
     def split(self, line: Union[LineString, MultiLineString],
               dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
               dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+              end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
               closure_strategy: Optional['ClosureStrategy'] = None) -> List['Closure']:
         """
         cut the closure by the given line, but when it will not generate back and forth edges and turning back pivots
@@ -931,6 +937,7 @@ class Closure:
         line: non empty linestring
         dist_tol_to_pivot: max attaching distance to existed pivots
         dist_tol_to_edge: max attaching distance to existed edges
+        end_attach_ratio_digit: round n digits. when nearby pivot is too close the end of edge, do not attach
         closure_strategy: closure strategy class
 
         Returns
@@ -943,6 +950,7 @@ class Closure:
         closures = self.cut(line=line,
                             dist_tol_to_pivot=dist_tol_to_pivot,
                             dist_tol_to_edge=dist_tol_to_edge,
+                            end_attach_ratio_digit=end_attach_ratio_digit,
                             closure_strategy=closure_strategy)
 
         pivots_on_line: List[Pivot] = stretch.pivots_by_query(line, buffer_dist=dist_tol_to_pivot)
@@ -1618,6 +1626,7 @@ class Stretch:
     def add_edge(self, line: LineString,
                  dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
                  dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                 end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
                  cargo_dict: Optional[dict] = None) -> EdgeSeq:
         """
         [MID LEVEL API] create edge with duplicate edge checking and pivot attaching
@@ -1627,6 +1636,7 @@ class Stretch:
         line
         dist_tol_to_pivot
         dist_tol_to_edge
+        end_attach_ratio_digit: round n digits. when nearby pivot is too close to the end of edge, do not attach
         cargo_dict
 
         Returns
@@ -1656,7 +1666,10 @@ class Stretch:
 
         for edge in edges_without_pivot_attaching:
             pivots_nearby = self.pivots_by_query(edge.shape, buffer_dist=dist_tol_to_edge)
-            pivot_projection_tuples = [(pivot, edge.shape.project(pivot.shape, normalized=True))
+            # 当nearby pivot距离edge的端点非常近但是恰巧超过了dist_tol_to_pivot,并且pivot到edge的距离却恰巧小于dist_tol_to_edge时,
+            # 这个pivot参与edge.expand()方法时,可能生成方向不合理的新边,本应极细的三角形会变成一条来回的折线,此时不应该被吸附
+            pivot_projection_tuples = [(pivot, round(edge.shape.project(pivot.shape, normalized=True),
+                                                     end_attach_ratio_digit))
                                        for pivot in pivots_nearby]
 
             pivots = (seq(pivot_projection_tuples)
@@ -1673,6 +1686,7 @@ class Stretch:
     def add_closure(self, polygon: Polygon,
                     dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
                     dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                    end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
                     cargo_dict: Optional[dict] = None) -> Closure:
         """
         [MID LEVEL API] create closure with duplicate closure checking and edge attaching
@@ -1681,6 +1695,7 @@ class Stretch:
         polygon
         dist_tol_to_pivot
         dist_tol_to_edge
+        end_attach_ratio_digit
         cargo_dict
 
         Returns
@@ -1691,9 +1706,12 @@ class Stretch:
             raise ValueError('empty polygon is not allowed')
 
         polygon = polygon.ext.ccw()
-        exterior_seq = self.add_edge(polygon.exterior, dist_tol_to_pivot, dist_tol_to_edge)
+        exterior_seq = self.add_edge(polygon.exterior, dist_tol_to_pivot, dist_tol_to_edge, end_attach_ratio_digit)
         interior_seqs = (seq(polygon.interiors)
-                         .map(lambda interior: self.add_edge(interior, dist_tol_to_pivot, dist_tol_to_edge))
+                         .map(lambda interior: self.add_edge(interior,
+                                                             dist_tol_to_pivot,
+                                                             dist_tol_to_edge,
+                                                             end_attach_ratio_digit))
                          .list())
         return (self.create_closure()
                 .cargo(cargo_dict)
@@ -1704,6 +1722,7 @@ class Stretch:
     def split(self, lines: Union[List[LineString], MultiLineString, LineString],
               dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
               dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+              end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
               closure_strategy: Optional['ClosureStrategy'] = None):
 
         line: MultiLineString = MultiLineString(flatten(lines).list())
@@ -1711,6 +1730,7 @@ class Stretch:
             closure.split(line=line,
                           dist_tol_to_pivot=dist_tol_to_pivot,
                           dist_tol_to_edge=dist_tol_to_edge,
+                          end_attach_ratio_digit=end_attach_ratio_digit,
                           closure_strategy=closure_strategy)
         return self
 

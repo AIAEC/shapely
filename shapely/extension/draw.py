@@ -6,6 +6,7 @@ from shapely.ops import unary_union
 try:
     from descartes import PolygonPatch
     from matplotlib import pyplot
+    from matplotlib.font_manager import FontProperties
 except ImportError:
     raise ImportError('This module requires matplotlib and descartes')
 
@@ -106,13 +107,14 @@ class Draw:
                      zorder=zorder)
         return self
 
-    def draw_text(self, text: str, origin: Point, fontsize: int = 12, zorder=4):
+    def draw_text(self, text: str, origin: Point, fontsize: int = 12, fontstyle: str = "Noto Sans CJK JP", zorder=4):
         # draw text aligned middle
         self.ax.text(origin.x, origin.y, text,
                      horizontalalignment='center',
                      verticalalignment='center',
                      fontsize=fontsize,
                      color=self.BLACK,
-                     zorder=zorder)
+                     zorder=zorder,
+                     fontproperties=FontProperties(family=[fontstyle]))
         self.ax.autoscale_view()
         return self

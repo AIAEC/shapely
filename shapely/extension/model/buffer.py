@@ -1,8 +1,4 @@
-import math
-
-from shapely.extension.constant import MATH_EPS
-from shapely.extension.geometry.arc import Arc
-from shapely.geometry import Point, box, Polygon
+from shapely.geometry import Point, box
 from shapely.geometry.base import BaseGeometry, CAP_STYLE, JOIN_STYLE
 
 
