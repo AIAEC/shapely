@@ -30,7 +30,7 @@ from shapely.extension.util.decompose import decompose
 from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lmap
-from shapely.extension.util.insertion.inserter import raster_inserter, rect_inserter
+from shapely.extension.util.insertion.inserter import raster_inserter
 from shapely.extension.util.legalize import legalize
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.extension.util.similar import similar

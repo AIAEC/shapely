@@ -1,11 +1,11 @@
 from math import ceil
+from operator import attrgetter
 from typing import List, Tuple, Optional
 
 from numpy import ndarray, array, zeros, uint8, int32
 
 from shapely.affinity import translate, scale
 from shapely.extension.util.flatten import flatten
-from shapely.extension.util.func_util import lmap
 from shapely.geometry import Point, Polygon, LineString
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.ops import unary_union
@@ -96,6 +96,7 @@ class RasterFactory:
         self.scale_factor = scale_factor
 
     def from_geom(self, geom: BaseGeometry) -> Raster:
+        geom = unary_union([geom])
         bounds = geom.bounds
         anchor_point = Point(bounds[0], bounds[1])
         moved_geom = self._move_to_origin(geom, anchor_point)
@@ -131,7 +132,10 @@ class RasterFactory:
         # TODO 当斜线的中间某个点距离两边像素点距离相同时,具体会选择哪个点还没有总结出规律,但肯定适配vectorize
         # 画图需使用int32;使用uint8或uint32会报错
         if isinstance(geom, BaseMultipartGeometry):
-            lmap(lambda geom_: self._draw_on(img, geom_), geom)
+            # 孔会把孔内所有东西全部抹掉,所以画的时候要保证输入是unary_union过,并先画大的
+            geoms = sorted(flatten(geom).list(), key=attrgetter('convex_hull.area'), reverse=True)
+            for geom_ in geoms:
+                self._draw_on(img, geom_)
         elif isinstance(geom, Polygon):
             cv2.fillPoly(img, array([geom.exterior.coords], dtype=int32), color=[1])
             for interior in geom.interiors:

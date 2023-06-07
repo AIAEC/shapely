@@ -103,3 +103,15 @@ class TestRaster(TestCase):
         result = raster1.convolution(raster2)
         self.assertIsInstance(result, Raster)
         self.assertEqual(result.array.shape, (10, 10))
+
+    def test_poly_in_hole(self):
+        outside_polygon = Polygon(shell=([(0, 0), (100, 0), (100, 100), (0, 100)]),
+                                  holes=[([(2, 2), (98, 2), (98, 98), (2, 98)])])
+        middle_polygon = Polygon(shell=([(4, 4), (96, 4), (96, 96), (4, 96)]),
+                                 holes=[([(10, 10), (90, 10), (90, 90), (10, 90)])])
+        inside_polygon1 = Polygon(([(15, 15), (20, 15), (15, 20)]))
+        inside_polygon2 = Polygon(([(30, 30), (40, 30), (40, 40), (30, 40)]))
+        inside_point = Point(30, 70)
+        poly_union = unary_union([outside_polygon, middle_polygon, inside_polygon2, inside_polygon1, inside_point])
+        result = poly_union.ext.raster().vectorize()
+        self.assertEqual(len(result), 5)
