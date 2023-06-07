@@ -1,110 +1,148 @@
 import math
-from itertools import chain
-from typing import Optional, List, Tuple, Callable, Union
+from dataclasses import dataclass, field
+from typing import Optional, List, Union
 
 from shapely.extension.constant import MATH_EPS, MATH_MIDDLE_EPS
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import CoordType
 from shapely.extension.util.union import tol_union
+from shapely.extension.util.iter_util import win_slice
 from shapely.geometry import LineString, Polygon, Point
 from shapely.geometry.base import BaseGeometry
 
 
-class Arrow:
-    def __init__(self, coordinates: Optional[Union[List[CoordType], List[Point]]] = None,
-                 coords_widths: Optional[List[Tuple[float, float]]] = None):
-        """
-                                              │\
-                   ┌──────────────────────────┤ \
-                   └──────────────────────────┤ / ◄────────
-                 ▲                            │/       end point
-                 │                           ▲       s_w: half of head width
-           start point                       │       e_w: unused
-        s_w: unused                   turning point
-        e_w: half of shaft width     s_w: half of shaft width
-                                     e_w: half of head width
+@dataclass
+class ArrowJoint:
+    """
+                                [s
+                                [t\
+        e]                      [a \
+        n]──────────────────────[r  \
+        d][start_width         ][t   \
+ ────────]@────────────────────@[─────@
+         ][           end_width][    /
+         ]──────────────────────[   /
+         ]                      [  /
+                                [ /
+                                [/
 
-        The number of coordinates and coords_widths should be kept constant
-        :param coordinates:
-        :param coords_widths: list[(start_width, end_width)]
-        """
-        self._coordinates = coordinates or []
-        self._coords_width_data = coords_widths or []
+      ArrowJoint──────────────────────────────────────┐
+      │coordinates: (x,y)                             │
+      │start_width: width at the start of a segment   │
+      │end_width: width at the end of a segment       │
+      └───────────────────────────────────────────────┘
+
+    """
+
+    coord: CoordType = field()
+    start_width: float = field()
+    end_width: float = field()
+
+
+class Arrow:
+    def __init__(self, joints: Optional[List[ArrowJoint]] = None):
+        self._joints = joints or []
+        self._validate()
 
     def _validate(self):
-        if len(self._coordinates) < 1:
+        if len(self._joints) < 1:
             raise ValueError("Arrow must have at least 1 coordinate tuples")
-        if len(self._coordinates) != len(self._coords_width_data):
-            raise ValueError("Likely cause is invalidity of the geometry ")
+        for pre_joint, cur_joint in (self._joints[i : i + 2] for i in range(len(self._joints) - 1)):
+            if pre_joint.coord == cur_joint.coord:
+                raise ValueError("consecutive same points detected")
 
     @property
     def shape(self) -> BaseGeometry:
-        self._validate()
-        if len(self._coordinates) < 2:
-            return Point(self._coordinates[0])
+        if len(self._joints) < 2:
+            return Point(self._joints[0].coord)
+
         return tol_union(self._component_shape(), eps=MATH_MIDDLE_EPS)
 
     @property
     def is_closed(self) -> bool:
-        self._validate()
         return self.axis.is_closed
 
     @property
     def axis(self) -> Union[Point, LineString]:
-        self._validate()
-        if len(self._coordinates) < 2:
-            return Point(self._coordinates[0])
-        return LineString(self._coordinates)
+        if len(self.coords) < 2:
+            return Point(self.coords[0])
+        return LineString(self.coords)
 
     @property
     def coords(self) -> List[CoordType]:
-        self._validate()
-        return self._coordinates
+        return [jt.coord for jt in self._joints]
 
     def arrow_direction(self) -> List[Vector]:
         """Arrow pointing direction"""
-        self._validate()
-        if len(self._coordinates) < 2:
+        if len(self.coords) < 2:
             return []
 
         arrow_vectors: List[Vector] = []
-        for coord_index in range(1, len(self._coordinates)):
-            pre_coord = self._coordinates[coord_index - 1]
-            cur_coord = self._coordinates[coord_index]
-            start_width = self._coords_width_data[coord_index - 1][0]
-            end_width = self._coords_width_data[coord_index][1]
-            if math.isclose(start_width, end_width, abs_tol=MATH_EPS):
+
+        for pre_joint, cur_joint in win_slice(self._joints, 2):
+            if self._is_continuous_shaft(pre_joint.start_width, cur_joint.end_width):
                 continue
-            elif start_width > end_width:
-                arrow_vectors.append(Vector.from_origin_to_target(pre_coord, cur_coord))
+            if pre_joint.start_width > cur_joint.end_width:
+                arrow_vectors.append(Vector.from_origin_to_target(pre_joint.coord, cur_joint.coord))
             else:
-                arrow_vectors.append(Vector.from_origin_to_target(cur_coord, pre_coord))
+                arrow_vectors.append(Vector.from_origin_to_target(cur_joint.coord, pre_joint.coord))
+
         return arrow_vectors
 
-    def heads(self) -> List[Polygon]:
-        self._validate()
-        return self._component_shape(lambda width0, width1: math.isclose(width0, width1, abs_tol=MATH_EPS))
+    @staticmethod
+    def _is_continuous_shaft(pre_width, cur_width) -> bool:
+        return math.isclose(pre_width, cur_width, abs_tol=MATH_EPS)
 
-    def shafts(self) -> List[Polygon]:
-        self._validate()
-        return self._component_shape(lambda width0, width1: not math.isclose(width0, width1, abs_tol=MATH_EPS))
+    def _heads(self) -> List[Polygon]:
+        heads: List[Polygon] = []
 
-    def _component_shape(self, filter_func: Optional[Callable[[float, float], bool]] = None) -> List[Polygon]:
-        arrow_component: List[Polygon] = []
-
-        arrow_coords: List[CoordType] = self._coordinates
-        coord_datas: List[Tuple[float, float]] = self._coords_width_data
-        for index in range(1, len(arrow_coords)):
-            cur_vector = Vector.from_origin_to_target(arrow_coords[index - 1], arrow_coords[index])
-            ccw_vector = cur_vector.ccw_perpendicular
-            cw_vector = cur_vector.cw_perpendicular
-            pre_width = coord_datas[index - 1][0] / 2
-            cur_width = coord_datas[index][1] / 2
-            if filter_func is not None and filter_func(pre_width, cur_width):
+        for pre_joint, cur_joint in win_slice(self._joints, 2):
+            if self._is_continuous_shaft(pre_joint.start_width, cur_joint.end_width):
                 continue
-            left_coords = ([ccw_vector.unit(pre_width).apply_coord(arrow_coords[index - 1]),
-                            ccw_vector.unit(cur_width).apply_coord(arrow_coords[index])])
-            right_coords = ([cw_vector.unit(pre_width).apply_coord(arrow_coords[index - 1]),
-                             cw_vector.unit(cur_width).apply_coord(arrow_coords[index])])
-            arrow_component.append(Polygon(chain(reversed(left_coords), right_coords)))
-        return arrow_component
+
+            cur_vector = Vector.from_origin_to_target(pre_joint.coord, cur_joint.coord)
+            ccw_vector = cur_vector.ccw_perpendicular
+
+            heads.append(
+                Polygon(
+                    [
+                        ccw_vector.unit(pre_joint.start_width / 2).apply_coord(pre_joint.coord),
+                        ccw_vector.unit(-pre_joint.start_width / 2).apply_coord(pre_joint.coord),
+                        ccw_vector.unit(cur_joint.end_width / 2).apply_coord(cur_joint.coord),
+                        ccw_vector.unit(-cur_joint.end_width / 2).apply_coord(cur_joint.coord),
+                    ]
+                )
+            )
+
+        return heads
+
+    def _shafts(self):
+        shafts: List[Polygon] = []
+        cur_shaft_coords: List[CoordType] = []
+        cur_shaft_widths: List[float] = []
+
+        for pre_joint, cur_joint in win_slice(self._joints, 2):
+            if self._is_continuous_shaft(pre_joint.start_width, cur_joint.end_width):
+                cur_shaft_coords.append(pre_joint.coord)
+                cur_shaft_widths.append(pre_joint.start_width / 2)
+                continue
+
+            if cur_shaft_coords:
+                cur_shaft_coords.append(pre_joint.coord)
+                _shaft = LineString(cur_shaft_coords)
+                _shaft = _shaft.ext.rbuf(sum(cur_shaft_widths) / len(cur_shaft_widths))
+                shafts.append(_shaft)
+
+                cur_shaft_coords = []
+                cur_shaft_widths = []
+
+        if cur_shaft_coords:
+            cur_shaft_coords.append(self._joints[-1].coord)
+            _shaft = LineString(cur_shaft_coords)
+            _shaft = _shaft.ext.rbuf(sum(cur_shaft_widths) / len(cur_shaft_widths))
+            shafts.append(_shaft)
+
+        return shafts
+
+    def _component_shape(self) -> List[Polygon]:
+        return self._heads() + self._shafts()

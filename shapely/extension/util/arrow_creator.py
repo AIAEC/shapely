@@ -1,10 +1,17 @@
-from typing import Union
+from typing import Union, List, Tuple
 
 from shapely.extension.geometry.straight_segment import StraightSegment
-from shapely.extension.model.arrow import Arrow
+from shapely.extension.model.arrow import ArrowJoint, Arrow
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import CoordType
 from shapely.geometry import Point, LineString
+
+
+def arrow_from_coords_and_width(coords: List[CoordType], widths: List[Tuple[float, float]]):
+    arrow_joints = []
+    for coord, width in zip(coords, widths):
+        arrow_joints.append(ArrowJoint(coord, *width))
+    return Arrow(arrow_joints)
 
 
 class FixHeadArrowFactory:
@@ -13,16 +20,15 @@ class FixHeadArrowFactory:
         self._head_width = head_width
         self._shaft_width = shaft_width
         if self._head_length <= 0:
-            raise ValueError('The result is straight line')
+            raise ValueError("The result is straight line")
         if self._head_width <= self._shaft_width or self._head_width <= 0:
-            raise ValueError('The result is not arrow')
+            raise ValueError("The result is not arrow")
 
-    def from_origin_and_vector(self, origin: Union[Point, CoordType],
-                               direction: Vector,
-                               arrow_length: float,
-                               reverse: bool = False) -> Arrow:
+    def from_origin_and_vector(
+        self, origin: Union[Point, CoordType], direction: Vector, arrow_length: float, reverse: bool = False
+    ) -> Arrow:
         if arrow_length < self._head_length:
-            raise ValueError('The result is triangle')
+            raise ValueError("The result is triangle")
         shaft_length = self._head_length if reverse else arrow_length - self._head_length
         start_coord = origin.coords[0] if isinstance(origin, Point) else origin
         turning_coord = direction.unit(shaft_length).apply_coord(start_coord)
@@ -32,32 +38,33 @@ class FixHeadArrowFactory:
         coords = [start_coord, turning_coord, end_coord]
         if reverse:
             coords.reverse()
-        return Arrow(coords,
-                     [(shaft_width, 0), (head_width, shaft_width), (0, 0)])
+        return arrow_from_coords_and_width(coords, [(shaft_width, 0), (head_width, shaft_width), (0, 0)])
 
     def from_straight_line(self, straight_line: Union[StraightSegment, LineString], reverse: bool = False) -> Arrow:
         if isinstance(straight_line, LineString):
             simplified_lines = straight_line.ext.simplify()
             if len(simplified_lines) != 1:
-                raise ValueError('line is not straight line')
+                raise ValueError("line is not straight line")
             straight_lines = simplified_lines[0].ext.decompose(StraightSegment).to_list()
             if len(straight_lines) != 1:
-                raise ValueError('line is not straight line')
+                raise ValueError("line is not straight line")
             straight_line = straight_lines[0]
         elif not isinstance(straight_line, StraightSegment):
-            raise ValueError('line is not straight line')
+            raise ValueError("line is not straight line")
 
-        return self.from_origin_and_vector(origin=straight_line.ext.start(),
-                                           direction=Vector.from_endpoints_of(straight_line),
-                                           arrow_length=straight_line.length,
-                                           reverse=reverse)
+        return self.from_origin_and_vector(
+            origin=straight_line.ext.start(),
+            direction=Vector.from_endpoints_of(straight_line),
+            arrow_length=straight_line.length,
+            reverse=reverse,
+        )
 
     def from_line(self, line: LineString, reverse: bool = False) -> Arrow:
         shaft_width = self._shaft_width / 2
         head_width = self._head_width / 2
         coords = line.coords[:]
         if len(coords) < 3:
-            raise ValueError('invalid line')
+            raise ValueError("invalid line")
         if reverse:
             coords.reverse()
         coords_widths = [(shaft_width, 0)]
@@ -69,8 +76,7 @@ class FixHeadArrowFactory:
                 coords_widths.append((shaft_width, shaft_width))
             coords_widths.append((head_width, shaft_width))
             coords_widths.append((0, 0))
-        return Arrow(coords,
-                     coords_widths)
+        return arrow_from_coords_and_width(coords, coords_widths)
 
 
 class FixRatioArrowFactory:
@@ -83,17 +89,20 @@ class FixRatioArrowFactory:
         self._shaft_length_ratio = shaft_total_length_ratio
         self._width_ratio = head_shaft_width_ratio
         if self._shaft_length_ratio >= 1:
-            raise ValueError('The result is straight line')
+            raise ValueError("The result is straight line")
         if self._shaft_length_ratio <= 0:
-            raise ValueError('The result is triangle')
+            raise ValueError("The result is triangle")
         if self._width_ratio <= 1:
-            raise ValueError('The result is not arrow')
+            raise ValueError("The result is not arrow")
 
-    def from_origin_and_vector(self, origin: Union[Point, CoordType],
-                               direction: Vector,
-                               arrow_length: float,
-                               shaft_width: float,
-                               reverse: bool = False) -> Arrow:
+    def from_origin_and_vector(
+        self,
+        origin: Union[Point, CoordType],
+        direction: Vector,
+        arrow_length: float,
+        shaft_width: float,
+        reverse: bool = False,
+    ) -> Arrow:
         turning_ratio = self._shaft_length_ratio
         if reverse:
             turning_ratio = 1 - turning_ratio
@@ -106,26 +115,26 @@ class FixRatioArrowFactory:
         coords = [start_coord, turning_coord, end_coord]
         if reverse:
             coords.reverse()
-        return Arrow(coords,
-                     [(shaft_width, 0), (head_width, shaft_width), (0, 0)])
+        return arrow_from_coords_and_width(coords, [(shaft_width, 0), (head_width, shaft_width), (0, 0)])
 
-    def from_straight_line(self,
-                           straight_line: Union[StraightSegment, LineString],
-                           shaft_width: float,
-                           reverse: bool = False) -> Arrow:
+    def from_straight_line(
+        self, straight_line: Union[StraightSegment, LineString], shaft_width: float, reverse: bool = False
+    ) -> Arrow:
         if isinstance(straight_line, LineString):
             simplified_lines = straight_line.ext.simplify()
             if len(simplified_lines) != 1:
-                raise ValueError('line is not straight line')
+                raise ValueError("line is not straight line")
             straight_lines = simplified_lines[0].ext.decompose(StraightSegment).to_list()
             if len(straight_lines) != 1:
-                raise ValueError('line is not straight line')
+                raise ValueError("line is not straight line")
             straight_line = straight_lines[0]
         elif not isinstance(straight_line, StraightSegment):
-            raise ValueError('line is not straight line')
+            raise ValueError("line is not straight line")
 
-        return self.from_origin_and_vector(origin=straight_line.ext.start(),
-                                           direction=Vector.from_endpoints_of(straight_line),
-                                           arrow_length=straight_line.length,
-                                           shaft_width=shaft_width,
-                                           reverse=reverse)
+        return self.from_origin_and_vector(
+            origin=straight_line.ext.start(),
+            direction=Vector.from_endpoints_of(straight_line),
+            arrow_length=straight_line.length,
+            shaft_width=shaft_width,
+            reverse=reverse,
+        )
