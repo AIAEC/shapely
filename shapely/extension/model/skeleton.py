@@ -76,8 +76,11 @@ class Skeleton:
         -------
         trunk segments that have no "duplicated backwards segments"
         """
-        trunk_union = unary_union(self.trunk_segments())
-        return lfilter(lambda seg: trunk_union.distance(seg.ext.start()) < trunk_union.distance(seg.ext.end()),
+        center_geom = unary_union(self.trunk_segments())
+        if not center_geom:
+            center_geom = self._geom.centroid
+
+        return lfilter(lambda seg: center_geom.distance(seg.ext.start()) < center_geom.distance(seg.ext.end()),
                        self._branch_segments)
 
     def full_segments(self) -> List[LineString]:

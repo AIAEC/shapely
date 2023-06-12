@@ -4,7 +4,7 @@ from unittest import TestCase
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.alignment import AlignLineString
 from shapely.extension.model.angle import Angle
-from shapely.extension.model.skeleton_legacy import Skeleton
+from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.vector import Vector
 from shapely.geometry import Polygon, LineString, MultiLineString, box, Point, MultiPoint, MultiPolygon, \
     GeometryCollection
