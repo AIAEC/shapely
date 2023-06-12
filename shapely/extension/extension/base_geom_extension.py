@@ -1,4 +1,3 @@
-import warnings
 from collections.abc import Iterable
 from operator import attrgetter
 from typing import Union, Optional, Tuple, Callable, Dict, Sequence, List
@@ -16,7 +15,8 @@ from shapely.extension.model.envelope import EnvelopeCreator
 from shapely.extension.model.mould import mould
 from shapely.extension.model.projection import Projection, ProjectionTowards
 from shapely.extension.model.raster import DEFAULT_SCALE_FACTOR, RasterFactory
-from shapely.extension.model.skeleton_legacy import Skeleton
+from shapely.extension.model.skeleton import Skeleton
+from shapely.extension.model.skeleton_legacy import Skeleton as SkeletonLegacy
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.distance_predicator_creator import DistancePredicatorCreator
 from shapely.extension.predicator.relation_predicator_creator import RelationPredicatorCreator
@@ -449,6 +449,15 @@ class BaseGeomExtension:
         skeleton object
         """
         return Skeleton(self._geom)
+
+    def skeleton_legacy(self) -> SkeletonLegacy:
+        """
+        generate the legacy skeleton of given geometry
+        Returns
+        -------
+        legacy skeleton object
+        """
+        return SkeletonLegacy(self._gemo)
 
     def legalize(self) -> BaseGeometry:
         """
