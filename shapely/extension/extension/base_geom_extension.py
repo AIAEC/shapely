@@ -85,14 +85,14 @@ class BaseGeomExtension:
         return flatten(self._geom, target_class_or_callable=target_class_or_callable, validate=validate,
                        filter_valid=filter_valid, filter_out_empty=filter_out_empty)
 
-    def largest_piece(self) -> BaseGeometry:
+    def largest_piece(self) -> Polygon:
         """
         flatten current geometry and return the one with largest area
         Returns
         -------
-        BaseGeometry
+        largest polygon part of this geom or Polygon()
         """
-        return flatten(self._geom).max_by(attrgetter('area'), default=EMPTY_GEOM)
+        return flatten(self._geom, target_class_or_callable=Polygon).max_by(attrgetter('area'), default=Polygon())
 
     def envelope(self) -> EnvelopeCreator:
         """

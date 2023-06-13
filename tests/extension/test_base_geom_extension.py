@@ -119,19 +119,19 @@ class BaseGeomExtensionTest(TestCase):
 
     def test_largest_piece(self):
         point = Point(0, 0)
-        self.assertTrue(point.equals(point.ext.largest_piece()))
+        self.assertTrue((point.ext.largest_piece()) == Polygon())
 
         line = LineString([(0, 0), (1, 0)])
-        self.assertTrue(line.equals(line.ext.largest_piece()))
+        self.assertTrue((line.ext.largest_piece()) == Polygon())
 
         polygon = box(0, 0, 1, 1)
         self.assertTrue(polygon.equals(polygon.ext.largest_piece()))
 
-        self.assertTrue(MultiPoint([(0, 0), (1, 0)]).ext.largest_piece().equals(Point(0, 0)))
+        self.assertTrue(MultiPoint([(0, 0), (1, 0)]).ext.largest_piece() == Polygon())
 
         result = MultiLineString([LineString([(0, 0), (1, 0)]),
                                   LineString([(0, 0), (2, 0)])]).ext.largest_piece()
-        self.assertTrue(result.equals(LineString([(0, 0), (1, 0)])))
+        self.assertTrue(result == Polygon())
 
         result = MultiPolygon([box(0, 0, 1, 1), box(0, 0, 2, 2)]).ext.largest_piece()
         self.assertTrue(result.equals(box(0, 0, 2, 2)))
