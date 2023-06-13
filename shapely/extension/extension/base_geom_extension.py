@@ -441,14 +441,14 @@ class BaseGeomExtension:
         """
         return similar(self._geom, geom, area_diff_tol=area_diff_tol)
 
-    def skeleton(self) -> Skeleton:
+    def skeleton(self) -> SkeletonLegacy:  # TODO: temporarily use SkeletonLegacy
         """
         generate the skeleton of given geometry
         Returns
         -------
         skeleton object
         """
-        return Skeleton(self._geom)
+        return SkeletonLegacy(self._geom)
 
     def skeleton_legacy(self) -> SkeletonLegacy:
         """
