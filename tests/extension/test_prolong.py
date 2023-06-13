@@ -1,8 +1,8 @@
 from unittest import TestCase
 
 from shapely.extension.constant import MATH_EPS
-from shapely.extension.util.prolong import prolong
-from shapely.geometry import LineString
+from shapely.extension.util.prolong import prolong, Prolong
+from shapely.geometry import LineString, Polygon, Point
 from shapely.wkt import loads
 
 
@@ -35,8 +35,7 @@ class ProlongTest(TestCase):
         self.assert_geometries_almost_equal(LineString([(-1, 0), (2, 0)]), result)
         self.assertEqual(2, len(list(result.coords)))
 
-        float_line = loads(
-            'LINESTRING (-99.41728331859264 -81.86677583771929, 70.6436647152336 -84.15292082959837)')
+        float_line = loads("LINESTRING (-99.41728331859264 -81.86677583771929, 70.6436647152336 -84.15292082959837)")
         result = prolong(float_line, front_prolong_len=1e-3, end_prolong_len=1e-3)
         self.assertEqual(2, len(result.coords))
 
@@ -59,3 +58,63 @@ class ProlongTest(TestCase):
 
         result = prolong(line, front_prolong_len=-4, end_prolong_len=-4)
         self.assertTrue(line.ext.reverse().equals(result))
+
+    def test_prolong_from_head_util_touching_point(self):
+        line = LineString([(0, 0), (1, 1), (2, 0)])
+        pll = Prolong(line)
+        self.assertTrue(
+            pll.from_head_util_touching(Point((0, 0)), True).equals_exact(loads("LINESTRING (0 0, 1 1, 2 0)"), MATH_EPS)
+        )
+        self.assertTrue(pll.from_head_util_touching(Point((2, 2)), True) is None)
+
+    def test_prolong_from_head_util_touching_line_string(self):
+        line = LineString([(0, 0), (1, 1), (2, 0)])
+        pll = Prolong(line)
+        self.assertTrue(
+            pll.from_head_util_touching(LineString([(-1, -1), (-2, -2)])).equals_exact(
+                loads("LINESTRING (-1 -1, 0 0, 1 1, 2 0)"), MATH_EPS
+            )
+        )
+        self.assertTrue(pll.from_head_util_touching(LineString([(1, 1), (0.5, 0.5)]), True) is None)
+
+    def test_prolong_from_head_util_touching_polygon(self):
+        line = LineString([(0, 0), (1, 1), (2, 0)])
+        pll = Prolong(line)
+        self.assertTrue(
+            pll.from_head_util_touching(Polygon([(-1, -1), (-1, 1), (2, 1), (2, -1)])).equals_exact(
+                loads("LINESTRING (-1 -1, 0 0, 1 1, 2 0)"), MATH_EPS
+            )
+        )
+        self.assertTrue(pll.from_head_util_touching(Polygon([(0, 1), (2, 1), (1, 0.5)]), True) is None)
+
+    def test_prolong_from_tail_util_touching_point(self):
+        line = LineString([(2, 0), (1, 1), (0, 0)])
+        pll = Prolong(line)
+        self.assertTrue(pll.from_tail_util_touching(Point((0, 0)), True).equals(loads("LINESTRING (0 0, 1 1, 2 0)")))
+        self.assertTrue(pll.from_tail_util_touching(Point((2, 2)), True) is None)
+        self.assertTrue(pll.from_tail_util_touching(Point((-3, -3))).equals(loads("LINESTRING (-3 -3, 0 0, 1 1, 2 0)")))
+
+    def test_prolong_from_tail_util_touching_line_string(self):
+        line = LineString([(2, 0), (1, 1), (0, 0)])
+        pll = Prolong(line)
+        self.assertTrue(
+            pll.from_tail_util_touching(LineString([(-1, -1), (-2, -2)])).equals(
+                loads("LINESTRING (-1 -1, 0 0, 1 1, 2 0)")
+            )
+        )
+        self.assertTrue(
+            pll.from_tail_util_touching(LineString([(0, 0), (-2, -2)]), True).equals(
+                loads("LINESTRING (0 0, 1 1, 2 0)")
+            )
+        )
+        self.assertTrue(pll.from_tail_util_touching(LineString([(1, 1), (0.5, 0.5)]), True) is None)
+
+    def test_prolong_from_tail_util_touching_polygon(self):
+        line = LineString([(2, 0), (1, 1), (0, 0)])
+        pll = Prolong(line)
+        self.assertTrue(
+            pll.from_tail_util_touching(Polygon([(-1, -1), (-1, 1), (2, 1), (2, -1)])).equals(
+                loads("LINESTRING (-1 -1, 0 0, 1 1, 2 0)")
+            )
+        )
+        self.assertTrue(pll.from_head_util_touching(Polygon([(0, 1), (2, 1), (1, 0.5)]), True) is None)
