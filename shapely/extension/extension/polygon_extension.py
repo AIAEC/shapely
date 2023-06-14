@@ -1,5 +1,5 @@
 from itertools import product
-from typing import Union, Optional, Iterable, Tuple, List
+from typing import Union, Optional, Iterable, Tuple, List, Literal
 
 from shapely.extension.constant import MATH_EPS, MATH_MIDDLE_EPS
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
@@ -7,6 +7,7 @@ from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
 from shapely.extension.util.ccw import ccw
+from shapely.extension.util.ccw_polygen_to_get_convex import get_points
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.partition import PolygonPartitioner
 from shapely.extension.util.polygon_cutter import PolygonCutter
@@ -35,27 +36,49 @@ class PolygonExtension(BaseGeomExtension):
         for hole in self._geom.interiors:
             yield Polygon(hole)
 
-    def convex_points(self) -> List[Point]:
+    def convex_points(self, boundary_type: Literal["exterior", "interiors", "both"] = "exterior") -> List[Point]:
         """
+
+        Args:
+            boundary_type: get convex points from exterior polygon or interiors polygon or both.
+
         Returns
         -------
-        return the convex points on current polygon's exterior
+        return the convex points on appointed polygon's boundary
+
         """
-        coords = list(ccw(self._geom.exterior.simplify(0)).coords)
-        if len(coords) < 3:  # empty polygon or invalid case
+        # unvalid polygon return empty list for simplicity
+        if self._geom.is_empty or not self._geom.is_valid:
             return []
 
-        if coords[-1] == coords[0]:
-            coords.pop()
+        poly = ccw(self._geom.simplify(0))
+        # make the coords in counter-clockwise direction
+        exter_coords_list = [list(poly.exterior.coords)]
+        inter_coords_list = [list(interior.coords) for interior in poly.interiors]
 
-        points: List[Point] = []
-        for i, coord in enumerate(coords):
-            prev = coords[i - 1]
-            next_ = coords[(i + 1) % len(coords)]
-            if Vector.from_origin_to_target(prev, coord).cross_prod(Vector.from_origin_to_target(coord, next_)) > 0:
-                points.append(Point(coord))
+        return get_points(exter_coords_list, inter_coords_list, boundary_type)
 
-        return points
+    def concave_points(self, boundary_type: Literal["exterior", "interiors", "both"] = "exterior") -> List[Point]:
+        """
+
+        Args:
+            boundary_type: get concave points from exterior polygon or interiors polygon or both.
+
+        Returns
+        -------
+        return the concave points on appointed polygon's boundary
+
+        """
+        if self._geom.is_empty or not self._geom.is_valid:
+            return []
+
+        poly = ccw(self._geom.simplify(0))
+        # make the coords in clockwise direction
+        exter_coords_list = [list(poly.exterior.coords)[::-1]]
+        inter_coords_list = [list(interior.coords)[::-1] for interior in poly.interiors]
+
+        return get_points(exter_coords_list, inter_coords_list, boundary_type)
+
 
     def edge_pair_with(self, poly_or_line: Union[Polygon, LineString],
                        decompose_strategy: Optional[BaseDecomposeStrategy] = None
@@ -140,3 +163,4 @@ class PolygonExtension(BaseGeomExtension):
     @property
     def is_convex(self) -> bool:
         return self._geom.convex_hull.equals(self._geom)
+

@@ -110,7 +110,11 @@ class PolygonExtensionTest(TestCase):
         self.assertTrue(expect2.within(result2.buffer(COMPARE_EPS)))
         self.assertTrue(result2.within(expect2.buffer(COMPARE_EPS)))
 
-    def test_convex_points_of_polygon(self):
+    def test_convex_points_from_exterior(self):
+        unvalid_poly = Polygon([(0, 0), (1, 0), (0, 1), (1, 1)])
+        empty_points = unvalid_poly.ext.convex_points("exterior")
+        self.assertEqual(0, len(empty_points))
+
         # with duplicate coords and concave coords
         poly = Polygon([(0, 0), (2, 0), (2, 2), (1, 2), (1, 1), (0, 1), (0, 1), (0, 1)])
         convex_points = poly.ext.convex_points()
@@ -120,6 +124,74 @@ class PolygonExtensionTest(TestCase):
         self.assertTrue(Point(2, 2) in convex_points)
         self.assertTrue(Point(1, 2) in convex_points)
         self.assertTrue(Point(0, 1) in convex_points)
+
+    def test_convex_points_from_interior(self):
+        unvalid_poly = Polygon([(0, 0), (4, 0), (4, 4), (0, 4)], [[(0, 0), (2, 0), (2, 2)]])
+        empty_points = unvalid_poly.ext.convex_points("interiors")
+        self.assertEqual(0, len(empty_points))
+
+        interior_is_concave = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(4, 2), (6, 6), (1, 6)]])
+        empty_convex = interior_is_concave.ext.convex_points("interiors")
+        self.assertEqual(0, len(empty_convex))
+
+        interior_has_convex = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(1, 1), (3, 3), (5, 1), (5, 5), (1, 5)]])
+        one_convex = interior_has_convex.ext.convex_points("interiors")
+        self.assertEqual(1, len(one_convex))
+        self.assertTrue(Point(3, 3) in one_convex)
+
+    def test_convex_points_from_both(self):
+        poly = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(1, 1), (3, 3), (5, 1), (5, 5), (1, 5)]])
+        both_with_convex = poly.ext.convex_points("both")
+        self.assertEqual(5, len(both_with_convex))
+        self.assertTrue(Point(0, 0) in both_with_convex)
+        self.assertTrue(Point(9, 0) in both_with_convex)
+        self.assertTrue(Point(9, 9) in both_with_convex)
+        self.assertTrue(Point(0, 9) in both_with_convex)
+        self.assertTrue(Point(3, 3) in both_with_convex)
+
+    def test_concave_points_from_exterior(self):
+        unvalid_poly = Polygon([(0, 0), (1, 0), (0, 1), (1, 1)])
+        unvalid_res = unvalid_poly.ext.concave_points("exterior")
+        self.assertEqual(len(unvalid_res), 0)
+
+        poly_with_complex_concave = Polygon([[0, 0], (8, 0), (4, 4), (9, 9), (7, 9), (7, 10), (6, 10), (3, 10), (3, 9), (3, 8), (4, 8), (4, 8), (4, 8)])
+        concave_points = poly_with_complex_concave.ext.concave_points()
+        self.assertEqual(3, len(concave_points))
+        self.assertTrue(Point(4, 4) in concave_points)
+        self.assertTrue(Point(7, 9) in concave_points)
+        self.assertTrue(Point(4, 8) in concave_points)
+
+    def test_concave_points_from_interiors(self):
+        unvalid_poly = Polygon([(0, 0), (4, 0), (4, 4), (0, 4)], [[(0, 0), (2, 0), (2, 2)]])
+        empty_points = unvalid_poly.ext.concave_points("interiors")
+        self.assertEqual(0, len(empty_points))
+
+        interior_is_concave = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(2, 2), (4, 2), (3, 5)]])
+        concave_points = interior_is_concave.ext.concave_points("interiors")
+        self.assertEqual(3, len(concave_points))
+        self.assertTrue(Point(2, 2) in concave_points)
+        self.assertTrue(Point(4, 2) in concave_points)
+        self.assertTrue(Point(3, 5) in concave_points)
+
+        interiors_are_concave = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(2, 2), (4, 2), (3, 5)], [(5, 2), (7, 2), (6, 6)]])
+        concave_points = interiors_are_concave.ext.concave_points("interiors")
+        self.assertEqual(6, len(concave_points))
+        self.assertTrue(Point(2, 2) in concave_points)
+        self.assertTrue(Point(4, 2) in concave_points)
+        self.assertTrue(Point(3, 5) in concave_points)
+        self.assertTrue(Point(5, 2) in concave_points)
+        self.assertTrue(Point(7, 2) in concave_points)
+        self.assertTrue(Point(6, 6) in concave_points)
+
+    def test_concave_points_from_both(self):
+        poly = Polygon([(0, 0), (9, 0), (9, 9), (7, 8), (6, 9), (0, 9)], [[(2, 2), (4, 2), (3, 5)]])
+
+        both_with_concave = poly.ext.concave_points("both")
+        self.assertEqual(4, len(both_with_concave))
+        self.assertTrue(Point(2, 2) in both_with_concave)
+        self.assertTrue(Point(4, 2) in both_with_concave)
+        self.assertTrue(Point(3, 5) in both_with_concave)
+        self.assertTrue(Point(7, 8) in both_with_concave)
 
     def test_is_convex(self):
         assert box(0, 0, 1, 1).ext.ccw().ext.is_convex
