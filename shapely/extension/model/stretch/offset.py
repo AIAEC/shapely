@@ -296,8 +296,10 @@ class Offset:
         assert len(segments_before_offset) == len(segments_after_offset)
 
         for segment_before_offset, segment_after_offset in zip(segments_before_offset, segments_after_offset):
-            origin_edge = self._stretch.find_edge(segment_before_offset, buffer_dist=MATH_MIDDLE_EPS)
-            current_edge = self._stretch.find_edge(segment_after_offset, buffer_dist=MATH_MIDDLE_EPS)
+            origin_edge = self._stretch.find_edge(segment_before_offset, buffer_dist=MATH_MIDDLE_EPS,
+                                                  strict_angle_match=True)
+            current_edge = self._stretch.find_edge(segment_after_offset, buffer_dist=MATH_MIDDLE_EPS,
+                                                   strict_angle_match=True)
             if origin_edge and current_edge:
                 current_edge.cargo.update(origin_edge.cargo.data)
 

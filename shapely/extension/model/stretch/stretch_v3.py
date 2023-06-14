@@ -1278,11 +1278,14 @@ class Stretch:
 
         return [edge for edge in self.edges if edge.shape.intersects(query_geom)]
 
-    def find_edge(self, query_geom: BaseGeometry, buffer_dist: float = 0.0) -> Optional[Edge]:
+    def find_edge(self, query_geom: BaseGeometry,
+                  buffer_dist: float = 0.0,
+                  strict_angle_match: bool = False) -> Optional[Edge]:
         """
         find best matched edge, if not found, return None
         Parameters
         ----------
+        strict_angle_match: require edge angle not to have big difference with query geom angle, useful in some special occasions like finding an edge before offset
         query_geom: geometry instance
         buffer_dist: buffer distance
 
@@ -1305,6 +1308,9 @@ class Stretch:
             including_angle = edge.shape.ext.angle().including_angle(query_geom.ext.angle()).degree
             # projection length as the primary sorting key, the larger, the better
             # including angle as the secondary sorting key, the smaller, the better
+
+            if strict_angle_match and abs(including_angle) > ANGLE_AROUND_EPS:
+                projection_len = 0
             return projection_len, -including_angle
 
         candidate = max(edges, key=projection_direction_tuple)
