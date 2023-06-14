@@ -1,4 +1,3 @@
-import warnings
 from collections.abc import Iterable
 from operator import attrgetter
 from typing import Union, Optional, Tuple, Callable, Dict, Sequence, List
@@ -17,6 +16,7 @@ from shapely.extension.model.mould import mould
 from shapely.extension.model.projection import Projection, ProjectionTowards
 from shapely.extension.model.raster import DEFAULT_SCALE_FACTOR, RasterFactory
 from shapely.extension.model.skeleton import Skeleton
+from shapely.extension.model.skeleton_legacy import Skeleton as SkeletonLegacy
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.distance_predicator_creator import DistancePredicatorCreator
 from shapely.extension.predicator.relation_predicator_creator import RelationPredicatorCreator
@@ -85,14 +85,14 @@ class BaseGeomExtension:
         return flatten(self._geom, target_class_or_callable=target_class_or_callable, validate=validate,
                        filter_valid=filter_valid, filter_out_empty=filter_out_empty)
 
-    def largest_piece(self) -> BaseGeometry:
+    def largest_piece(self) -> Polygon:
         """
         flatten current geometry and return the one with largest area
         Returns
         -------
-        BaseGeometry
+        largest polygon part of this geom or Polygon()
         """
-        return flatten(self._geom).max_by(attrgetter('area'), default=EMPTY_GEOM)
+        return flatten(self._geom, target_class_or_callable=Polygon).max_by(attrgetter('area'), default=Polygon())
 
     def envelope(self) -> EnvelopeCreator:
         """
@@ -441,14 +441,23 @@ class BaseGeomExtension:
         """
         return similar(self._geom, geom, area_diff_tol=area_diff_tol)
 
-    def skeleton(self) -> Skeleton:
+    def skeleton(self) -> SkeletonLegacy:  # TODO: temporarily use SkeletonLegacy
         """
         generate the skeleton of given geometry
         Returns
         -------
         skeleton object
         """
-        return Skeleton(self._geom)
+        return SkeletonLegacy(self._geom)
+
+    def skeleton_legacy(self) -> SkeletonLegacy:
+        """
+        generate the legacy skeleton of given geometry
+        Returns
+        -------
+        legacy skeleton object
+        """
+        return SkeletonLegacy(self._gemo)
 
     def legalize(self) -> BaseGeometry:
         """

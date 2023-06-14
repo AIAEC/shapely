@@ -11,6 +11,7 @@ from shapely.extension.util.ccw_polygen_to_get_convex import get_points
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.partition import PolygonPartitioner
 from shapely.extension.util.polygon_cutter import PolygonCutter
+from shapely.extension.util.regularize import regularize
 from shapely.extension.util.union import tol_union
 from shapely.geometry import Polygon, LineString, JOIN_STYLE, CAP_STYLE, MultiPolygon, Point
 from shapely.ops import unary_union, nearest_points
@@ -164,3 +165,5 @@ class PolygonExtension(BaseGeomExtension):
     def is_convex(self) -> bool:
         return self._geom.convex_hull.equals(self._geom)
 
+    def regularized(self) -> Polygon:
+        return regularize(self._geom)
