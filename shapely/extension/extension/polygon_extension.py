@@ -1,15 +1,13 @@
 from itertools import product
 from typing import Union, Optional, Iterable, Tuple, List, Literal
 
-from pycore_util.func.func_util import lflatten
 
 from shapely.extension.constant import MATH_EPS, MATH_MIDDLE_EPS
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
-from shapely.extension.util.ccw import ccw
-from shapely.extension.util.convexity import convex_coords, transform_coords_to_points
+from shapely.extension.util.convexity import convex_points_in_bounds
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.partition import PolygonPartitioner
 from shapely.extension.util.polygon_cutter import PolygonCutter
@@ -39,40 +37,19 @@ class PolygonExtension(BaseGeomExtension):
         for hole in self._geom.interiors:
             yield Polygon(hole)
 
-    def convex_points(self, boundary_type: Literal["exterior", "interiors", "both"] = "both", counter_clockwise: int = 1) -> List[Point]:
+    def convex_points(self, boundary_type: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
         """
-        return the convex points on appointed polygon's boundary
+        return the convex points in appointed polygon's boundary
 
         Parameters
         ----------
         boundary_type: get convex points from exterior polygon or interiors polygon or both.
-        counter_clockwise: counter_clockwise = 1 means polygon in counter-clockwise direction,
-                            counter_clockwise = -1 means polygon in clockwise direction.
 
         Returns
         -------
         convex points
         """
-        # invalid polygon return empty list for simplicity
-        if self._geom.is_empty or not self._geom.is_valid:
-            return []
-
-        poly = ccw(self._geom.simplify(0))
-        # make the coords in counter-clockwise direction
-        exterior_coords_list = list(poly.exterior.coords)[::counter_clockwise]
-        if boundary_type == "exterior":
-            points = transform_coords_to_points(convex_coords(exterior_coords_list))
-        elif boundary_type == "interiors":
-
-            points = lflatten([transform_coords_to_points(convex_coords(list(interior.coords)[::counter_clockwise])) for interior in poly.interiors])
-        elif boundary_type == "both":
-
-            points = transform_coords_to_points(convex_coords(exterior_coords_list)) + lflatten([transform_coords_to_points(convex_coords(list(interior.coords)[::counter_clockwise])) for interior in poly.interiors])
-
-        else:
-            raise ValueError("Invalid Boundary Type")
-
-        return points
+        return convex_points_in_bounds(self._geom, boundary_type, counter_clockwise=True)
 
     def concave_points(self, boundary_type: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
         """
@@ -86,7 +63,7 @@ class PolygonExtension(BaseGeomExtension):
         -------
         concave points
         """
-        return self.convex_points(boundary_type, counter_clockwise=-1)
+        return convex_points_in_bounds(self._geom, boundary_type, counter_clockwise=False)
 
 
     def edge_pair_with(self, poly_or_line: Union[Polygon, LineString],
