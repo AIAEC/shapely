@@ -1,7 +1,8 @@
 from typing import List, Literal
 
-from pycore_util.func.func_util import lflatten
+from toolz import curry
 
+from shapely.extension.functional import seq
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import CoordType
 from shapely.extension.util.ccw import ccw
@@ -35,40 +36,44 @@ def convex_coords(ccw_coords: List[CoordType]) -> List[CoordType]:
     return coords
 
 
-def convex_points_in_bounds(poly: Polygon, boundary_type: Literal["exterior", "interiors", "both"] = "both",
-                            counter_clockwise: bool = True) -> List[Point]:
+@curry
+def corner_points(poly: Polygon,
+                  on_boundary: Literal["exterior", "interiors", "both"] = "both",
+                  convex_corner: bool = True) -> List[Point]:
     """
-    return convex points in appointed boundary
-    note: if counter_clockwise is false, you will get concave points
+    decompose a polygon into points and pick the convex or concave ones.
 
     Parameters
     ----------
-    poly
-    boundary_type: get convex points from exterior polygon or interiors polygon or both
-    counter_clockwise: ccw flag, if it is false, we will make exterior cw and interiors ccw.
+    poly: polygon instance
+    on_boundary: get convex points from exterior polygon or interiors polygon or both
+    convex_corner: if true, return convex points, else return concave points
 
     Returns
     -------
-    convex points
+    points according to given convex_corner parameter
     """
+    if on_boundary not in ["exterior", "interiors", "both"]:
+        raise ValueError("Invalid Boundary Type")
+
     if poly.is_empty or not poly.is_valid:
         return []
+
     # make the coords in counter-clockwise direction
     poly = ccw(poly.simplify(0))
-    ccw_direction = 1 if counter_clockwise else -1
+    ccw_direction = 1 if convex_corner else -1
 
     exterior_coords_list = list(poly.exterior.coords)[::ccw_direction]
-    if boundary_type == "exterior":
-        points = lmap(Point, convex_coords(exterior_coords_list))
-    elif boundary_type == "interiors":
+    points: List[Point] = []
 
-        points = lflatten(
-            [lmap(Point, (convex_coords(list(interior.coords)[::ccw_direction]))) for interior in poly.interiors])
-    elif boundary_type == "both":
+    if on_boundary in ["exterior", "both"]:
+        points.extend(lmap(Point, convex_coords(exterior_coords_list)))
 
-        points = lmap(Point, convex_coords(exterior_coords_list)) + lflatten(
-            [lmap(Point, convex_coords(list(interior.coords)[::ccw_direction])) for interior in poly.interiors])
-    else:
-        raise ValueError("Invalid Boundary Type")
+    if on_boundary in ["interiors", "both"]:
+        points.extend(seq(list(poly.interiors))
+                      .map(lambda interior: list(interior.coords)[::ccw_direction])
+                      .flat_map(convex_coords)
+                      .map(Point)
+                      .list())
 
     return points

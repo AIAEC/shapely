@@ -7,7 +7,7 @@ from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
-from shapely.extension.util.convexity import convex_points_in_bounds
+from shapely.extension.util.convexity import corner_points
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.partition import PolygonPartitioner
 from shapely.extension.util.polygon_cutter import PolygonCutter
@@ -37,34 +37,33 @@ class PolygonExtension(BaseGeomExtension):
         for hole in self._geom.interiors:
             yield Polygon(hole)
 
-    def convex_points(self, boundary_type: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
+    def convex_points(self, on_boundary: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
         """
         return the convex points in appointed polygon's boundary
 
         Parameters
         ----------
-        boundary_type: get convex points from exterior polygon or interiors polygon or both.
+        on_boundary: get convex points from exterior polygon or interiors polygon or both.
 
         Returns
         -------
         convex points
         """
-        return convex_points_in_bounds(self._geom, boundary_type, counter_clockwise=True)
+        return corner_points(self._geom, on_boundary=on_boundary, convex_corner=True)
 
-    def concave_points(self, boundary_type: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
+    def concave_points(self, on_boundary: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
         """
         return the concave points on appointed polygon's boundary
 
         Parameters
         ----------
-        boundary_type:get convex points from exterior polygon or interiors polygon or both.
+        on_boundary:get convex points from exterior polygon or interiors polygon or both.
 
         Returns
         -------
         concave points
         """
-        return convex_points_in_bounds(self._geom, boundary_type, counter_clockwise=False)
-
+        return corner_points(self._geom, on_boundary=on_boundary, convex_corner=False)
 
     def edge_pair_with(self, poly_or_line: Union[Polygon, LineString],
                        decompose_strategy: Optional[BaseDecomposeStrategy] = None

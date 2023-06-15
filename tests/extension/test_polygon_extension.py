@@ -114,12 +114,12 @@ class PolygonExtensionTest(TestCase):
 
     def test_convex_points_from_exterior(self):
         invalid_poly = Polygon([(0, 0), (1, 0), (0, 1), (1, 1)])
-        empty_points = invalid_poly.ext.convex_points("exterior")
+        empty_points = invalid_poly.ext.corner_points("exterior")
         self.assertEqual(0, len(empty_points))
 
         # with duplicate coords and concave coords
         poly = Polygon([(0, 0), (2, 0), (2, 2), (1, 2), (1, 1), (0, 1), (0, 1), (0, 1)])
-        convex_points = poly.ext.convex_points("exterior")
+        convex_points = poly.ext.corner_points("exterior")
         self.assertEqual(5, len(convex_points))
         self.assertTrue(Point(0, 0) in convex_points)
         self.assertTrue(Point(2, 0) in convex_points)
@@ -129,28 +129,28 @@ class PolygonExtensionTest(TestCase):
 
     def test_convex_points_from_interior(self):
         invalid_poly = Polygon([(0, 0), (4, 0), (4, 4), (0, 4)], [[(0, 0), (2, 0), (2, 2)]])
-        empty_points = invalid_poly.ext.convex_points("interiors")
+        empty_points = invalid_poly.ext.corner_points("interiors")
         self.assertEqual(0, len(empty_points))
 
         interior_is_concave = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(4, 2), (6, 6), (1, 6)]])
-        empty_convex = interior_is_concave.ext.convex_points("interiors")
+        empty_convex = interior_is_concave.ext.corner_points("interiors")
         self.assertEqual(0, len(empty_convex))
 
         interior_has_convex = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(1, 1), (3, 3), (5, 1), (5, 5), (1, 5)]])
-        one_convex = interior_has_convex.ext.convex_points("interiors")
+        one_convex = interior_has_convex.ext.corner_points("interiors")
         self.assertEqual(1, len(one_convex))
         self.assertTrue(Point(3, 3) in one_convex)
 
     def test_convex_points_from_both(self):
         poly_without_interiors = Polygon([(0, 0), (9, 0), (9, 9)])
-        only_exterior = poly_without_interiors.ext.convex_points("both")
+        only_exterior = poly_without_interiors.ext.corner_points("both")
         self.assertEqual(3, len(only_exterior))
         self.assertTrue(Point(0, 0) in only_exterior)
         self.assertTrue(Point(9, 0) in only_exterior)
         self.assertTrue(Point(9, 9) in only_exterior)
 
         poly = Polygon([(0, 0), (9, 0), (9, 9), (0, 9)], [[(1, 1), (3, 3), (5, 1), (5, 5), (1, 5)]])
-        both_with_convex = poly.ext.convex_points("both")
+        both_with_convex = poly.ext.corner_points("both")
         self.assertEqual(5, len(both_with_convex))
         self.assertTrue(Point(0, 0) in both_with_convex)
         self.assertTrue(Point(9, 0) in both_with_convex)
