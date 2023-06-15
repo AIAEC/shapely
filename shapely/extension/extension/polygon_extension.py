@@ -1,12 +1,13 @@
 from itertools import product
-from typing import Union, Optional, Iterable, Tuple, List
+from typing import Union, Optional, Iterable, Tuple, List, Literal
+
 
 from shapely.extension.constant import MATH_EPS, MATH_MIDDLE_EPS
 from shapely.extension.extension.base_geom_extension import BaseGeomExtension
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.decompose_strategy import BaseDecomposeStrategy
-from shapely.extension.util.ccw import ccw
+from shapely.extension.util.convexity import corner_points
 from shapely.extension.util.decompose import decompose
 from shapely.extension.util.partition import PolygonPartitioner
 from shapely.extension.util.polygon_cutter import PolygonCutter
@@ -36,27 +37,33 @@ class PolygonExtension(BaseGeomExtension):
         for hole in self._geom.interiors:
             yield Polygon(hole)
 
-    def convex_points(self) -> List[Point]:
+    def convex_points(self, on_boundary: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
         """
+        return the convex points in appointed polygon's boundary
+
+        Parameters
+        ----------
+        on_boundary: get convex points from exterior polygon or interiors polygon or both.
+
         Returns
         -------
-        return the convex points on current polygon's exterior
+        convex points
         """
-        coords = list(ccw(self._geom.exterior.simplify(0)).coords)
-        if len(coords) < 3:  # empty polygon or invalid case
-            return []
+        return corner_points(self._geom, on_boundary=on_boundary, convex_corner=True)
 
-        if coords[-1] == coords[0]:
-            coords.pop()
+    def concave_points(self, on_boundary: Literal["exterior", "interiors", "both"] = "both") -> List[Point]:
+        """
+        return the concave points on appointed polygon's boundary
 
-        points: List[Point] = []
-        for i, coord in enumerate(coords):
-            prev = coords[i - 1]
-            next_ = coords[(i + 1) % len(coords)]
-            if Vector.from_origin_to_target(prev, coord).cross_prod(Vector.from_origin_to_target(coord, next_)) > 0:
-                points.append(Point(coord))
+        Parameters
+        ----------
+        on_boundary:get convex points from exterior polygon or interiors polygon or both.
 
-        return points
+        Returns
+        -------
+        concave points
+        """
+        return corner_points(self._geom, on_boundary=on_boundary, convex_corner=False)
 
     def edge_pair_with(self, poly_or_line: Union[Polygon, LineString],
                        decompose_strategy: Optional[BaseDecomposeStrategy] = None
