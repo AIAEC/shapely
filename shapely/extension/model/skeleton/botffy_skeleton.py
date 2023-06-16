@@ -14,6 +14,7 @@ from euclid3 import LineSegment2, Line2, Point2, Ray2
 from euclid3 import operator as euclid_operator
 
 from shapely.extension.functional import seq
+from shapely.extension.model.skeleton.base_skeleton import BaseSkeleton
 from shapely.extension.util.func_util import lfilter
 from shapely.geometry import Polygon, LineString, Point, MultiLineString
 from shapely.ops import linemerge, unary_union
@@ -489,7 +490,7 @@ def skeletonize(polygon: Polygon) -> List[LineString]:
     return lines
 
 
-class Skeleton:
+class BotffySkeleton(BaseSkeleton):
     def __init__(self, single_geom: Union[Point, LineString, Polygon]):
         if not isinstance(single_geom, (Point, LineString, Polygon)):
             raise TypeError('only accept single geometry, like point, linestring or polygon')
