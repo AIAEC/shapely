@@ -1,6 +1,6 @@
 import pytest
 
-from shapely.extension.model.skeleton_legacy import skeletonize, Skeleton
+from shapely.extension.model.skeleton.botffy_skeleton import skeletonize, BotffySkeleton
 from shapely.geometry import Polygon, LineString
 from shapely.wkt import loads
 
@@ -42,26 +42,26 @@ def test_skeletonize_of_complex_multi_branch_poly():
 class TestSkeleton:
     def test_trunk_segments_of_polygon(self):
         poly = loads('POLYGON ((100 300, 100 200, 200 200, 200 100, 300 100, 300 300, 100 300))')
-        skeleton = Skeleton(poly)
+        skeleton = BotffySkeleton(poly)
         trunk_segments = skeleton.trunk_segments()
         assert len(trunk_segments) == 2
         assert all(seg.within(poly) for seg in trunk_segments)
 
     def test_trunks_of_polygon(self):
         poly = loads('POLYGON ((100 300, 100 200, 200 200, 200 100, 300 100, 300 300, 100 300))')
-        skeleton = Skeleton(poly)
+        skeleton = BotffySkeleton(poly)
         trunks = skeleton.trunks()
         assert len(trunks) == 1
         assert trunks[0].equals(LineString([(150, 250), (250, 250), (250, 150)]))
 
     def test_full_segments_of_polygon(self):
         poly = loads('POLYGON ((100 300, 100 200, 200 200, 200 100, 300 100, 300 300, 100 300))')
-        skeleton = Skeleton(poly)
+        skeleton = BotffySkeleton(poly)
         trunks = skeleton.full_segments()
         assert len(trunks) == 8
 
     def test_branch_segments_of_polygon(self):
         poly = loads('POLYGON ((100 300, 100 200, 200 200, 200 100, 300 100, 300 300, 100 300))')
-        skeleton = Skeleton(poly)
+        skeleton = BotffySkeleton(poly)
         trunks = skeleton.branch_segments()
         assert len(trunks) == 6

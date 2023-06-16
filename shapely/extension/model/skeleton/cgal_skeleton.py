@@ -1,14 +1,15 @@
-from typing import List, Union, Tuple, Set
+from typing import List, Union, Tuple
 
 from cgal import find_skeleton_of_poly, find_skeleton_of_poly_with_holes, Coord2D
 
+from shapely.extension.model.skeleton.base_skeleton import BaseSkeleton
 from shapely.extension.util.func_util import lmap, lfilter
 from shapely.extension.util.ordered_set import OrderedSet
 from shapely.geometry import LineString, Polygon, Point
 from shapely.ops import linemerge, unary_union
 
 
-class Skeleton:
+class CgalSkeleton(BaseSkeleton):
     def __init__(self, single_geom: Union[Point, LineString, Polygon]):
         if not isinstance(single_geom, (Point, LineString, Polygon)):
             raise TypeError('only accept single geometry, like point, linestring or polygon')
