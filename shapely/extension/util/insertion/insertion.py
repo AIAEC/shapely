@@ -115,7 +115,9 @@ class Insertion:
 
         bounce_segments = lmap(self._bounce_segment, convex_obstacle.exterior.ext.ccw().ext.segments())
         connected_bounce_segments: List[LineString] = self._connect_bounce_segments(bounce_segments, convex_obstacle)
-        invalid_insertion = Polygon(lconcat(map(lambda seg: seg.coords, connected_bounce_segments))).simplify(0)
+        invalid_insertion: Polygon = (Polygon(lconcat(map(lambda seg: seg.coords, connected_bounce_segments)))
+                                      .simplify(0)
+                                      .ext.largest_piece())
         return invalid_insertion
 
     def _bounce_segment(self, convex_ccw_segment: StraightSegment) -> LineString:
