@@ -50,8 +50,12 @@ class Insertion:
         -------
 
         """
+        if space.is_empty:
+            return []
+
         if not self._inserter.shape.area > 0:
             return [space]
+
         rotated_space = space.ext.rotate_ccw(-1.0 * self._inserter_angle, origin=(0, 0))
         rotated_obstacle = obstacle.ext.rotate_ccw(-1.0 * self._inserter_angle,
                                                    origin=(0, 0)) if obstacle else None
