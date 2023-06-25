@@ -72,7 +72,7 @@ class ProjectionTest(TestCase):
         self.assertEqual(1, len(segments))
         self.assertEqual(1, len(positive_intervals))
         self.assertEqual(1, len(negative_intervals))
-        self.assertEqual(LineString([(-10, 0), (40, 0)]), segments[0])
+        self.assertEqual(LineString([(40, 0), (-10, 0)]), segments[0])
         self.assertEqual(-0.1, positive_intervals[0].left)
         self.assertEqual(0.4, positive_intervals[0].right)
         self.assertEqual(0.4, negative_intervals[0].left)
@@ -89,7 +89,7 @@ class ProjectionTest(TestCase):
         self.assertEqual(1, len(segments))
         self.assertEqual(1, len(positive_intervals))
         self.assertEqual(1, len(negative_intervals))
-        self.assertEqual(LineString([(80, 0), (120, 0)]), segments[0])
+        self.assertEqual(LineString([(120, 0), (80, 0)]), segments[0])
         self.assertEqual(0.8, positive_intervals[0].left)
         self.assertEqual(1.2, positive_intervals[0].right)
         self.assertEqual(0, negative_intervals[0].left)
@@ -131,7 +131,7 @@ class ProjectionTest(TestCase):
 
         projector_1 = LineString([(-10, -20), (30, 20)])
         segments_1 = Projection(projector_1).onto(target_line, is_out_of_target=True).segments
-        self.assertEqual(LineString([(-10, 0), (30, 0)]), segments_1[0])
+        self.assertEqual(LineString([(30, 0), (-10, 0)]), segments_1[0])
 
         projector_2 = box(-10, -10, 30, 30)
         segments_2 = Projection(projector_2).onto(target_line).segments

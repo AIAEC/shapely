@@ -5,6 +5,7 @@ from typing import Union, List, Optional
 
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS, MATH_MIDDLE_EPS
 from shapely.extension.geometry.straight_segment import StraightSegment
+from shapely.extension.model.envelope import EdgePosition
 from shapely.extension.model.interval import Interval
 from shapely.extension.model.vector import Vector
 from shapely.extension.util.func_util import lfilter, min_max, lconcat, lmap
@@ -115,8 +116,11 @@ class ProjectionOnLine:
 
         target_pro_line = self.target_line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE)
 
+        # simplify the projector's coords
+        coords = self.projector.ext.envelope().of_angle(self.direction.angle).edge(EdgePosition.LEFT).coords
+
         # cal rays which cross coords of projector in direct
-        cross_lines = [self.direction.ray(origin=coord) for coord in self.projector.coords]
+        cross_lines = [self.direction.ray(origin=coord) for coord in coords]
 
         # TODO: maybe add a selection which is unidirectional or bidirectional extension
         cross_lines = [end_vertical.ext.prolong().from_head(LARGE_ENOUGH_DISTANCE)
