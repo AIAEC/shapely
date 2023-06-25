@@ -115,6 +115,18 @@ class ProjectionOnLine:
 
         target_pro_line = self.target_line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE)
 
+        # orthogonal
+        if abs(self.direction.dot(Vector.from_endpoints_of(self.target_line))) < MATH_MIDDLE_EPS:
+            pts = self.projector.ext.decompose(Point).to_list()
+            project_vals = sorted([target_pro_line.project(pt) for pt in pts])
+            start_pt, end_pt = target_pro_line.interpolate(project_vals[0]), target_pro_line.interpolate(project_vals[-1])
+            if not self.is_out_of_target:
+                if self.target_line.distance(start_pt) > MATH_MIDDLE_EPS:
+                    start_pt = self.target_line.ext.start()
+                if self.target_line.distance(end_pt) > MATH_MIDDLE_EPS:
+                    end_pt = self.target_line.ext.end()
+            return [LineString([start_pt, end_pt])]
+
         # cal rays which cross coords of projector in direct
         cross_lines = [self.direction.ray(origin=coord) for coord in self.projector.coords]
 
@@ -252,7 +264,8 @@ class Projection:
     def __init__(self, projector: BaseGeometry):
         self._projector = projector
 
-    def onto(self, target_line: LineString,
+    def onto(self,
+             target_line: LineString,
              direction: Optional[Union[Vector, float]] = None,
              is_out_of_target: bool = False) -> ProjectionOnLine:
         """
