@@ -68,6 +68,8 @@ class Raster:
                 result = LineString(geom.exterior)
             else:
                 result = Polygon(shell=geom.exterior, holes=geom.interiors)
+                if not result.is_valid:
+                    result = result.buffer(0)
             shapely_geoms.append(result)
 
         union_shape = unary_union(shapely_geoms)

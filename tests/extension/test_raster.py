@@ -72,8 +72,15 @@ class TestRaster(TestCase):
         result = input_raster.convolution(kernel_line.ext.raster()).vectorize()
         self.assertTrue(all([isinstance(single_result, BaseGeometry) for single_result in result]))
 
-        result = kernel.ext.insertion(polys)
+        result = kernel.ext.insertion(polys, space=polys.envelope.ext.rbuf(5))
         self.assertTrue(all([isinstance(single_result, BaseGeometry) for single_result in result]))
+
+        space2 = polys.envelope.ext.rbuf(2).difference(polys)
+        result = kernel.ext.insertion(polys.ext.decompose(Polygon).list()[0], space=space2)
+        self.assertNotIsInstance(unary_union(result), Polygon)
+
+        result = kernel.ext.insertion()
+        self.assertFalse(result)
 
     def test_vectorize(self):
         poly_with_hole = Polygon(shell=([(0, 0), (20, 0), (20, 20), (0, 20)]),

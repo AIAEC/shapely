@@ -470,7 +470,7 @@ class BaseGeomExtension:
     def raster(self, scale_factor: float = DEFAULT_SCALE_FACTOR):
         return RasterFactory(scale_factor).from_geom(self._geom)
 
-    def insertion(self, geom: BaseGeometry,
+    def insertion(self, obstacle: Optional[BaseGeometry] = None, space: Optional[Polygon] = None,
                   inserter: Optional[Callable[[BaseGeometry], List[BaseGeometry]]] = None) -> List[BaseGeometry]:
         """
         find all possible space in geom to insert self._geom
@@ -478,5 +478,5 @@ class BaseGeomExtension:
         raster_insertion can deal with more shape, but will have a loss of precision
         """
         if not inserter:
-            inserter = raster_inserter(insert_geom=self._geom, scale_factor=DEFAULT_SCALE_FACTOR)
-        return inserter(obstacle=geom)
+            inserter = raster_inserter(insert_geom=self._geom, space=space, scale_factor=DEFAULT_SCALE_FACTOR)
+        return inserter(obstacle=obstacle)
