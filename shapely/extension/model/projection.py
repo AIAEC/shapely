@@ -125,6 +125,8 @@ class ProjectionOnLine:
                     start_pt = self.target_line.ext.start()
                 if self.target_line.distance(end_pt) > MATH_MIDDLE_EPS:
                     end_pt = self.target_line.ext.end()
+            if start_pt.distance(end_pt) < MATH_EPS:
+                return []
             return [LineString([start_pt, end_pt])]
 
         # cal rays which cross coords of projector in direct
