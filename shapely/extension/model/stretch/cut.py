@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from shapely.extension.constant import MATH_MIDDLE_EPS, END_ATTACH_RATIO_DIGIT
+from shapely.extension.constant import END_ATTACH_RATIO_DIGIT, STRETCH_EPS
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.creator import ClosureReconstructor
 from shapely.extension.model.stretch.stretch_v3 import Closure, Edge
@@ -14,8 +14,8 @@ class Cut:
         self._closure_strategy = closure_strategy or ClosureStrategy()
 
     def by(self, line: Union[LineString, MultiLineString],
-           dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-           dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+           dist_tol_to_pivot: float = STRETCH_EPS,
+           dist_tol_to_edge: float = STRETCH_EPS,
            end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT) -> 'Cut':
 
         new_closures: List[Closure] = []
@@ -42,8 +42,8 @@ class Cut:
 
     def _cut_closure_by_line(self, closure: Closure,
                              line_inside: LineString,
-                             dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                             dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                             dist_tol_to_pivot: float = STRETCH_EPS,
+                             dist_tol_to_edge: float = STRETCH_EPS,
                              end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT) -> List[Closure]:
         new_edges: List[Edge] = []
         new_edges.extend(closure.stretch.add_edge(line=line_inside,
@@ -70,12 +70,13 @@ class Cut:
 
     def _cut_closure_by_lines(self, closure: Closure,
                               lines: List[LineString],
-                              dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                              dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                              dist_tol_to_pivot: float = STRETCH_EPS,
+                              dist_tol_to_edge: float = STRETCH_EPS,
                               end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT) -> List[Closure]:
 
         closures: List[Closure] = [closure]
         new_closures: List[Closure] = []
+
         for line in lines:
             for closure in closures:
                 if not closure.shape.intersects(line):

@@ -6,7 +6,7 @@ from operator import truth, itemgetter
 from typing import List, Optional, Dict, Union, Tuple, Callable
 from weakref import ref, ReferenceType
 
-from shapely.extension.constant import MATH_MIDDLE_EPS, MATH_EPS, ANGLE_AROUND_EPS, END_ATTACH_RATIO_DIGIT
+from shapely.extension.constant import MATH_EPS, ANGLE_AROUND_EPS, END_ATTACH_RATIO_DIGIT, STRETCH_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.cargo import Cargo
@@ -291,8 +291,8 @@ class Edge:
         return Expansion(self)
 
     def sub_edge(self, interval: Union[Interval, Tuple[float, float]],
-                 dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                 dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                 dist_tol_to_pivot: float = STRETCH_EPS,
+                 dist_tol_to_edge: float = STRETCH_EPS,
                  absolute: bool = True) -> 'Edge':
         """
         [LOW LEVEL API] get sub edge of current edge
@@ -683,7 +683,7 @@ class EdgeSeq:
         if ref_to_last_new_edge not in old_edge_to_pivot._in_edges:
             old_edge_to_pivot._in_edges.append(ref_to_last_new_edge)
 
-    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS,
+    def simplify(self, angle_tol: float = STRETCH_EPS,
                  consider_cargo_equality: bool = True,
                  cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None) -> None:
         """
@@ -897,8 +897,8 @@ class Closure:
         return None
 
     def cut(self, line: Union[LineString, MultiLineString],
-            dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-            dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+            dist_tol_to_pivot: float = STRETCH_EPS,
+            dist_tol_to_edge: float = STRETCH_EPS,
             end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
             closure_strategy: Optional['ClosureStrategy'] = None) -> List['Closure']:
         """
@@ -926,8 +926,8 @@ class Closure:
                 .closures())
 
     def split(self, line: Union[LineString, MultiLineString],
-              dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-              dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+              dist_tol_to_pivot: float = STRETCH_EPS,
+              dist_tol_to_edge: float = STRETCH_EPS,
               end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
               closure_strategy: Optional['ClosureStrategy'] = None) -> List['Closure']:
         """
@@ -1019,8 +1019,8 @@ class Closure:
         return closures
 
     def difference(self, polygon,
-                   dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                   dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> List['Closure']:
+                   dist_tol_to_pivot: float = STRETCH_EPS,
+                   dist_tol_to_edge: float = STRETCH_EPS) -> List['Closure']:
         if polygon.disjoint(self.shape):
             return [self]
 
@@ -1068,7 +1068,7 @@ class Closure:
 
         return new_closures
 
-    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS,
+    def simplify(self, angle_tol: float = STRETCH_EPS,
                  consider_cargo_equality: bool = True,
                  cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None) -> None:
         """
@@ -1592,8 +1592,8 @@ class Stretch:
             assert pivot.deleted
 
     def add_pivot(self, origin: Union[CoordType, Point],
-                  dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                  dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                  dist_tol_to_pivot: float = STRETCH_EPS,
+                  dist_tol_to_edge: float = STRETCH_EPS,
                   cargo_dict: Optional[dict] = None) -> Pivot:
         """
         [MID LEVEL API] create pivot WITH duplicate pivot checking and edge attaching
@@ -1630,8 +1630,8 @@ class Stretch:
         return pivot
 
     def add_edge(self, line: LineString,
-                 dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                 dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                 dist_tol_to_pivot: float = STRETCH_EPS,
+                 dist_tol_to_edge: float = STRETCH_EPS,
                  end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
                  cargo_dict: Optional[dict] = None) -> EdgeSeq:
         """
@@ -1690,8 +1690,8 @@ class Stretch:
         return EdgeSeq(edges)
 
     def add_closure(self, polygon: Polygon,
-                    dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                    dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+                    dist_tol_to_pivot: float = STRETCH_EPS,
+                    dist_tol_to_edge: float = STRETCH_EPS,
                     end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
                     cargo_dict: Optional[dict] = None) -> Closure:
         """
@@ -1726,8 +1726,8 @@ class Stretch:
                 .create())
 
     def split(self, lines: Union[List[LineString], MultiLineString, LineString],
-              dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-              dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+              dist_tol_to_pivot: float = STRETCH_EPS,
+              dist_tol_to_edge: float = STRETCH_EPS,
               end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT,
               closure_strategy: Optional['ClosureStrategy'] = None):
 
@@ -1740,7 +1740,7 @@ class Stretch:
                           closure_strategy=closure_strategy)
         return self
 
-    def simplify(self, angle_tol: float = MATH_MIDDLE_EPS,
+    def simplify(self, angle_tol: float = STRETCH_EPS,
                  consider_cargo_equality: bool = True,
                  cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None) -> None:
         """

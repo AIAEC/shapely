@@ -1,6 +1,6 @@
 from typing import Union, List, Optional
 
-from shapely.extension.constant import MATH_MIDDLE_EPS, COMPARE_EPS
+from shapely.extension.constant import MATH_MIDDLE_EPS, COMPARE_EPS, STRETCH_EPS
 from shapely.extension.functional import seq
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
@@ -66,8 +66,8 @@ class Offset:
         return [EdgeSeq(ClosureStrategy.sort_edges_by_chain(_edges)) for _edges in edges_groups]
 
     def offset(self, dist: float,
-               dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-               dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> List[EdgeSeq]:
+               dist_tol_to_pivot: float = STRETCH_EPS,
+               dist_tol_to_edge: float = STRETCH_EPS) -> List[EdgeSeq]:
         """
 
         Parameters
@@ -141,8 +141,8 @@ class Offset:
                             offset_dist: float,
                             inclusive_space: Polygon,
                             union_to_closure: Optional[Closure] = None,
-                            dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                            dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> None:
+                            dist_tol_to_pivot: float = STRETCH_EPS,
+                            dist_tol_to_edge: float = STRETCH_EPS) -> None:
         """
 
         Parameters
@@ -241,8 +241,8 @@ class Offset:
     def outer_offset_helper(self, line_after_offset: LineString,
                             offset_dist: float,
                             exclusive_space: Optional[Polygon] = None,
-                            dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                            dist_tol_to_edge: float = MATH_MIDDLE_EPS) -> None:
+                            dist_tol_to_pivot: float = STRETCH_EPS,
+                            dist_tol_to_edge: float = STRETCH_EPS) -> None:
         """
 
         Parameters

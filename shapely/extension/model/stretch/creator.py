@@ -2,7 +2,7 @@ from copy import deepcopy
 from operator import attrgetter
 from typing import List, Union, Optional, Dict
 
-from shapely.extension.constant import MATH_MIDDLE_EPS, END_ATTACH_RATIO_DIGIT
+from shapely.extension.constant import END_ATTACH_RATIO_DIGIT, STRETCH_EPS
 from shapely.extension.functional import seq
 from shapely.extension.model.stretch.closure_strategy import ClosureStrategy
 from shapely.extension.model.stretch.stretch_v3 import Stretch, Pivot, Edge, EdgeSeq, Closure
@@ -182,8 +182,8 @@ class ClosureReconstructor:
 
         return self
 
-    def reconstruct(self, dist_tol_to_pivot: float = MATH_MIDDLE_EPS,
-                    dist_tol_to_edge: float = MATH_MIDDLE_EPS,
+    def reconstruct(self, dist_tol_to_pivot: float = STRETCH_EPS,
+                    dist_tol_to_edge: float = STRETCH_EPS,
                     end_attach_ratio_digit: int = END_ATTACH_RATIO_DIGIT) -> List[Closure]:
         interiors = [interior.shape for interior in self._interiors]
         exteriors = sorted([exterior.shape for exterior in self._exteriors], key=lambda shape: shape.length)

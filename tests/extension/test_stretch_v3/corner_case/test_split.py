@@ -107,8 +107,6 @@ def stretch_case6() -> Stretch:
     return Stretch.loads(json_str)
 
 
-@pytest.mark.skip
-# TODO fix split
 def test_split_with_cuttings_overlapping_some_edges(stretch_case6):
     stretch = stretch_case6
     dividing_lines = loads(
