@@ -14,22 +14,17 @@ from toolz import curry
 def raster_inserter(insert_geom: BaseGeometry,
                     obstacle: Optional[BaseGeometry],
                     space: Optional[Polygon] = None,
-                    scale_factor: float = DEFAULT_SCALE_FACTOR) -> BaseGeometry:
+                    scale_factor: float = DEFAULT_SCALE_FACTOR) -> List[BaseGeometry]:
     if not obstacle:
+        obstacle = Polygon()
         if not space:
-            return Polygon()
-        boundary_mound = space.envelope.ext.mould(1).difference(space)
-        return boundary_mound.ext.raster(scale_factor).convolution(insert_geom.ext.raster(scale_factor)).vectorize()
+            return [Polygon()]
 
     if not space:
         space = obstacle.envelope
 
-    interior_polys: List[Polygon] = []
-    for interior in space.interiors:
-        interior_polys.append(Polygon(interior))
-
-    boundary_mound = space.envelope.ext.mould(1).difference(space)
-    obstacle_for_insertion = unary_union([boundary_mound, obstacle, *interior_polys])
+    boundary_mound = space.ext.mould(1)
+    obstacle_for_insertion = unary_union([boundary_mound, obstacle])
 
     return obstacle_for_insertion.ext.raster(scale_factor).convolution(insert_geom.ext.raster(scale_factor)).vectorize()
 

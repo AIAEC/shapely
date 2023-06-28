@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import pytest
 from numpy import ones, array, int32
+from shapely.extension.util.insertion.inserter import raster_inserter
 
 from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.extension.model.raster import RasterFactory, Raster
@@ -122,3 +123,33 @@ class TestRaster(TestCase):
         poly_union = unary_union([outside_polygon, middle_polygon, inside_polygon2, inside_polygon1, inside_point])
         result = poly_union.ext.raster().vectorize()
         self.assertEqual(len(result), 5)
+
+
+@pytest.mark.skip
+class TestRasterInserter(TestCase):
+    def test_no_space(self):
+        obstacle = LineString([(0, 0), (2, 2)]).ext.rbuf(0.5)
+        insert_polygon = LineString([(0, 0), (0.5, 0)]).ext.rbuf(0.25)
+        result = raster_inserter(insert_geom=insert_polygon, obstacle=obstacle)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(all([isinstance(single_result, Polygon) for single_result in result]))
+        pass
+
+    def test_no_obstacle(self):
+        space = Polygon(([(0, 0), (10, 0), (20, 10), (20, 20)]), [([(4, 1), (6, 1), (4, 3)])])
+        insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
+        result = raster_inserter(insert_geom=insert_polygon, obstacle=None, space=space)
+        self.assertEqual(len(result), 1)
+
+    def test_no_space_no_obstacle(self):
+        insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
+        result = raster_inserter(insert_geom=insert_polygon, obstacle=None, space=None)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result, [Polygon()])
+
+    def test_space_and_obstacle(self):
+        space = Polygon(([(0, 0), (10, 0), (20, 10), (20, 20)]), [([(4, 1), (6, 1), (4, 3)])])
+        obstacle = Polygon(([(10, 2), (15, 7), (15, 13), (10, 8)]))
+        insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
+        result = raster_inserter(insert_geom=insert_polygon, obstacle=obstacle, space=space)
+        self.assertEqual(len(result), 2)
