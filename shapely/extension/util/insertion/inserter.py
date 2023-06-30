@@ -24,7 +24,7 @@ def raster_inserter(insert_geom: BaseGeometry,
         space = obstacle.envelope
 
     boundary_mound = space.ext.mould(1)
-    obstacle_for_insertion = unary_union([boundary_mound, obstacle])
+    obstacle_for_insertion = unary_union([boundary_mound, obstacle.intersection(space)])
 
     return obstacle_for_insertion.ext.raster(scale_factor).convolution(insert_geom.ext.raster(scale_factor)).vectorize()
 
