@@ -175,7 +175,9 @@ setup_args = dict(
                            'descartes == 1.1.0',
                            'matplotlib == 3.7.1',
                            'opencv_python == 4.7.0.72',
-                           'cgal >= 0.0.1'],
+                           'cgal >= 1.7.dev0, <2',
+                           'pydantic >= 2.0'
+                           ],
     name                = 'Shapely',
     version             = str(shapely_version),
     description         = 'Geometric objects, predicates, and operations',

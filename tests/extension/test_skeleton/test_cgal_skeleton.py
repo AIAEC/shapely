@@ -73,5 +73,6 @@ class TestSkeletonForPolygonWithHoles:
 class TestSkeletonForComplexPolygon0:
     def test_full_segments_of_polygon(self, complex_poly0):
         poly = complex_poly0
-        with pytest.raises(ValueError):
-            Skeleton(poly)
+        skeleton = Skeleton(poly)
+        trunks = skeleton.trunks()
+        assert len(trunks) == 3
