@@ -10,6 +10,8 @@ from shapely.geometry.base import BaseGeometry
 
 
 def _annotation(type_: Type[BaseGeometry], assert_valid: bool = True, assert_non_empty: bool = True):
+    # pydantic cannot be installed on builder environment due to legacy centos5.0 incompatibility to rust and cargo
+    # thus make the import local to make sure it only runs on local machine or server
     from pydantic import GetJsonSchemaHandler
     from pydantic.json_schema import JsonSchemaValue
     from pydantic_core import core_schema
