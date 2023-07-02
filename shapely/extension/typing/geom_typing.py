@@ -1,8 +1,5 @@
 from typing import Any, Callable, Annotated
 
-from pydantic import GetJsonSchemaHandler
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import core_schema
 from typing_extensions import Type
 
 from shapely.extension.typing.json_schema import json_schema
@@ -13,6 +10,10 @@ from shapely.geometry.base import BaseGeometry
 
 
 def _annotation(type_: Type[BaseGeometry], assert_valid: bool = True, assert_non_empty: bool = True):
+    from pydantic import GetJsonSchemaHandler
+    from pydantic.json_schema import JsonSchemaValue
+    from pydantic_core import core_schema
+
     class Annotation:
         @classmethod
         def __get_pydantic_core_schema__(

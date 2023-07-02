@@ -1,8 +1,6 @@
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from shapely.extension.typing import PointT, LineStringT, PolygonT, MultiPointT, MultiLineStringT, MultiPolygonT, \
-    GeometryCollectionT, PolygonTF, LinearRingT
 from shapely.extension.typing.json_schema import json_schema
 from shapely.geometry import shape, mapping, Polygon, Point, box
 from shapely.wkb import dumps as wkb_dumps
@@ -40,6 +38,8 @@ def do_test_validate_empty_geom(model_clz, typing):
 
 @pytest.mark.local
 def test_model(point, line, polygon, multi_point, multi_linestring, multi_polygon, geometry_collection):
+    from shapely.extension.typing import PointT, LineStringT, PolygonT, MultiPointT, MultiLineStringT, MultiPolygonT, \
+        GeometryCollectionT
     data_typing_pairs = [(point, PointT),
                          (line, LineStringT),
                          (polygon, PolygonT),
@@ -59,6 +59,7 @@ def test_model(point, line, polygon, multi_point, multi_linestring, multi_polygo
 
 @pytest.mark.local
 def test_type_mismatch():
+    from shapely.extension.typing import PolygonT
     point = Point(1, 2)
 
     class _T(BaseModel):
@@ -70,6 +71,7 @@ def test_type_mismatch():
 
 @pytest.mark.local
 def test_invalid_polygon():
+    from shapely.extension.typing import PolygonT
     poly = Polygon([(0, 0), (1, 0), (0, 1), (1, 1), (0, 0)])
     assert not poly.is_valid
 
@@ -82,6 +84,7 @@ def test_invalid_polygon():
 
 @pytest.mark.local
 def test_tolerate_invalid():
+    from shapely.extension.typing import PolygonTF
     poly = Polygon([(0, 0), (1, 0), (0, 1), (1, 1), (0, 0)])
     assert not poly.is_valid
 
@@ -93,6 +96,7 @@ def test_tolerate_invalid():
 
 @pytest.mark.local
 def test_tolerate_empty():
+    from shapely.extension.typing import PolygonTF
     empty = Polygon()
     assert empty.is_empty
 
@@ -104,6 +108,7 @@ def test_tolerate_empty():
 
 @pytest.mark.local
 def test_tolerate_invalid_and_empty():
+    from shapely.extension.typing import PolygonTF
     class _T(BaseModel):
         geom: PolygonTF(valid=False, non_empty=False)
 
@@ -118,6 +123,7 @@ def test_tolerate_invalid_and_empty():
 
 @pytest.mark.local
 def test_dump_linearring_to_linestring_geojson():
+    from shapely.extension.typing import LinearRingT
     ring = box(0, 0, 1, 1).exterior
 
     class _T(BaseModel):
@@ -131,6 +137,7 @@ def test_dump_linearring_to_linestring_geojson():
 
 @pytest.mark.local
 def test_only_load_2d_geometry():
+    from shapely.extension.typing import PointT
     point = Point(0, 0, 0)
     assert point.has_z
 
