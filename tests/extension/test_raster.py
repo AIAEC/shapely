@@ -12,7 +12,7 @@ from shapely.ops import unary_union
 from shapely.wkt import loads
 
 
-@pytest.mark.skip
+@pytest.mark.local
 class TestRaster(TestCase):
     def test_from_geom(self):
         poly_geom = Polygon(([(2, 2), (4, 2), (4, 3), (2, 3)]))
@@ -125,7 +125,7 @@ class TestRaster(TestCase):
         self.assertEqual(len(result), 5)
 
 
-@pytest.mark.skip
+@pytest.mark.local
 class TestRasterInserter(TestCase):
     def test_no_space(self):
         obstacle = LineString([(0, 0), (2, 2)]).ext.rbuf(0.5)

@@ -38,6 +38,7 @@ def do_test_validate_empty_geom(model_clz, typing):
         model_clz(geom=empty_geom)
 
 
+@pytest.mark.local
 def test_model(point, line, polygon, multi_point, multi_linestring, multi_polygon, geometry_collection):
     data_typing_pairs = [(point, PointT),
                          (line, LineStringT),
@@ -56,6 +57,7 @@ def test_model(point, line, polygon, multi_point, multi_linestring, multi_polygo
         do_test_validate_empty_geom(_T, typing)
 
 
+@pytest.mark.local
 def test_type_mismatch():
     point = Point(1, 2)
 
@@ -66,6 +68,7 @@ def test_type_mismatch():
         _T(geom=point)
 
 
+@pytest.mark.local
 def test_invalid_polygon():
     poly = Polygon([(0, 0), (1, 0), (0, 1), (1, 1), (0, 0)])
     assert not poly.is_valid
@@ -77,6 +80,7 @@ def test_invalid_polygon():
         _T(geom=poly)
 
 
+@pytest.mark.local
 def test_tolerate_invalid():
     poly = Polygon([(0, 0), (1, 0), (0, 1), (1, 1), (0, 0)])
     assert not poly.is_valid
@@ -87,6 +91,7 @@ def test_tolerate_invalid():
     assert isinstance(_T(geom=poly), _T)
 
 
+@pytest.mark.local
 def test_tolerate_empty():
     empty = Polygon()
     assert empty.is_empty
@@ -97,6 +102,7 @@ def test_tolerate_empty():
     assert isinstance(_T(geom=empty), _T)
 
 
+@pytest.mark.local
 def test_tolerate_invalid_and_empty():
     class _T(BaseModel):
         geom: PolygonTF(valid=False, non_empty=False)
@@ -110,6 +116,7 @@ def test_tolerate_invalid_and_empty():
     assert isinstance(_T(geom=empty), _T)
 
 
+@pytest.mark.local
 def test_dump_linearring_to_linestring_geojson():
     ring = box(0, 0, 1, 1).exterior
 
@@ -122,6 +129,7 @@ def test_dump_linearring_to_linestring_geojson():
     assert geojson["geom"]["type"] == "LineString"
 
 
+@pytest.mark.local
 def test_only_load_2d_geometry():
     point = Point(0, 0, 0)
     assert point.has_z

@@ -21,7 +21,7 @@ pipeline {
         container('builder') {
           sh '/opt/python/cp39-cp39/bin/python3 -m pip config set global.index-url https://shoebill:quokka@pypi.aiacesz.com/simple'
           sh '/opt/python/cp39-cp39/bin/python3 -m pip install -r requirements-test.txt'
-          sh '/opt/python/cp39-cp39/bin/python3 -m pytest'
+          sh '/opt/python/cp39-cp39/bin/python3 -m pytest -m "not local"'
         }
       }
     }

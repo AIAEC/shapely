@@ -1,8 +1,8 @@
+# pydantic>=2.0 # cannot install on builder image sadly
 cython>=0.29.24
 #descartes==1.0.1
 #matplotlib
 numpy>=1.4.1
-pydantic>=2.0
 pytest
 pytest-cov
 setuptools
