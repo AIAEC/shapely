@@ -1,6 +1,4 @@
-from typing import Any, Callable, Annotated
-
-from typing_extensions import Type
+from typing import Any, Callable, Annotated, Type
 
 from shapely.extension.typing.json_schema import json_schema
 from shapely.extension.util.io import load, geojson, to_2d
