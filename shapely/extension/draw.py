@@ -35,7 +35,11 @@ class Draw:
     SOLID = 'solid'
     DOTTED = 'dotted'
 
-    def __init__(self, size=SIZE, dpi=90, axis: bool = False, use_gui: bool = True):
+    def __init__(self, size=SIZE,
+                 dpi: int = 90,
+                 axis: bool = False,
+                 margin=(0, 0),
+                 use_gui: bool = True):
         if not use_gui and pyplot.get_backend() != 'agg':
             pyplot.switch_backend('agg')
         elif use_gui and pyplot.get_backend() != 'Tkagg':
@@ -44,11 +48,12 @@ class Draw:
         self.ax = self.fig.add_subplot(111)
         self.ax.set_facecolor(self.WHITE)
         self.ax.set_aspect('equal')
+        self.ax.margins(*margin)
         if not axis:
             self.ax.axis('off')
 
     def save(self, filename, transparent=False):
-        self.fig.savefig(filename, transparent=transparent)
+        self.fig.savefig(filename, transparent=transparent, bbox_inches='tight', pad_inches=-0.2)
         self.free()
         return self
 
