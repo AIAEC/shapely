@@ -52,8 +52,8 @@ class Draw:
         if not axis:
             self.ax.axis('off')
 
-    def save(self, filename, transparent=False):
-        self.fig.savefig(filename, transparent=transparent, bbox_inches='tight', pad_inches=-0.2)
+    def save(self, filename, transparent=False, bbox_inches='tight', pad_inches=0):
+        self.fig.savefig(filename, transparent=transparent, bbox_inches=bbox_inches, pad_inches=pad_inches)
         self.free()
         return self
 
