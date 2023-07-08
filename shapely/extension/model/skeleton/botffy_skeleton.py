@@ -506,6 +506,7 @@ class BotffySkeleton(BaseSkeleton):
             self._skeleton_lines = (seq(skeletonize(self._geom))
                                     .map(self._geom.intersection)
                                     .filter(lambda x: isinstance(x, LineString))
+                                    .filter(lambda x: x.is_valid and not x.is_empty)
                                     .list())
 
     def trunk_segments(self) -> List[LineString]:
