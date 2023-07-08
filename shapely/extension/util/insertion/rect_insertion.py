@@ -12,9 +12,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 
-class Insertion:
-    # TODO WIP
-    # TODO this is an inner module, should be merged with another convolution-based insertion algorithm, forming a larger module to be used
+class RectInsertion:
     """
     insert a rectangular polygon into a polygon space, avoiding obstacles
     find insertion space, which is a list of polygons, where we can put this rectangle's centroid without collision

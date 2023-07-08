@@ -5,7 +5,7 @@ from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.envelope import Envelope
 from shapely.extension.model.vector import Vector
 from shapely.extension.strategy.simplify_strategy import BufferSimplifyStrategy
-from shapely.extension.util.insertion.insertion import Insertion
+from shapely.extension.util.insertion.rect_insertion import RectInsertion
 from shapely.geometry import Polygon, box, LineString, Point
 from shapely.ops import unary_union
 from shapely.wkt import loads
@@ -13,7 +13,7 @@ from shapely.wkt import loads
 
 class TestInsertion:
     def test_bounce_seg(self):
-        insertion = Insertion(inserter=Envelope(geom_or_geoms=box(0, 0, 1, 1), angle=0))
+        insertion = RectInsertion(inserter=Envelope(geom_or_geoms=box(0, 0, 1, 1), angle=0))
 
         bounce_seg = insertion._bounce_segment(convex_ccw_segment=StraightSegment([(0, 0), (1, 0)]))
         assert bounce_seg.equals(LineString([(-0.5, -0.5), (1.5, -0.5)]))
@@ -48,7 +48,7 @@ class TestInsertion:
                                              area_diff_tol=1e-10)
 
         inserter = Envelope(geom_or_geoms=Polygon([(0, 0), (1, 1), (0, 2), (-1, 1)]), angle=45)
-        insertion = Insertion(inserter=inserter)
+        insertion = RectInsertion(inserter=inserter)
 
         space = Polygon([(0, 0), (10, 0), (10, 10), (5, 15), (0, 10), (0, 0)])
 
@@ -74,7 +74,7 @@ class TestInsertion:
         obstacle = unary_union(obstacle.ext.simplify(BufferSimplifyStrategy().mitre(0.1)))
 
         inserter = Envelope(geom_or_geoms=box(0, 0, 2, 4), angle=0)
-        insertion = Insertion(inserter=inserter)
+        insertion = RectInsertion(inserter=inserter)
 
         space = box(20, -10, 70, 40)
 
@@ -89,7 +89,7 @@ class TestInsertion:
 
         # rotation
         inserter = Envelope(geom_or_geoms=box(0, 0, 2, 4).ext.rotate_ccw(origin=(0, 0), angle=45), angle=45)
-        insertion = Insertion(inserter=inserter)
+        insertion = RectInsertion(inserter=inserter)
         obstacle = obstacle.ext.rotate_ccw(origin=(0, 0), angle=45)
         space = box(20, -10, 70, 40).ext.rotate_ccw(origin=(0, 0), angle=45)
 
@@ -118,7 +118,7 @@ class TestInsertion:
 
     def test_invalid_space(self):
         inserter = Envelope(geom_or_geoms=box(0, 0, 2, 4), angle=0)
-        insertion = Insertion(inserter=inserter)
+        insertion = RectInsertion(inserter=inserter)
 
         obstacle = loads(
             'POLYGON ((32.06233328681844 3.637907798731817, 32.06233328681862 2, 32.31233328681866 2, 32.31233328681866 3.3379077987317487, 32.06233328681844 3.637907798731817))')

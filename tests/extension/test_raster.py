@@ -130,14 +130,14 @@ class TestRasterInserter(TestCase):
     def test_no_space(self):
         obstacle = LineString([(0, 0), (2, 2)]).ext.rbuf(0.5)
         insert_polygon = LineString([(0, 0), (0.5, 0)]).ext.rbuf(0.25)
-        result = raster_inserter(insert_geom=insert_polygon, obstacle=obstacle)
+        result = raster_inserter(insert_poly=insert_polygon, obstacle=obstacle)
         self.assertEqual(len(result), 2)
         self.assertTrue(all([isinstance(single_result, Polygon) for single_result in result]))
 
     def test_no_obstacle(self):
         space = Polygon(([(0, 0), (10, 0), (20, 10), (20, 20)]), [([(4, 1), (6, 1), (6, 5), (4, 3)])])
         insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
-        result = raster_inserter(insert_geom=insert_polygon, obstacle=None, space=space)
+        result = raster_inserter(insert_poly=insert_polygon, obstacle=None, space=space)
         expected_result = [Polygon(([(7, 1), (9, 1), (19, 11), (19, 17), (7, 5)]))]
         self.assertEqual(len(result), 1)
         self.assertTrue(expected_result[0].covers(result[0]))
@@ -145,7 +145,7 @@ class TestRasterInserter(TestCase):
 
     def test_no_space_no_obstacle(self):
         insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
-        result = raster_inserter(insert_geom=insert_polygon, obstacle=None, space=None)
+        result = raster_inserter(insert_poly=insert_polygon, obstacle=None, space=None)
         self.assertEqual(len(result), 1)
         self.assertEqual(result, [Polygon()])
 
@@ -153,7 +153,7 @@ class TestRasterInserter(TestCase):
         space = Polygon(([(0, 0), (10, 0), (20, 10), (20, 20)]), [([(4, 1), (6, 1), (6, 5), (4, 3)])])
         obstacle = Polygon(([(10, 2), (15, 7), (15, 13), (10, 8)]))
         insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
-        result = raster_inserter(insert_geom=insert_polygon, obstacle=obstacle, space=space)
+        result = raster_inserter(insert_poly=insert_polygon, obstacle=obstacle, space=space)
         expected_result = [Polygon(([(7, 1), (9, 1), (9, 7), (7, 5)]),), Polygon(([(16, 8), (19, 11), (19, 17), (16, 14)]))]
         self.assertEqual(len(result), 2)
         self.assertTrue(expected_result[0].covers(result[0]))
@@ -165,7 +165,7 @@ class TestRasterInserter(TestCase):
         space = Polygon(([(0, 0), (10, 0), (10, 10), (0, 10)]))
         obstacle = Polygon(([(0, 12), (20, 12), (20, 20), (18, 20), (18, 14), (0, 14)]))
         insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
-        result = raster_inserter(insert_geom=insert_polygon, obstacle=obstacle, space=space)
+        result = raster_inserter(insert_poly=insert_polygon, obstacle=obstacle, space=space)
         expected_result = [Polygon(([(1, 1), (9, 1), (9, 9), (1, 9)]))]
         self.assertEqual(len(result), 1)
         self.assertTrue(result[0].ext.similar(expected_result[0], area_diff_tol=0.1 * (8 - 0.1) * 4))
