@@ -81,7 +81,7 @@ class TestRaster(TestCase):
         self.assertNotIsInstance(unary_union(result), Polygon)
 
         result = kernel.ext.insertion()
-        self.assertFalse(result[0])
+        self.assertFalse(result)
 
     def test_vectorize(self):
         poly_with_hole = Polygon(shell=([(0, 0), (20, 0), (20, 20), (0, 20)]),
@@ -146,8 +146,7 @@ class TestRasterInserter(TestCase):
     def test_no_space_no_obstacle(self):
         insert_polygon = Polygon(([(0, 0), (2, 0), (2, 2), (0, 2)]))
         result = raster_inserter(insert_poly=insert_polygon, obstacle=None, space=None)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result, [Polygon()])
+        self.assertEqual(result, [])
 
     def test_space_and_obstacle(self):
         space = Polygon(([(0, 0), (10, 0), (20, 10), (20, 20)]), [([(4, 1), (6, 1), (6, 5), (4, 3)])])

@@ -32,7 +32,7 @@ def raster_inserter(insert_poly: Polygon,
                     scale_factor: float = DEFAULT_SCALE_FACTOR) -> List[BaseGeometry]:
     obstacle_for_insertion = _obstacle(obstacle, space)
     if not obstacle_for_insertion:
-        return [Polygon()]  # TODO(ZC): weired! why??
+        return []
 
     return obstacle_for_insertion.ext.raster(scale_factor).convolution(insert_poly.ext.raster(scale_factor)).vectorize()
 
@@ -49,7 +49,7 @@ def minkowski_inserter(insert_poly: Polygon,
                        space: Optional[Polygon] = None) -> List[Polygon]:
     obstacle_for_insertion = _obstacle(obstacle, space)
     if not obstacle_for_insertion:
-        return [Polygon()]  # TODO(ZC): weired! why??
+        return []
 
     space = space if space else obstacle_for_insertion.envelope
 
