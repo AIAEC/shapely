@@ -1,12 +1,12 @@
-from typing import List, Union, Tuple
+from typing import List, Union
 
-from cgal import find_skeleton_of_poly, find_skeleton_of_poly_with_holes, Coord2D
+from cgal import straight_skeleton
 
 from shapely.extension.model.skeleton.base_skeleton import BaseSkeleton
-from shapely.extension.util.func_util import lmap, lfilter
-from shapely.extension.util.ordered_set import OrderedSet
+from shapely.extension.util.func_util import separate
 from shapely.geometry import LineString, Polygon, Point
-from shapely.ops import linemerge, unary_union
+from shapely.ops import linemerge
+from shapely.wkt import loads
 
 
 class CgalSkeleton(BaseSkeleton):
@@ -23,34 +23,12 @@ class CgalSkeleton(BaseSkeleton):
             self._branch_segments: List[LineString] = [self._geom]
 
         elif isinstance(self._geom, Polygon):
-            shell = self.cgal_shell(self._geom)
-            holes = self.cgal_holes(self._geom)
-            if holes:
-                skeleton = find_skeleton_of_poly_with_holes(shell, holes)
-            else:
-                skeleton = find_skeleton_of_poly(shell)
-
-            # raw segments below contains both segments (A, B) and (B, A), in which A, B are points
-            # thus we need to filter these segments and for (A, B) and (B, A)
-            self._trunk_segments: List[LineString] = self.linestring_from(skeleton.sticks)
-            self._branch_segments: List[LineString] = self.linestring_from(skeleton.branches)
-
-    @staticmethod
-    def linestring_from(coord_pairs: List[Tuple[Coord2D, Coord2D]]) -> List[LineString]:
-        return [LineString([(coord0.x, coord0.y), (coord1.x, coord1.y)]) for coord0, coord1 in coord_pairs]
-
-    @staticmethod
-    def cgal_shell(polygon: Polygon) -> List[Coord2D]:
-        polygon = polygon.ext.legalize().ext.ccw()
-        return lmap(Coord2D, list(polygon.exterior.coords)[:-1])  # cgal polygon should be without duplicate tail
-
-    @staticmethod
-    def cgal_holes(polygon: Polygon) -> List[List[Coord2D]]:
-        polygon = polygon.ext.legalize().ext.ccw()
-        holes: List[List[Coord2D]] = []
-        for interior in polygon.interiors:
-            holes.append(lmap(Coord2D, list(interior.coords)[:-1]))  # cgal polygon should be without duplicate tail
-        return holes
+            poly_wkt = self._geom.ext.legalize().ext.ccw().wkt
+            multilinestring_wkt = straight_skeleton(poly_wkt, num_decimals=8)
+            lines: List[LineString] = loads(multilinestring_wkt).ext.flatten(LineString)
+            geom_boundary = self._geom.boundary
+            self._branch_segments, self._trunk_segments = separate(lambda line: geom_boundary.intersects(line),
+                                                                   items=lines)
 
     def trunk_segments(self) -> List[LineString]:
         """
@@ -61,13 +39,7 @@ class CgalSkeleton(BaseSkeleton):
         -------
         filtered trunk segments
         """
-        segments: OrderedSet = OrderedSet()
-
-        for trunk_segment in self._trunk_segments:
-            if trunk_segment.ext.reverse() not in segments:
-                segments.add(trunk_segment)
-
-        return list(segments)
+        return self._trunk_segments
 
     def branch_segments(self) -> List[LineString]:
         """
@@ -77,12 +49,7 @@ class CgalSkeleton(BaseSkeleton):
         -------
         trunk segments that have no "duplicated backwards segments"
         """
-        center_geom = unary_union(self.trunk_segments())
-        if not center_geom:
-            center_geom = self._geom.centroid
-
-        return lfilter(lambda seg: center_geom.distance(seg.ext.start()) < center_geom.distance(seg.ext.end()),
-                       self._branch_segments)
+        return self._branch_segments
 
     def full_segments(self) -> List[LineString]:
         return self.trunk_segments() + self.branch_segments()

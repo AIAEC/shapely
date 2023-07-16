@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from contextlib import suppress
 from operator import attrgetter
 from typing import Union, Optional, Tuple, Callable, Dict, Sequence, List, Literal
 
@@ -471,22 +472,14 @@ class BaseGeomExtension:
         return RasterFactory(scale_factor).from_geom(self._geom)
 
     def insertion(self, obstacle: Optional[BaseGeometry] = None, space: Optional[Polygon] = None,
-                  inserter: Callable[[BaseGeometry], List[BaseGeometry]] = raster_inserter) -> List[BaseGeometry]:
+                  inserter: Callable[[BaseGeometry], List[BaseGeometry]] = minkowski_inserter) -> List[BaseGeometry]:
         """
         find all possible space in geom to insert self._geom
         minkowski_insertion is the default inserter, for its efficiency and quality of result
         raster_insertion could deal with more shape, but will have a loss of precision
         rect_insertion could be used when self._geom is a rectangle, otherwise may return an unwilling result
         """
-        if inserter == minkowski_inserter:
-            # cgal's minkowski sum is buggy, which might lead to fatal crash of python interpreter
-            # return minkowski_inserter(insert_poly=self._geom, space=space, obstacle=obstacle)
-            raise NotImplementedError("minkowski inserter is not supported")
-
-        elif inserter == raster_inserter:
-            return inserter(insert_poly=self._geom, space=space, obstacle=obstacle, scale_factor=DEFAULT_SCALE_FACTOR)
-
-        elif inserter == rect_inserter:
+        with suppress(Exception):
             return inserter(insert_poly=self._geom, space=space, obstacle=obstacle)
 
         return []

@@ -1,4 +1,5 @@
 from shapely.extension.util.insertion.minkowski_insertion import MinkowskiInsertion
+from shapely.geometry import Polygon
 from shapely.wkt import loads
 
 
@@ -8,4 +9,8 @@ def test_insert_convex_into_non_hole_concave():
 
     space = non_hole_concave.envelope
     res = MinkowskiInsertion(convex).of(space=space, obstacle=non_hole_concave)
-    assert res
+    assert len(res) == 2
+    for poly in res:
+        assert isinstance(poly, Polygon)
+        assert poly.is_valid
+        assert not poly.is_empty
