@@ -19,7 +19,7 @@ class MinkowskiInsertion:
 
         for piece in obstacle.ext.flatten(Polygon):
             piece_wkt = piece.ext.ccw().wkt
-            obstacle_wkt = minkowski_sum(reversed_insertion_wkt, piece_wkt, num_decimals=8)
+            obstacle_wkt = minkowski_sum(geom_wkt=piece_wkt, kernel_poly_wkt=reversed_insertion_wkt, num_decimals=8)
             occupations.append(loads(obstacle_wkt))
 
         insertion_candidate = space.difference(unary_union(occupations))
