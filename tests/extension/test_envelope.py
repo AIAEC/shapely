@@ -1,7 +1,6 @@
 from operator import attrgetter
 from unittest import TestCase
 
-from shapely.affinity import rotate
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.model.envelope import Envelope, PointPosition, EdgePosition, HalfEdgePosition, DiagonalPosition, \
     HalfDiagonalPosition, EnvelopeCreator
@@ -187,3 +186,9 @@ def test_edge_direction():
 
     assert LineString([(0, 0.5), (1, 0.5)]) == envelope.edge(EdgePosition.HORIZON)
     assert LineString([(0.5, 0), (0.5, 1)]) == envelope.edge(EdgePosition.MID)
+    
+
+def test_almost_straigh_lines_to_envelope():
+    geom = loads('MULTILINESTRING ((-101.95993115681011 73.12917201522454, -101.56604499642857 73.49056721062455), (-101.56604499248643 73.49056721424151, -100.79522433771155 74.19780425166594), (-100.79522431614677 74.19780427145187, -76.26901828387939 96.70088742843869))')
+    envelope = geom.ext.envelope().tightened()
+    assert envelope.shape.is_valid
