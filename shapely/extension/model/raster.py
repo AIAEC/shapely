@@ -148,6 +148,7 @@ class RasterFactory:
             cv2.polylines(img, array([geom.coords], dtype=int32), isClosed=False, color=[1], thickness=1)
         elif isinstance(geom, Point):
             # 没有直接画点的方法,手动指定坐标设值为1:img[x][y] = 1
-            img[round(geom.x)][round(geom.y)] = 1
+            # array和cv2使得这里的横纵坐标应该是对换的
+            img[round(geom.y)][round(geom.x)] = 1
         else:
             raise TypeError(f'expect BaseGeometry, but got {type(geom)}')

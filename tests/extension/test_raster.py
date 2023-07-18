@@ -124,6 +124,12 @@ class TestRaster(TestCase):
         result = poly_union.ext.raster().vectorize()
         self.assertEqual(len(result), 5)
 
+    def test_point_position(self):
+        point = Point(18, 6)
+        space = Polygon(([(0, 0), (20, 0), (20, 10), (0, 10)]), [([(1, 1), (1, 9), (19, 9), (19, 1)])])
+        geoms = unary_union([point, space])
+        result = geoms.ext.raster()
+        self.assertEqual(result.array[60][180], 1)
 
 @pytest.mark.local
 class TestRasterInserter(TestCase):
