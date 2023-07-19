@@ -478,8 +478,9 @@ class BaseGeomExtension:
         minkowski_insertion is the default inserter, for its efficiency and quality of result
         raster_insertion could deal with more shape, but will have a loss of precision
         rect_insertion could be used when self._geom is a rectangle, otherwise may return an unwilling result
+        if user inserter or default inserter raise exception, raster inserter would be used instead
         """
         with suppress(Exception):
             return inserter(insert_poly=self._geom, space=space, obstacle=obstacle)
 
-        return []
+        return raster_inserter(insert_poly=self._geom, space=space, obstacle=obstacle)
