@@ -65,6 +65,9 @@ class Draw:
         pyplot.close(self.fig)
 
     def draw(self, geometry, color=BLUE, edge_color=BLACK, alpha=0.5, line_width=1.5, linestyle=SOLID, zorder=None):
+        if not geometry:
+            return self
+
         for geom in geometry.ext.flatten():
             if isinstance(geom, LineString):
                 self.draw_line(geom, color=color, alpha=alpha, line_width=line_width, linestyle=linestyle,
