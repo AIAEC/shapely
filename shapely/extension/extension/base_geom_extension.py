@@ -31,7 +31,7 @@ from shapely.extension.util.decompose import decompose
 from shapely.extension.util.divide import divide
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lmap
-from shapely.extension.util.insertion.inserter import raster_inserter, minkowski_inserter, rect_inserter
+from shapely.extension.util.insertion.inserter import raster_inserter
 from shapely.extension.util.legalize import legalize
 from shapely.extension.util.shortest_path import ShortestStraightPath
 from shapely.extension.util.similar import similar
@@ -472,12 +472,12 @@ class BaseGeomExtension:
         return RasterFactory(scale_factor).from_geom(self._geom)
 
     def insertion(self, obstacle: Optional[BaseGeometry] = None, space: Optional[Polygon] = None,
-                  inserter: Callable[[BaseGeometry], List[BaseGeometry]] = minkowski_inserter) -> List[BaseGeometry]:
+                  inserter: Callable[[BaseGeometry], List[BaseGeometry]] = raster_inserter) -> List[BaseGeometry]:
         """
         find all possible space in geom to insert self._geom
-        minkowski_insertion is the default inserter, for its efficiency and quality of result
-        raster_insertion could deal with more shape, but will have a loss of precision
-        rect_insertion could be used when self._geom is a rectangle, otherwise may return an unwilling result
+        raster_inserter could deal with more shape, but will have a loss of precision, we chose it as the default.
+        minkowski_inserter is surprisingly slower than raster, but more precise.
+        rect_inserter could be used when self._geom is a rectangle, otherwise may return an unwilling result
         if user inserter or default inserter raise exception, raster inserter would be used instead
         """
         with suppress(Exception):
