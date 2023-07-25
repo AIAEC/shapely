@@ -30,6 +30,6 @@ class MinkowskiInsertion:
 
             occupations.append(loads(obstacle_wkt))
 
-        insertion_candidate = space.difference(unary_union(occupations))
+        insertion_candidate = space.difference(unary_union(occupations + [obstacle]))
 
         return insertion_candidate.ext.flatten(Polygon).list()
