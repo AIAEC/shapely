@@ -113,6 +113,10 @@ def ray_intersection(
         # p1 = l*(ep1-sp1)+sp1
         # l1 = (p[0]-sp[0])/(ep[0]-sp[0])
         # l2 = (p[1]-sp[1])/(ep[1]-sp[1])
+        if sp[0] == ep[0]:
+            return p[0] == sp[0]
+        elif sp[1] == ep[1]:
+            return p[1] == sp[1]
         l1, l2 = (p - sp) / (ep - sp)
         return np.allclose(l1, l2) and l1 >= 1 and l2 >= 1
 
