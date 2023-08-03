@@ -57,7 +57,7 @@ def _typing_factory(type_: Type[BaseGeometry]):
         type_ = LineString
 
     base_geom_types = (Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)
-    if not any([isinstance(type_, T) for T in base_geom_types]):  # this may include children type of base geom types
+    if not any([issubclass(type_, T) for T in base_geom_types]):  # this may include children type of base geom types
         raise TypeError(f"only accept shapely geometry type, given {type_}")
 
     def _t(tag: str = "VS", valid: bool = True, non_empty: bool = True):
