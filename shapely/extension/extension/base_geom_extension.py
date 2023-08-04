@@ -15,8 +15,10 @@ from shapely.extension.model.envelope import EnvelopeCreator
 from shapely.extension.model.mould import mould
 from shapely.extension.model.projection import Projection, ProjectionTowards
 from shapely.extension.model.raster import DEFAULT_SCALE_FACTOR, RasterFactory
+from shapely.extension.model.skeleton import Skeleton
 from shapely.extension.model.skeleton.base_skeleton import BaseSkeleton
 from shapely.extension.model.skeleton.botffy_skeleton import BotffySkeleton
+from shapely.extension.model.skeleton.cgal_skeleton import CgalSkeleton
 from shapely.extension.model.vector import Vector
 from shapely.extension.predicator.distance_predicator_creator import DistancePredicatorCreator
 from shapely.extension.predicator.relation_predicator_creator import RelationPredicatorCreator
@@ -448,8 +450,6 @@ class BaseGeomExtension:
         -------
         skeleton object
         """
-        from shapely.extension.model.skeleton import Skeleton, CgalSkeleton
-
         if type_ == 'cgal':
             return CgalSkeleton(self._geom)
         elif type_ == 'botffy':
