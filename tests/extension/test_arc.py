@@ -2,6 +2,8 @@ from copy import deepcopy
 from math import pi
 from unittest import TestCase
 
+from shapely.extension.model.angle import Angle
+
 from shapely import wkt
 from shapely.extension.geometry.arc import Arc
 from shapely.geometry import Point, LineString, Polygon
@@ -720,3 +722,8 @@ class MinorArcTest(TestCase):
         result8 = arc.buffer(-1, single_sided=True)
         expect8 = Polygon(list(Arc((0, 0), radius=1, start_angle=345, rotate_angle=30).coords) + [(0, 0)])
         self.assertTrue(result8.equals(expect8))
+
+
+    def test_angle_arc(self):
+        arc = Arc(center = (0,0),start_angle=Angle(90),rotate_angle=-125.84406941424487,angle_step=16)
+        assert isinstance(arc,Arc)

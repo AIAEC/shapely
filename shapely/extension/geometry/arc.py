@@ -25,6 +25,16 @@ class Arc(LineString):
                  start_angle: float = 0,
                  rotate_angle: float = 90,
                  angle_step: float = 16):
+        """
+
+        Parameters
+        ----------
+        center
+        radius
+        start_angle: in degree
+        rotate_angle: positive for counter-clockwise, negative for clockwise
+        angle_step: to control the resolution of the arc
+        """
         self._center = Point(center)
         self._radius = float(radius)
 
@@ -50,13 +60,13 @@ class Arc(LineString):
         last_angle = None
 
         if resolution > 0:
-            stop_func = lambda _angle: float(_angle) <= end_angle
+            take_func = lambda _rotation: float(_rotation) <= rotate_angle
         else:
-            stop_func = lambda _angle: float(_angle) >= end_angle
+            take_func = lambda _rotation: float(_rotation) >= rotate_angle
 
-        for angle in takewhile(stop_func, count(start_angle, resolution)):
-            yield angle
-            last_angle = angle
+        for rotation in takewhile(take_func, count(0, resolution)):
+            yield start_angle + rotation
+            last_angle = start_angle + rotation
 
         if last_angle != float(end_angle):
             yield float(end_angle)
@@ -257,7 +267,8 @@ class Arc(LineString):
             straight_segments = (other.ext.decompose(StraightSegment)
                                  .filter(lambda _line: _line.distance(self._center) < self._radius + MATH_MIDDLE_EPS)
                                  .to_list())
-            return unary_union([self._intersection_with_straight_segment_v2(straight) for straight in straight_segments])
+            return unary_union(
+                [self._intersection_with_straight_segment_v2(straight) for straight in straight_segments])
 
         return super().intersection(other)
 
@@ -378,7 +389,8 @@ class Arc(LineString):
         x0, y0 = self._center.coords[0]
         x1, y1 = line.coords[0]
         x2, y2 = line.coords[-1]
-        if math.isclose(line.ext.angle().degree, 90, abs_tol=MATH_EPS) or math.isclose(line.ext.angle().degree, 270, abs_tol=MATH_EPS):
+        if math.isclose(line.ext.angle().degree, 90, abs_tol=MATH_EPS) or math.isclose(line.ext.angle().degree, 270,
+                                                                                       abs_tol=MATH_EPS):
             d_value = math.pow(self._radius, 2) - math.pow(x1 - x0, 2)
             delta = math.sqrt(d_value) if d_value > MATH_MIDDLE_EPS else 0
             return unary_union(lfilter(lambda _point: self.is_point_on_arc(_point) and line.point_on_segment(_point),
