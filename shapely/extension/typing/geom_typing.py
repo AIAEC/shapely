@@ -82,6 +82,9 @@ def _typing_factory(type_: Type[BaseGeometry]):
     return _t
 
 
+GeomTF = _typing_factory(BaseGeometry)
+GeomT = GeomTF()
+
 PointTF = _typing_factory(Point)
 PointT = PointTF()
 
