@@ -1,5 +1,6 @@
 import pytest
 
+from shapely.extension.typing.geom_typing import GeomT
 from shapely.extension.typing.json_schema import json_schema
 from shapely.geometry import shape, mapping, Polygon, Point, box
 from shapely.wkb import dumps as wkb_dumps
@@ -57,6 +58,17 @@ def test_model(point, line, polygon, multi_point, multi_linestring, multi_polygo
         do_test_serializing(_T(geom=_geom))
         do_test_deserializing(_geom, _T)
         do_test_validate_empty_geom(_T, typing)
+
+
+@pytest.mark.local
+def test_base_geom_model(point, line, polygon, multi_point, multi_linestring, multi_polygon, geometry_collection):
+    from pydantic import BaseModel
+
+    class _T(BaseModel):
+        geom: GeomT
+
+    for g in (point, line, polygon, multi_point, multi_linestring, multi_polygon, geometry_collection):
+        assert isinstance(_T(geom=g), _T)
 
 
 @pytest.mark.local

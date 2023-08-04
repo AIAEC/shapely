@@ -1,4 +1,4 @@
-from typing import Any, Callable, Annotated, Type
+from typing import Any, Callable, Annotated, Type, Union
 
 from shapely.extension.typing.json_schema import json_schema
 from shapely.extension.util.io import load, geojson, to_2d
@@ -56,7 +56,8 @@ def _typing_factory(type_: Type[BaseGeometry]):
         # process linear ring as linestring, because linear ring is shapely made type, not well know type of geojson
         type_ = LineString
 
-    base_geom_types = (Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)
+    base_geom_types = (BaseGeometry, Point, LineString, Polygon, MultiPoint, MultiLineString,
+                       MultiPolygon, GeometryCollection)
     if not any([issubclass(type_, T) for T in base_geom_types]):  # this may include children type of base geom types
         raise TypeError(f"only accept shapely geometry type, given {type_}")
 
@@ -82,9 +83,6 @@ def _typing_factory(type_: Type[BaseGeometry]):
     return _t
 
 
-GeomTF = _typing_factory(BaseGeometry)
-GeomT = GeomTF()
-
 PointTF = _typing_factory(Point)
 PointT = PointTF()
 
@@ -108,3 +106,6 @@ MultiPolygonT = MultiPolygonTF()
 
 GeometryCollectionTF = _typing_factory(GeometryCollection)
 GeometryCollectionT = GeometryCollectionTF()
+
+GeomT = Union[
+    PointT, LineStringT, LinearRingT, PolygonT, MultiPointT, MultiLineStringT, MultiPolygonT, GeometryCollectionT]
