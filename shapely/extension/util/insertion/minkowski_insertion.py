@@ -1,7 +1,5 @@
 from typing import List, Union
 
-from cgal import minkowski_sum
-
 from shapely.extension.constant import MATH_MIDDLE_EPS
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.geometry.base import BaseGeometry
@@ -14,6 +12,8 @@ class MinkowskiInsertion:
         self._reversed_insert_poly = transform(lambda x, y, z=None: (-x, -y), insert_poly).ext.ccw().ext.move_to((0, 0))
 
     def of(self, space: Polygon, obstacle: Union[Polygon, MultiPolygon]) -> List[Polygon]:
+        from cgal import minkowski_sum
+
         assert not self._reversed_insert_poly.is_empty and isinstance(self._reversed_insert_poly, Polygon)
 
         occupations: List[BaseGeometry] = []
