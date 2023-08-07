@@ -2,4 +2,4 @@
 toolz==0.12.*
 euclid3 == 0.1
 pytest==7.2.*
-cgal>= 1.8.rc0, <1.9
+cgal==1.8.0
