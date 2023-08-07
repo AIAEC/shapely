@@ -144,7 +144,7 @@ class Arc(LineString):
 
     @property
     def length(self) -> float:
-        return radians(self._rotate_angle) * self._radius
+        return abs(radians(self._rotate_angle) * self._radius)
 
     @property
     def is_minor_arc(self) -> bool:
