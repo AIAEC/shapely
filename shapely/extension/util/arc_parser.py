@@ -13,7 +13,7 @@ class ArcParser:
     """
 
     def __init__(self, linestring: LineString, num_repr_points: int = 3):
-        if not linestring or not linestring.is_valid or linestring.is_empty:
+        if not linestring or not linestring.is_valid or linestring.is_empty or num_repr_points < 2:
             raise ValueError('expect valid, non-empty linestring')
 
         self._linestring = linestring
@@ -24,6 +24,9 @@ class ArcParser:
     def repr_points(line: LineString, num_repr_points: int) -> List[Point]:
         points = [Point(coord) for coord in line.coords]
         sample_step: int = int(len(points) / (num_repr_points - 1))
+        # avoid repeating the last point
+        if len(points) % (num_repr_points - 1) == 1:
+            return points[::sample_step]
         return points[::sample_step] + points[-1:]
 
     @property

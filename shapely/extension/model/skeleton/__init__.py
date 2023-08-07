@@ -1,8 +1,6 @@
 from contextlib import suppress
 from typing import Union
 
-from shapely.extension.model.skeleton.botffy_skeleton import BotffySkeleton
-from shapely.extension.model.skeleton.cgal_skeleton import CgalSkeleton
 from shapely.geometry import Point, LineString, Polygon
 
 
@@ -17,6 +15,9 @@ def Skeleton(single_geom: Union[Point, LineString, Polygon]):
     -------
     Skeleton object
     """
+    from shapely.extension.model.skeleton.botffy_skeleton import BotffySkeleton
+    from shapely.extension.model.skeleton.cgal_skeleton import CgalSkeleton
+
     with suppress(Exception):
         return CgalSkeleton(single_geom)
 

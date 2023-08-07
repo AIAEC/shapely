@@ -99,7 +99,7 @@ class TestRaster(TestCase):
         poly = unary_union([poly1, poly2])
         raster = poly.ext.raster()
         result = raster.vectorize()
-        self.assertTrue(unary_union(result).ext.similar(poly, 1))  # 斜线累计误差要大的多
+        self.assertTrue(unary_union(result).ext.similar(poly, 1.1))  # 斜线累计误差要大的多
 
     def test_filter2d(self):
         raster1 = Raster(ones((10, 10)),

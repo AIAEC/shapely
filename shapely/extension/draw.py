@@ -1,5 +1,6 @@
-from math import sqrt
 from random import random
+
+from math import sqrt
 
 from shapely.ops import unary_union
 
@@ -40,17 +41,37 @@ class Draw:
                  axis: bool = False,
                  margin=(0, 0),
                  use_gui: bool = True):
+        """
+        Parameters
+        ----------
+        size: img size
+        dpi: dpi
+        axis: whether we have x and y axis in figure
+        margin: the x-margin and y-margin
+        use_gui: whether we use gui backend
+        """
+
         if not use_gui and pyplot.get_backend() != 'agg':
             pyplot.switch_backend('agg')
         elif use_gui and pyplot.get_backend() != 'Tkagg':
             pyplot.switch_backend('Tkagg')
-        self.fig = pyplot.figure(1, figsize=size, dpi=dpi, frameon=False)
-        self.ax = self.fig.add_subplot(111)
-        self.ax.set_facecolor(self.WHITE)
-        self.ax.set_aspect('equal')
-        self.ax.margins(*margin)
-        if not axis:
-            self.ax.axis('off')
+
+        self._size = size
+        self._dpi = dpi
+        self._axis = axis
+        self._margin = margin
+
+        self.fig, self.ax = self._setup_fig_and_ax()
+
+    def _setup_fig_and_ax(self):
+        fig = pyplot.figure(1, figsize=self._size, dpi=self._dpi, frameon=False)
+        ax = fig.add_subplot(111)
+        ax.set_facecolor(self.WHITE)
+        ax.set_aspect('equal')
+        ax.margins(*self._margin)
+        if not self._axis:
+            ax.axis('off')
+        return fig, ax
 
     def save(self, filename, transparent=False, bbox_inches='tight', pad_inches=0):
         self.fig.savefig(filename, transparent=transparent, bbox_inches=bbox_inches, pad_inches=pad_inches)
@@ -62,7 +83,9 @@ class Draw:
         return self
 
     def free(self):
-        pyplot.close(self.fig)
+        pyplot.clf()  # clear current figure
+        pyplot.close(self.fig)  # close current window
+        self.fig, self.ax = self._setup_fig_and_ax()  # re-init figure and ax
 
     def draw(self, geometry, color=BLUE, edge_color=BLACK, alpha=0.5, line_width=1.5, linestyle=SOLID, zorder=None):
         if not geometry:
