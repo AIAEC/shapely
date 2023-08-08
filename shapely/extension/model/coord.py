@@ -1,9 +1,9 @@
 from cmath import isclose
 from dataclasses import dataclass
-from math import hypot
+from math import hypot, degrees, acos
 from typing import List, Tuple, Sequence, Union, Optional
 
-from shapely.extension.constant import MATH_EPS
+from shapely.extension.constant import MATH_EPS, MATH_LARGE_EPS
 from shapely.extension.model.angle import Angle
 from shapely.extension.typing import Num, CoordType
 from shapely.extension.util.iter_util import win_slice
@@ -124,6 +124,7 @@ class Coord:
 
     @staticmethod
     def including_angles(coords_in_ccw_order: List[CoordType],
+                         angle_range: Tuple[float, float] = (0, 360),
                          head_cycling: bool = False,
                          tail_cycling: bool = False) -> List[Angle]:
         if len(coords_in_ccw_order) < 3:
@@ -136,7 +137,8 @@ class Coord:
                                                 tail_cycling=tail_cycling):
             coord01_angle = Coord.angle(coord0, coord1)
             coord12_angle = Coord.angle(coord1, coord2)
-            angles.append(180 - coord01_angle.rotating_angle(coord12_angle, direct='ccw'))
+            angle = (180 - coord01_angle.rotating_angle(coord12_angle, direct='ccw')).set_mod(angle_range)
+            angles.append(angle)
 
         return angles
 
@@ -153,3 +155,22 @@ class Coord:
                        abs_tol=tol):
                 return coord_index0 + 1
         return None
+
+    @staticmethod
+    def three_points_angle(pt0: Union[CoordType, Point],
+                           pt1: Union[CoordType, Point],
+                           pt2: Union[CoordType, Point]) -> Angle:
+        """
+            余玄定理算三点夹角(0-180), 即只要第二个点不变, 对调第一点和第三点, 结果不变
+        """
+        pt0, pt1, pt2 = Point(pt0), Point(pt1), Point(pt2)
+
+        a, b, c = pt1.distance(pt0), pt1.distance(pt2), pt0.distance(pt2)
+        if a == 0 or b == 0:
+            raise ValueError("pt0 or pt2 is same with pt1")
+        cos_val = (a ** 2 + b ** 2 - c ** 2) / (2 * a * b)
+        cos_val = min(max(-1, cos_val), 1)
+        angle_in_degree = degrees(acos(cos_val))
+        if abs(angle_in_degree - 90) < MATH_LARGE_EPS:
+            angle_in_degree = 90
+        return Angle(angle_degree=angle_in_degree)
