@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 from shapely.extension.geometry.empty import EMPTY_GEOM
 
@@ -9,7 +9,7 @@ from shapely.geometry import Polygon, Point, LineString, MultiPolygon
 
 
 class PolygonCutter:
-    def __init__(self, polygon: Polygon, point: Point, vector: Vector, target_area: float):
+    def __init__(self, polygon: Polygon, point: Point, vector: Vector, target_area: float, tolerance: float = MATH_EPS):
         """
         Parameters
         ----------
@@ -23,6 +23,7 @@ class PolygonCutter:
         self._point = point
         self._vector = vector
         self._target_area = target_area
+        self._tolerance = tolerance
 
     def cut(self) -> Union[Polygon, MultiPolygon]:
         if self._target_area <= 0:
@@ -44,14 +45,16 @@ class PolygonCutter:
             # this always because the given point is too far or given the opposite vector.
             if max_intersect_poly.is_empty:
                 return max_intersect_poly
-            return self._binary_cutting(cutting_line, direction, self._target_area)
+            return self._binary_cutting(cutting_line, direction, self._target_area, self._tolerance)
         else:
             if self._target_area >= max_intersect_poly.area:
                 return max_intersect_poly
-            return self._binary_cutting(cutting_line, direction, self._target_area)
+            return self._binary_cutting(cutting_line, direction, self._target_area, self._tolerance)
 
     def _binary_cutting(self, cutting_line: LineString,
-                        direction: float, target_area: float) -> Union[Polygon, MultiPolygon]:
+                        direction: float,
+                        target_area: float,
+                        tolerance: float = MATH_EPS) -> Union[Polygon, MultiPolygon]:
         """
         Parameters
         ----------
@@ -70,13 +73,19 @@ class PolygonCutter:
         right = self._polygon.ext.decompose(Point).map(cutting_line.distance).max()
 
         # use binary search to cut specified area polygon
-        while left < right:
+        max_count = 100
+        count = 0
+        while left < right and count < max_count:
+            count = count + 1
             mid = (right - left) / 2 + left
             select_buffer = cutting_line.ext.buffer().single_sided().rect(direction * mid)
             intersect_poly = select_buffer.intersection(self._polygon)
-            if abs(intersect_poly.area - target_area) <= MATH_EPS:
+            if abs(intersect_poly.area - target_area) <= tolerance:
                 return intersect_poly
             elif intersect_poly.area > target_area:
                 right = mid
             else:
                 left = mid
+
+        raise ValueError(
+            'Cannot cut polygon to the given area within the allowed error range, you can increase the tolerance.')

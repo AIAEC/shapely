@@ -116,7 +116,8 @@ class PolygonExtension(BaseGeomExtension):
 
     def cut(self, point: Point,
             vector: Vector,
-            target_area: float) -> Union[Polygon, MultiPolygon]:
+            target_area: float,
+            tolerance: float = MATH_EPS) -> Union[Polygon, MultiPolygon]:
         """
         cutting the given polygon to get specified area polygon by given vector
 
@@ -127,12 +128,13 @@ class PolygonExtension(BaseGeomExtension):
         vector: specify the cutting direction, and used for generating cutting line
             note that it cannot be opposite to the polygon，or it will return empty polygon.
         target_area: specified cutting area
+        tolerance: tolerance scope
 
         Returns
         -------
         specified area polygon or multipolygon
         """
-        return PolygonCutter(self._geom, point, vector, target_area, ).cut()
+        return PolygonCutter(self._geom, point, vector, target_area, tolerance).cut()
 
     def partitions(self) -> List[Polygon]:
         """
