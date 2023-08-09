@@ -603,7 +603,7 @@ class EdgeSeq:
     def pivots(self) -> List[Pivot]:
         if not self._edges:
             return []
-        return [e.from_pivot for e in self._edges] + [self._edges[-1].to_pivot]
+        return lfilter(truth, [e.from_pivot for e in self._edges] + [self._edges[-1].to_pivot])
 
     @property
     def pids(self) -> List[str]:
