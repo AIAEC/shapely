@@ -1,4 +1,5 @@
 import math
+from cmath import isclose, isnan
 from collections.abc import Iterable as IterableType
 from contextlib import suppress
 from copy import deepcopy
@@ -213,6 +214,39 @@ class Vector:
         Angle instance
         """
         return Angle.atan2(self.y, self.x)
+
+    def angle_with(self, other: 'Vector') -> 'Angle':
+        """
+        return the angle between current vector and other vector in the range of [0, 180]
+        Parameters
+        ----------
+        other: other vector
+
+        Returns
+        -------
+        Angle instance
+        """
+        self.assert_vector_type(other)
+        length_product = self.length * other.length
+        if isclose(length_product, 0, abs_tol=MATH_EPS):
+            return Angle(0)
+        return Angle.acos(self.dot(other) / length_product)
+
+    def rotation_angle(self, other: 'Vector') -> 'Angle':
+        """
+        return the rotation angle from current vector to other vector by ccw direction in the range of [0, 360]
+        Parameters
+        ----------
+        other: other vector
+
+        Returns
+        -------
+        Angle instance
+        """
+        self.assert_vector_type(other)
+        if isnan(self.angle.degree) or isnan(other.angle.degree):
+            return Angle(0)
+        return other.angle - self.angle
 
     def ray(self, origin: Union[Point, CoordType], length: float = 1e9) -> LineString:
         """

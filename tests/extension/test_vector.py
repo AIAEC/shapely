@@ -287,6 +287,51 @@ class TestVector(TestCase):
         vector4 = Vector(1, -1)
         self.assertAlmostEqual(315, vector4.angle.degree)
 
+    def test_angle_with(self):
+        vector1 = Vector(0, 1)
+        vector2 = Vector(2, 0)
+        self.assertAlmostEqual(90, vector1.angle_with(vector2).degree)
+        self.assertAlmostEqual(90, vector2.angle_with(vector1).degree)
+
+        vector3 = Vector(0, 0)
+        self.assertAlmostEqual(0, vector1.angle_with(vector3).degree)
+        self.assertAlmostEqual(0, vector3.angle_with(vector1).degree)
+
+        vector4 = Vector(1, 1)
+        self.assertAlmostEqual(45, vector1.angle_with(vector4).degree)
+        self.assertAlmostEqual(45, vector4.angle_with(vector1).degree)
+
+        vector5 = Vector(-1, 1)
+        self.assertAlmostEqual(45, vector1.angle_with(vector5).degree)
+        self.assertAlmostEqual(45, vector5.angle_with(vector1).degree)
+
+        vector6 = Vector(-1, -1)
+        self.assertAlmostEqual(135, vector1.angle_with(vector6).degree)
+        self.assertAlmostEqual(135, vector6.angle_with(vector1).degree)
+
+        vector7 = Vector(0, -2)
+        self.assertAlmostEqual(180, vector1.angle_with(vector7).degree)
+        self.assertAlmostEqual(180, vector7.angle_with(vector1).degree)
+
+    def test_rotation_angle(self):
+        vector1 = Vector(1, 0)
+        vector2 = Vector(0, 2)
+        self.assertAlmostEqual(90, vector1.rotation_angle(vector2).degree)
+        self.assertAlmostEqual(270, vector2.rotation_angle(vector1).degree)
+        self.assertAlmostEqual(0, vector1.rotation_angle(vector1).degree)
+
+        vector3 = Vector(1, 1)
+        self.assertAlmostEqual(45, vector1.rotation_angle(vector3).degree)
+        self.assertAlmostEqual(315, vector3.rotation_angle(vector1).degree)
+
+        vector4 = Vector(-1, 0)
+        self.assertAlmostEqual(180, vector1.rotation_angle(vector4).degree)
+        self.assertAlmostEqual(180, vector4.rotation_angle(vector1).degree)
+
+        vector5 = Vector(0, 0)
+        self.assertAlmostEqual(0, vector1.rotation_angle(vector5).degree)
+        self.assertAlmostEqual(0, vector5.rotation_angle(vector1).degree)
+
     def test_ray(self):
         origin = (0, 0)
         vector = Vector(0, -1)
