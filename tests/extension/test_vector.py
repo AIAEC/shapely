@@ -349,6 +349,21 @@ class TestVector(TestCase):
         rotated_v = v.rotate(90)
         self.assertAlmostEqual(rotated_v, Vector(0, 1))
 
+        rotated_v = v.rotate(-90)
+        self.assertAlmostEqual(rotated_v, Vector(0, -1))
+
+        rotated_v = v.rotate(450)
+        self.assertAlmostEqual(rotated_v, Vector(0, 1))
+
+        rotated_v = v.rotate(-540)
+        self.assertAlmostEqual(rotated_v, Vector(-1, 0))
+
+        rotated_v = v.rotate(180)
+        self.assertAlmostEqual(rotated_v, Vector(-1, 0))
+
+        rotated_v = Vector(0, 0).rotate(270)
+        self.assertAlmostEqual(rotated_v, Vector(0, 0))
+
     def test_perpendicular_to(self):
         vector0 = Vector(0, 1)
         vector1 = Vector(1, 0)
