@@ -238,6 +238,11 @@ class LineStringExtensionTest(TestCase):
         self.assertFalse(line1.ext.point_at_left(Point(0.5, -1)))
         self.assertFalse(line1.ext.point_at_left(Point(0, 0)))
 
+        line2 = wkt.loads('LINESTRING (6.3 3.35, 9.15 10.7, 10.6 11.3, 11.8 11.35, 12.75 11.2, 13.35 10.2, 15 3)')
+        self.assertTrue(line2.ext.point_at_left(Point(9.55, 11.4)))
+        self.assertFalse(line2.ext.point_at_left(Point(8, 6)))
+        self.assertFalse(line2.ext.point_at_left(Point(9.15, 10.7)))
+
     def test_point_at_right(self):
         line0 = LineString([(0, 0), (1, 0)])
         self.assertFalse(line0.ext.point_at_right(Point(0.5, 1)))
@@ -250,6 +255,11 @@ class LineStringExtensionTest(TestCase):
         self.assertFalse(line1.ext.point_at_right(Point(0.5, 1)))
         self.assertFalse(line1.ext.point_at_right(Point(0.5, -1)))
         self.assertFalse(line1.ext.point_at_right(Point(0, 0)))
+
+        line2 = wkt.loads('LINESTRING (6.3 3.35, 9.15 10.7, 10.6 11.3, 11.8 11.35, 12.75 11.2, 13.35 10.2, 15 3)')
+        self.assertFalse(line2.ext.point_at_right(Point(9.55, 11.4)))
+        self.assertTrue(line2.ext.point_at_right(Point(8, 6)))
+        self.assertFalse(line2.ext.point_at_right(Point(9.15, 10.7)))
 
     def test_real_extend_to_merge(self):
         line0 = shapely.wkt.loads(

@@ -268,6 +268,7 @@ class LineStringExtension(BaseGeomExtension):
     def point_at_left(self, checking_point: Point) -> bool:
         """
         whether the checking point is at the left of the current linestring
+        if the checking point is on the linestring, return False
         Parameters
         ----------
         checking_point: point
@@ -276,13 +277,20 @@ class LineStringExtension(BaseGeomExtension):
         -------
         bool
         """
-        vec = Vector.from_origin_to_target(self.start(), self.end())
+        segments = (self.decompose(StraightSegment)
+                    .filter(lambda l: l.length > MATH_EPS)
+                    .to_list())
+        if not segments:
+            return False
+        segment = min(segments, key=checking_point.distance)
+        vec = Vector.from_origin_to_target(segment.ext.start(), segment.ext.end())
         target_vec = Vector.from_origin_to_target(self.start(), checking_point)
         return vec.cross_prod(target_vec) > MATH_EPS
 
     def point_at_right(self, checking_point: Point) -> bool:
         """
         whether the checking point is at the right of the current linestring
+        if the checking point is on the linestring, return False
         Parameters
         ----------
         checking_point: point
@@ -291,7 +299,13 @@ class LineStringExtension(BaseGeomExtension):
         -------
         bool
         """
-        vec = Vector.from_origin_to_target(self.start(), self.end())
+        segments = (self.decompose(StraightSegment)
+                    .filter(lambda l: l.length > MATH_EPS)
+                    .to_list())
+        if not segments:
+            return False
+        segment = min(segments, key=checking_point.distance)
+        vec = Vector.from_origin_to_target(segment.ext.start(), segment.ext.end())
         target_vec = Vector.from_origin_to_target(self.start(), checking_point)
         return vec.cross_prod(target_vec) < -MATH_EPS
 
