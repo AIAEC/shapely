@@ -265,6 +265,36 @@ class LineStringExtension(BaseGeomExtension):
             [Coord.angle(*coord_tuple) for coord_tuple in win_slice(self._geom.coords, win_size=2)])
         return min_angle.including_angle(max_angle) <= angle_tol
 
+    def point_at_left(self, checking_point: Point) -> bool:
+        """
+        whether the checking point is at the left of the current linestring
+        Parameters
+        ----------
+        checking_point: point
+
+        Returns
+        -------
+        bool
+        """
+        vec = Vector.from_origin_to_target(self.start(), self.end())
+        target_vec = Vector.from_origin_to_target(self.start(), checking_point)
+        return vec.cross_prod(target_vec) > MATH_EPS
+
+    def point_at_right(self, checking_point: Point) -> bool:
+        """
+        whether the checking point is at the right of the current linestring
+        Parameters
+        ----------
+        checking_point: point
+
+        Returns
+        -------
+        bool
+        """
+        vec = Vector.from_origin_to_target(self.start(), self.end())
+        target_vec = Vector.from_origin_to_target(self.start(), checking_point)
+        return vec.cross_prod(target_vec) < -MATH_EPS
+
     def extend_to_merge(self, line: LineString, extent_dist: float = LARGE_ENOUGH_DISTANCE) -> Optional[LineString]:
         """
         prolong current linestring and given linestring, and return merged linestring or None if they don't intersect

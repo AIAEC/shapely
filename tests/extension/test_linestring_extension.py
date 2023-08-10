@@ -225,6 +225,32 @@ class LineStringExtensionTest(TestCase):
         result = line0.ext.extend_to_merge(line1)
         self.assertTrue(LineString([(0, 0), (2, 0), (4, 2)]).almost_equals(result))
 
+    def test_point_at_left(self):
+        line0 = LineString([(0, 0), (1, 0)])
+        self.assertTrue(line0.ext.point_at_left(Point(0.5, 1)))
+        self.assertTrue(line0.ext.point_at_left(Point(2, 1)))
+        self.assertFalse(line0.ext.point_at_left(Point(0.5, -1)))
+        self.assertFalse(line0.ext.point_at_left(Point(2, -1)))
+        self.assertFalse(line0.ext.point_at_left(Point(0.5, 0)))
+
+        line1 = LineString([(0, 0), (0, 0)])
+        self.assertFalse(line1.ext.point_at_left(Point(0.5, 1)))
+        self.assertFalse(line1.ext.point_at_left(Point(0.5, -1)))
+        self.assertFalse(line1.ext.point_at_left(Point(0, 0)))
+
+    def test_point_at_right(self):
+        line0 = LineString([(0, 0), (1, 0)])
+        self.assertFalse(line0.ext.point_at_right(Point(0.5, 1)))
+        self.assertFalse(line0.ext.point_at_right(Point(2, 1)))
+        self.assertTrue(line0.ext.point_at_right(Point(0.5, -1)))
+        self.assertTrue(line0.ext.point_at_right(Point(2, -1)))
+        self.assertFalse(line0.ext.point_at_right(Point(0.5, 0)))
+
+        line1 = LineString([(0, 0), (0, 0)])
+        self.assertFalse(line1.ext.point_at_right(Point(0.5, 1)))
+        self.assertFalse(line1.ext.point_at_right(Point(0.5, -1)))
+        self.assertFalse(line1.ext.point_at_right(Point(0, 0)))
+
     def test_real_extend_to_merge(self):
         line0 = shapely.wkt.loads(
             "LINESTRING (40.19805392440635 -0.0013248190869355, 40.19805392440635 44.61139266384599, -40.205089850155204 44.61127537604853, -40.205089806597485 -44.61405404443773, 48.248053924451796 -44.61405404493709)")
