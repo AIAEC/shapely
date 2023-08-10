@@ -297,7 +297,8 @@ class Vector:
         -------
         vector
         """
-
+        if math.isnan(self.angle.degree):
+            return self
         return Vector.from_angle(angle_degree=self.angle.degree + ccw_angle_degree, length=self.length)
 
     def invert(self) -> 'Vector':
