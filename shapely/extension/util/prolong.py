@@ -1,13 +1,14 @@
 from typing import Union, List, Sequence, Optional, Literal
 
+import numpy as np
+
+from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.vector import Vector
 from shapely.extension.typing import CoordType
-from shapely.geometry import Point, LineString, MultiPoint
-from shapely.ops import substring
-from shapely.geometry.base import BaseGeometry
 from shapely.extension.util.decompose import decompose
-from shapely.extension.geometry.straight_segment import StraightSegment
-import numpy as np
+from shapely.geometry import Point, LineString, MultiPoint
+from shapely.geometry.base import BaseGeometry
+from shapely.ops import substring
 
 
 def _find_first_diff_coord_from(target_coord: CoordType, coords: List[CoordType], start_index: int, step: int):
@@ -72,9 +73,9 @@ def prolong(line: LineString,
 
 
 def ray_intersection(
-    start_point: CoordType,
-    end_point: CoordType,
-    barriers_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
+        start_coord: CoordType,
+        end_coord: CoordType,
+        barriers_geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
 ) -> Optional[CoordType]:
     """Computes intersection between a ray and barriers.
 
@@ -83,10 +84,10 @@ def ray_intersection(
 
     Parameters
     ----------
-    start_point : CoordType
-        the initial point of ray
-    end_point : CoordType
-        a point on the ray indicating the direction emitted from start_point
+    start_coord : CoordType
+        the initial coordinate of point of ray
+    end_coord : CoordType
+        a coordinate of point on the ray indicating the direction emitted from start_coord
     barriers_geoms : Union[BaseGeometry, Sequence[BaseGeometry]]
         the barriers geometries blocking the ray. A point is also considered as a barrier.
 
@@ -101,10 +102,15 @@ def ray_intersection(
         An error occurred when barriers_geoms can't be composed to edges.
     """
 
-    assert start_point != end_point
+    assert start_coord != end_coord
 
-    sp: np.ndarray = np.array(start_point)  # start point of ray
-    ep: np.ndarray = np.array(end_point)  # end point of ray
+    if isinstance(start_coord, Point):
+        start_coord = start_coord.coords[0]
+    if isinstance(end_coord, Point):
+        end_coord = end_coord.coords[0]
+
+    sp: np.ndarray = np.array(start_coord)  # start point of ray
+    ep: np.ndarray = np.array(end_coord)  # end point of ray
     res: Optional[np.ndarray] = None  # nearest intersection point of end point
     dist: np.float64 = np.Inf  # distance between res and end point
 
@@ -226,10 +232,10 @@ class Prolong:
         return prolong(self._line, end_prolong_len=float(dist))
 
     def _util_touching_from(
-        self,
-        position: Literal["head", "tail"],
-        geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
-        ret_none_if_fail: bool = False,
+            self,
+            position: Literal["head", "tail"],
+            geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
+            ret_none_if_fail: bool = False,
     ) -> Optional[LineString]:
         """Prolong from head or tail direction until reach a barrier.
 
@@ -276,15 +282,15 @@ class Prolong:
             return LineString(coords)
 
     def from_head_util_touching(
-        self,
-        geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
-        ret_none_if_fail: bool = False,
+            self,
+            geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
+            ret_none_if_fail: bool = False,
     ) -> Optional[LineString]:
         return self._util_touching_from("head", geoms, ret_none_if_fail)
 
     def from_tail_util_touching(
-        self,
-        geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
-        ret_none_if_fail: bool = False,
+            self,
+            geoms: Union[BaseGeometry, Sequence[BaseGeometry]],
+            ret_none_if_fail: bool = False,
     ) -> Optional[LineString]:
         return self._util_touching_from("tail", geoms, ret_none_if_fail)
