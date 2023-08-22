@@ -710,6 +710,10 @@ class EdgeSeq:
             if edge0.reverse_closure != edge1.reverse_closure:
                 return False
 
+            if edge0.reverse and edge1.reverse:
+                if edge1.reverse.next() != edge0.reverse:
+                    return False
+
             if consider_cargo_equality and not edge0.cargo.data_equals(edge1.cargo):
                 return False
 

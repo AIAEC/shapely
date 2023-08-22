@@ -1,3 +1,5 @@
+import pytest
+
 from shapely.extension.model.stretch.stretch_v3 import Edge
 from shapely.geometry import LinearRing, Point, LineString
 
@@ -103,3 +105,36 @@ class TestSimplify:
         assert len(edges) == 1
         assert edges[0].cargo['test'] == 1
         assert edges[0].shape.equals(LineString([(0, 0), (1, 0)]))
+
+    def test_simplify_stretch_with_cut(self, stretch_2_boxes):
+        """
+        ┌─────────────────────┬─────────────────────┐
+        │                     │                     │
+        │                     │                     │
+        │                     │                     │
+        │           ──────────┤                     │
+        │                     │                     │
+        │                     │                     │
+        │                     │                     │
+        └─────────────────────┴─────────────────────┘
+        Parameters
+        ----------
+        stretch_2_boxes
+
+        Returns
+        -------
+
+        """
+        stretch = stretch_2_boxes
+        stretch.add_pivot(Point(1, 0.5))
+        assert len(stretch.edges) == 10
+        stretch.simplify()
+        assert len(stretch.edges) == 8
+
+        stretch.closures[0].cut(LineString([(0.5, 0.5), (1.5, 0.5)]))
+        assert len(stretch.edges) == 12
+        assert sum(map(lambda closure: closure.shape.area, stretch.closures)) == pytest.approx(2.0)
+        stretch.simplify()
+
+        assert sum(map(lambda closure: closure.shape.area, stretch.closures)) == pytest.approx(2.0)
+        assert len(stretch.edges) == 12
