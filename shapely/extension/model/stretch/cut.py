@@ -79,7 +79,7 @@ class Cut:
 
         for line in lines:
             for closure in closures:
-                if not closure.shape.intersects(line):
+                if not closure.shape.ext.legalize().intersects(line):
                     new_closures.append(closure)
                     continue
 
