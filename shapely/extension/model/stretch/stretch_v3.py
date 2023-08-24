@@ -213,8 +213,11 @@ class Edge:
         return None
 
     @property
-    def shape(self) -> StraightSegment:
-        return StraightSegment([self.from_pivot.origin, self.to_pivot.origin])
+    def shape(self) -> Optional[StraightSegment]:
+        try:
+            return StraightSegment([self.from_pivot.origin, self.to_pivot.origin])
+        except Exception:
+            return None
 
     @property
     def closure(self) -> Optional['Closure']:
@@ -877,8 +880,11 @@ class Closure:
         return None
 
     @property
-    def shape(self):
-        return Polygon(self.exterior.shape, lfilter(truth, [i.shape for i in self.interiors]))
+    def shape(self) -> Optional[Polygon]:
+        try:
+            return Polygon(self.exterior.shape, lfilter(truth, [i.shape for i in self.interiors]))
+        except Exception:
+            return None
 
     @property
     def deleted(self) -> bool:
