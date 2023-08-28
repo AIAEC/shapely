@@ -1,4 +1,5 @@
 import pytest
+from shapely.extension.util.func_util import lfilter
 
 from shapely.extension.model.stretch.stretch_v3 import Edge
 from shapely.geometry import LinearRing, Point, LineString
@@ -138,3 +139,55 @@ class TestSimplify:
 
         assert sum(map(lambda closure: closure.shape.area, stretch.closures)) == pytest.approx(2.0)
         assert len(stretch.edges) == 12
+
+    def test_simplify_stretch_with_inner_continue_edges(self, stretch_with_inner_continue_edges):
+        """
+        input:
+        6                   5
+        o◄──────────────────o
+        │                   ▲
+        │         o 3       │
+        │         ▲         │
+        │         │         │
+        │         ▼         │
+        │         o 2       │
+        │         ▲         │
+        │         │         │
+        │         │         │
+        ▼         ▼         │
+        o────────►o────────►o
+        0         1         4
+        Parameters
+        ----------
+        stretch_with_inner_continue_edges
+
+        Returns
+        -------
+        expect result:
+        6                   5
+        o◄──────────────────o
+        │                   ▲
+        │         o 3       │
+        │         ▲         │
+        │         │         │
+        │         │         │
+        │         │         │
+        │         │         │
+        │         │         │
+        │         │         │
+        ▼         ▼         │
+        o────────►o────────►o
+        0         1         4
+
+        """
+        stretch = stretch_with_inner_continue_edges
+        assert len(lfilter(lambda e: e.id == "(1,2)", stretch.edges)) == 1
+
+        stretch.simplify(angle_tol=1e-4, consider_cargo_equality=True)
+
+        assert len(lfilter(lambda e: e.id == "(1,2)", stretch.edges)) == 0
+        assert len(lfilter(lambda e: e.id == "(2,1)", stretch.edges)) == 0
+        assert len(lfilter(lambda e: e.id == "(2,3)", stretch.edges)) == 0
+        assert len(lfilter(lambda e: e.id == "(3,2)", stretch.edges)) == 0
+        assert len(lfilter(lambda e: e.id == "(1,3)", stretch.edges)) == 1
+        assert len(lfilter(lambda e: e.id == "(3,1)", stretch.edges)) == 1
