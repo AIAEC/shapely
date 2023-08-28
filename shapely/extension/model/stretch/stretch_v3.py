@@ -722,6 +722,8 @@ class EdgeSeq:
         closed = self.closed
         merged_edges = [self._edges[0]]
         for edge in self._edges[1:]:
+            if edge not in merged_edges[-1].closure.edges:
+                continue
             if should_be_simplified(merged_edges[-1], edge):
                 merged_edges[-1] = Edge.twist(merged_edges[-1], edge, cargo_target)
             else:
@@ -730,7 +732,6 @@ class EdgeSeq:
         if closed and should_be_simplified(merged_edges[-1], merged_edges[0]):
             merged_edges[0] = Edge.twist(merged_edges.pop(), merged_edges[0], cargo_target)
 
-        self._edges = merged_edges
 
     def remove_crack(self, from_pivots: Optional[List[Pivot]] = None,
                      gc: bool = False) -> None:
