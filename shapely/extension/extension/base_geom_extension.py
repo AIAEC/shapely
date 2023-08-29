@@ -347,13 +347,14 @@ class BaseGeomExtension:
         """
         return Projection(self._geom).towards(poly, direction=direction)
 
-    def distance(self, geom: BaseGeometry, direction: Optional[Vector] = None) -> float:
+    def distance(self, geom: BaseGeometry, direction: Optional[Vector] = None, bidirect: bool = True) -> float:
         """
         enhance the native distance with direction
         Parameters
         ----------
         geom: other geometry
         direction: None or vector, if None, use the native distance
+        bidirect: if True, calculate both direction
 
         Returns
         -------
@@ -362,7 +363,7 @@ class BaseGeomExtension:
         if geom.intersection(self._geom):
             return 0
 
-        path = self.connect_path(geom, direction)
+        path = self.connect_path(geom, direction, bidirect=bidirect)
         if not path:
             return float('inf')
 
