@@ -732,7 +732,6 @@ class EdgeSeq:
         if closed and should_be_simplified(merged_edges[-1], merged_edges[0]):
             merged_edges[0] = Edge.twist(merged_edges.pop(), merged_edges[0], cargo_target)
 
-
     def remove_crack(self, from_pivots: Optional[List[Pivot]] = None,
                      gc: bool = False) -> None:
         """
@@ -878,8 +877,24 @@ class Closure:
         return None
 
     @property
-    def shape(self):
+    def real_shape(self) -> Polygon:
+        """
+        shape of current closure, maybe with cracks, thus invalid
+        Returns
+        -------
+
+        """
         return Polygon(self.exterior.shape, lfilter(truth, [i.shape for i in self.interiors]))
+
+    @property
+    def shape(self) -> Polygon:
+        """
+        shape without cracks, thus valid
+        Returns
+        -------
+
+        """
+        return self.real_shape.ext.largest_piece()
 
     @property
     def deleted(self) -> bool:

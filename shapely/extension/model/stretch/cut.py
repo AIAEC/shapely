@@ -25,7 +25,10 @@ class Cut:
             # due to SHAPELY DARK LAW, the resulting linestrings are not guaranteed to be inside closure strictly,
             # and it might partially sit on the boundary of closure.
             # in any case, this should not cause problem, since we assume cut_closure_by_lines may handle it.
-            segments: List[LineString] = closure.shape.intersection(line).ext.flatten(LineString).list()
+            try:
+                segments: List[LineString] = closure.real_shape.intersection(line).ext.flatten(LineString).list()
+            except:
+                segments: List[LineString] = closure.shape.intersection(line).ext.flatten(LineString).list()
 
             if not segments:
                 new_closures.append(closure)

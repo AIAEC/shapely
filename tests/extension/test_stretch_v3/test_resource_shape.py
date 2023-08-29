@@ -21,7 +21,7 @@ class TestResourceShape:
         )
 
     def test_closure_shape_with_inner_crack(self, stretch_box_with_inner_crack):
-        poly = stretch_box_with_inner_crack.closure('0').shape
+        poly = stretch_box_with_inner_crack.closure('0').real_shape
         assert len(poly.interiors) == 1
         assert not poly.is_valid
         assert poly.equals(
