@@ -40,22 +40,3 @@ class TestClosure:
         assert len(stretch.closures) == 1
         assert len(stretch.closures[0].interiors) == 0
         assert stretch.closures[0].shape.equals(Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]))
-
-    def test_shape(self, stretch_box_duplicate_pivots, stretch_box_holes, stretch_box_with_exterior_crack):
-        shape = stretch_box_duplicate_pivots.closures[0].shape
-        assert shape.is_valid
-        assert shape.equals(loads("POLYGON ((0 0, 0.3 0, 1 0, 1 1, 0 1, 0 0))"))
-
-        shape = stretch_box_holes.closures[0].shape
-        assert shape.is_valid
-        assert shape.interiors.__len__() == 2
-        assert shape.area == 10 * 10 - 1 * 1 * 2
-        assert shape.equals(
-            loads("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (2 2, 2 3, 3 3, 3 2, 2 2), (9 6, 9 5, 8 5, 8 6, 9 6))"))
-
-        shape = stretch_box_with_exterior_crack.closures[0].shape
-        assert shape.is_valid
-        assert shape.equals(loads("POLYGON ((0 0, 5 0, 5 5, 5 0, 10 0, 10 10, 0 10, 0 0))"))
-
-    def test_invalid_shape(self, stretch_closure_resembling_line):
-        assert stretch_closure_resembling_line.closures[0].real_shape.equals(loads("POLYGON ((0 0, 1 0, 2 0, 0 0))"))

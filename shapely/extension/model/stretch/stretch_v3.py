@@ -731,17 +731,17 @@ class EdgeSeq:
             return edge0.shape.ext.angle().almost_equal(edge1.shape.ext.angle(), angle_tol)
 
         closed = self.closed
-        merged_edges = [self._edges[0]]
-        for edge in self._edges[1:]:
-            if should_be_simplified(merged_edges[-1], edge):
-                merged_edges[-1] = Edge.twist(merged_edges[-1], edge, cargo_target)
+
+        origin_edges = list(self._edges)
+        last_edge = origin_edges[0]
+        for i in range(1, len(origin_edges)):
+            if should_be_simplified(last_edge, origin_edges[i]):
+                last_edge = Edge.twist(last_edge, origin_edges[i], cargo_target)
             else:
-                merged_edges.append(edge)
+                last_edge = origin_edges[i]
 
-        if closed and should_be_simplified(merged_edges[-1], merged_edges[0]):
-            merged_edges[0] = Edge.twist(merged_edges.pop(), merged_edges[0], cargo_target)
-
-        self._edges = merged_edges
+        if closed and self._edges and should_be_simplified(self._edges[-1], self._edges[0]):
+            Edge.twist(self._edges[-1], self._edges[0], cargo_target)
 
     def remove_crack(self, from_pivots: Optional[List[Pivot]] = None,
                      gc: bool = False) -> None:

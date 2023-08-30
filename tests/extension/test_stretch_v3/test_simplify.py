@@ -210,6 +210,10 @@ class TestSimplify:
         assert stretch.closures[0].shape.area == origin_closures[0].shape.area
         assert stretch.closures[1].shape.area == origin_closures[1].shape.area
 
+        closure0 = stretch.closures[0]
+        deleted_edge_ids = ['(1,2)', '(2,1)', '(2,3)', '(3,2)']
+        assert not any(edge.id in deleted_edge_ids for edge in closure0.edges)
+
     def test_simplify_closure_resembling_line(self, stretch_closure_resembling_line):
         stretch = stretch_closure_resembling_line
         stretch.simplify()
