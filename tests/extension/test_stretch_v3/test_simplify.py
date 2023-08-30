@@ -155,8 +155,12 @@ class TestSimplify:
         │         │         │
         │         │         │
         ▼         ▼         │
+        o◄───────►o◄───────►o
+        │0        1        4▲
+        │                   │
+        ▼                   │
         o────────►o────────►o
-        0         1         4
+        7         8         9
         Parameters
         ----------
         stretch_with_inner_continue_edges
@@ -176,18 +180,37 @@ class TestSimplify:
         │         │         │
         │         │         │
         ▼         ▼         │
+        o◄───────►o◄───────►o
+        │0        1        4▲
+        │                   │
+        ▼                   │
         o────────►o────────►o
-        0         1         4
+        7         8         9
 
         """
         stretch = stretch_with_inner_continue_edges
         assert len(lfilter(lambda e: e.id == "(1,2)", stretch.edges)) == 1
+        origin_closures = stretch.closures
+        assert 2 == len(origin_closures)
 
         stretch.simplify(angle_tol=1e-4, consider_cargo_equality=True)
+        assert not stretch.edge('(1,2)')
+        assert not stretch.edge('(2,1)')
+        assert not stretch.edge('(2,3)')
+        assert not stretch.edge('(3,2)')
+        assert stretch.edge('(1,3)')
+        assert stretch.edge('(3,1)')
+        assert stretch.edge('(0,1)')
+        assert stretch.edge('(1,0)')
+        assert stretch.edge('(4,1)')
+        assert stretch.edge('(1,4)')
 
-        assert len(lfilter(lambda e: e.id == "(1,2)", stretch.edges)) == 0
-        assert len(lfilter(lambda e: e.id == "(2,1)", stretch.edges)) == 0
-        assert len(lfilter(lambda e: e.id == "(2,3)", stretch.edges)) == 0
-        assert len(lfilter(lambda e: e.id == "(3,2)", stretch.edges)) == 0
-        assert len(lfilter(lambda e: e.id == "(1,3)", stretch.edges)) == 1
-        assert len(lfilter(lambda e: e.id == "(3,1)", stretch.edges)) == 1
+        assert 2 == len(stretch.closures)
+
+        assert stretch.closures[0].shape.area == origin_closures[0].shape.area
+        assert stretch.closures[1].shape.area == origin_closures[1].shape.area
+
+    def test_simplify_closure_resembling_line(self, stretch_closure_resembling_line):
+        stretch = stretch_closure_resembling_line
+        stretch.simplify()
+        assert len(stretch.closures) == 2
