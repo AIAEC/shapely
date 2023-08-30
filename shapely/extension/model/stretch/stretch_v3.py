@@ -685,7 +685,8 @@ class EdgeSeq:
 
     def simplify(self, angle_tol: float = STRETCH_EPS,
                  consider_cargo_equality: bool = True,
-                 cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None) -> None:
+                 cargo_target: Optional[Callable[[Edge, Edge], Edge]] = None,
+                 closure_strategy: Optional['ClosureStrategy'] = None) -> None:
         """
         [MID LEVEL API] simplify the edge sequence by merging edges that are almost parallel
         Parameters
@@ -694,6 +695,7 @@ class EdgeSeq:
         consider_cargo_equality:
         cargo_target: callable, given 2 edges, return the one whose cargo simplified edge should take, if None,
             always that the cargo of primary edge.
+        closure_strategy: strategy to find next edge / prev edge to form closure
 
         Returns
         -------
@@ -701,36 +703,45 @@ class EdgeSeq:
         """
 
         def should_be_simplified(edge0, edge1) -> bool:
-            if edge0.closure is not edge1.closure:
-                return False
-
             if edge0.to_pid != edge1.from_pid:
                 return False
-
-            if edge0.reverse_closure != edge1.reverse_closure:
-                return False
-
-            if edge0.reverse and edge1.reverse:
-                if edge1.reverse.next() != edge0.reverse:
-                    return False
 
             if consider_cargo_equality and not edge0.cargo.data_equals(edge1.cargo):
                 return False
 
+            if edge0.closure is not edge1.closure:
+                return False
+
+            if edge0.next(closure_strategy) is not edge1:
+                return False
+
+            if edge1.prev(closure_strategy) is not edge0:
+                return False
+
+            if edge0.reverse_closure is not edge1.reverse_closure:
+                return False
+
+            if edge0.reverse and edge1.reverse:
+                if edge1.reverse.next() is not edge0.reverse:
+                    return False
+
+                if edge0.reverse.prev() is not edge1.reverse:
+                    return False
+
             return edge0.shape.ext.angle().almost_equal(edge1.shape.ext.angle(), angle_tol)
 
         closed = self.closed
-        merged_edges = [self._edges[0]]
-        for edge in self._edges[1:]:
-            if edge not in merged_edges[-1].closure.edges:
-                continue
-            if should_be_simplified(merged_edges[-1], edge):
-                merged_edges[-1] = Edge.twist(merged_edges[-1], edge, cargo_target)
-            else:
-                merged_edges.append(edge)
 
-        if closed and should_be_simplified(merged_edges[-1], merged_edges[0]):
-            merged_edges[0] = Edge.twist(merged_edges.pop(), merged_edges[0], cargo_target)
+        origin_edges = list(self._edges)
+        last_edge = origin_edges[0]
+        for i in range(1, len(origin_edges)):
+            if should_be_simplified(last_edge, origin_edges[i]):
+                last_edge = Edge.twist(last_edge, origin_edges[i], cargo_target)
+            else:
+                last_edge = origin_edges[i]
+
+        if closed and self._edges and should_be_simplified(self._edges[-1], self._edges[0]):
+            Edge.twist(self._edges[-1], self._edges[0], cargo_target)
 
     def remove_crack(self, from_pivots: Optional[List[Pivot]] = None,
                      gc: bool = False) -> None:

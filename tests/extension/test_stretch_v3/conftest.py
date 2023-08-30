@@ -7,6 +7,41 @@ from shapely.wkt import loads
 
 
 @pytest.fixture
+def stretch_closure_resembling_line() -> Stretch:
+    """
+    0    1    2
+    o    o    o
+    Returns
+    -------
+    """
+    stretch = Stretch()
+
+    pivots = [
+        Pivot((0, 0), stretch, '0'),
+        Pivot((1, 0), stretch, '1'),
+        Pivot((2, 0), stretch, '2'),
+    ]
+
+    stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
+
+    edges = [
+        Edge('0', '1', stretch),
+        Edge('1', '2', stretch),
+        Edge('2', '0', stretch),
+        Edge('0', '2', stretch),
+        Edge('2', '1', stretch),
+        Edge('1', '0', stretch),
+    ]
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
+
+    closures = [Closure(EdgeSeq(edges[:3]), stretch, '0'),
+                Closure(EdgeSeq(edges[3:]), stretch, '1')]
+    stretch._closure_map = OrderedDict([(closure.id, closure) for closure in closures])
+
+    stretch.shrink_id_gen()
+    return stretch
+
+@pytest.fixture
 def stretch_dangling_pivots_in_a_row() -> Stretch:
     """
     Returns
@@ -2584,20 +2619,24 @@ def stretch_with_inner_continue_edges() -> Stretch:
     """
     Returns
     -------
-        6                   5
-        o◄──────────────────o
-        │                   ▲
-        │         o 3       │
-        │         ▲         │
-        │         │         │
-        │         ▼         │
-        │         o 2       │
-        │         ▲         │
-        │         │         │
-        │         │         │
-        ▼         ▼         │
-        o────────►o────────►o
-        0         1         4
+      6                   5
+      o◄──────────────────o
+      │                   ▲
+      │         o 3       │
+      │         ▲         │
+      │         │         │
+      │         ▼         │
+      │         o 2       │
+      │         ▲         │
+      │         │         │
+      │         │         │
+      ▼         ▼         │
+      o◄───────►o◄───────►o
+      │0        1        4▲
+      │                   │
+      ▼                   │
+      o────────►o────────►o
+      7         8         9
 
     """
     stretch = Stretch()
@@ -2609,11 +2648,14 @@ def stretch_with_inner_continue_edges() -> Stretch:
         Pivot((20, 0), stretch, '4'),
         Pivot((20, 20), stretch, '5'),
         Pivot((0, 20), stretch, '6'),
+        Pivot((0, -5), stretch, '7'),
+        Pivot((10, -5), stretch, '8'),
+        Pivot((20, -5), stretch, '9'),
     ]
 
     stretch._pivot_map = OrderedDict([(p.id, p) for p in pivots])
 
-    edges = [
+    edges0 = [
         Edge('0', '1', stretch),
         Edge('1', '2', stretch),
         Edge('2', '3', stretch),
@@ -2625,8 +2667,17 @@ def stretch_with_inner_continue_edges() -> Stretch:
         Edge('6', '0', stretch),
     ]
 
-    stretch._edge_map = OrderedDict([(e.id, e) for e in edges])
-    closures = [Closure(EdgeSeq(edges), stretch, '0')]
+    edges1 = [
+        Edge('4', '1', stretch),
+        Edge('1', '0', stretch),
+        Edge('0', '7', stretch),
+        Edge('7', '8', stretch),
+        Edge('8', '9', stretch),
+        Edge('9', '4', stretch),
+    ]
+
+    stretch._edge_map = OrderedDict([(e.id, e) for e in edges0 + edges1])
+    closures = [Closure(EdgeSeq(edges0), stretch, '0'), Closure(EdgeSeq(edges1), stretch, '1')]
     stretch._closure_map = OrderedDict([(c.id, c) for c in closures])
     stretch.shrink_id_gen()
 

@@ -56,3 +56,6 @@ class TestClosure:
         shape = stretch_box_with_exterior_crack.closures[0].shape
         assert shape.is_valid
         assert shape.equals(loads("POLYGON ((0 0, 5 0, 5 5, 5 0, 10 0, 10 10, 0 10, 0 0))"))
+
+    def test_invalid_shape(self, stretch_closure_resembling_line):
+        assert stretch_closure_resembling_line.closures[0].real_shape.equals(loads("POLYGON ((0 0, 1 0, 2 0, 0 0))"))
