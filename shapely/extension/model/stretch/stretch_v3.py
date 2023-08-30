@@ -723,7 +723,7 @@ class EdgeSeq:
         merged_edges = [self._edges[0]]
         for edge in self._edges[1:]:
             if not merged_edges[-1].closure:
-                continue
+                break
             if edge not in merged_edges[-1].closure.edges:
                 continue
             if should_be_simplified(merged_edges[-1], edge):
