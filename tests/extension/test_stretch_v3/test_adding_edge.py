@@ -137,8 +137,25 @@ class TestAddingEdge:
         edge_seq = stretch.add_edge(LineString([(1, -1), (3, -1)]), dist_tol_to_pivot=2, dist_tol_to_edge=2)
 
         assert isinstance(edge_seq, EdgeSeq)
+        assert len(edge_seq) == 1
+        assert edge_seq.shape.equals(LineString([(1, -1), (3, -1)]))
+        assert len(stretch.pivots) == 5
+        assert len(stretch.edges) == 1
+        assert len(stretch.closures) == 0
+
+    def test_add_edge_when_dist_tol_to_pivot_is_small(self, stretch_dangling_pivots_in_a_row):
+        stretch = stretch_dangling_pivots_in_a_row
+
+        assert len(stretch.pivots) == 5
+        assert len(stretch.edges) == 0
+        assert len(stretch.closures) == 0
+
+        edge_seq = stretch.add_edge(LineString([(1, -1), (3, -1)]), dist_tol_to_pivot=0.5, dist_tol_to_edge=2)
+
+        assert isinstance(edge_seq, EdgeSeq)
         assert len(edge_seq) == 2
         assert edge_seq.shape.equals(LineString([(1, -1), (2, 0), (3, -1)]))
         assert len(stretch.pivots) == 5
         assert len(stretch.edges) == 2
         assert len(stretch.closures) == 0
+
