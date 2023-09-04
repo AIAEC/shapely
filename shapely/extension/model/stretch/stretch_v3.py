@@ -1679,8 +1679,14 @@ class Stretch:
 
         for edge in edges_without_pivot_attaching:
             pivots_nearby = self.pivots_by_query(edge.shape, buffer_dist=dist_tol_to_edge)
-            # 当nearby pivot距离edge的端点非常近但是恰巧超过了dist_tol_to_pivot,并且pivot到edge的距离却恰巧小于dist_tol_to_edge时,
-            # 这个pivot参与edge.expand()方法时,可能生成方向不合理的新边,本应极细的三角形会变成一条来回的折线,此时不应该被吸附
+            # 当nearby pivot在edge上的投影距离端点距离大于dist_tol_to_pivot时, 才会出发edge.expand()方法,
+            # 这可以保证edge在expand()之后的子edge长度仍大于dist_tol_to_pivot
+            #  ───┬────┬───
+            #     │////│
+            # ◄───┼────┼───►
+            # a   │////│   b
+            #  ───┴────┴───
+
             pivot_projection_tuples = [(pivot, edge.shape.project(pivot.shape, normalized=False))
                                        for pivot in pivots_nearby]
 
