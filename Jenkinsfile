@@ -15,7 +15,7 @@ pipeline {
     PYPI = credentials('pypi-repo-credential')
   }
 
-// stages {
+  stages {
 //   stage('testing') {
 //    steps {
 //      container('python') {
