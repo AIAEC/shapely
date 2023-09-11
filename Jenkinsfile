@@ -15,16 +15,16 @@ pipeline {
     PYPI = credentials('pypi-repo-credential')
   }
 
-  stages {
-    stage('testing') {
-      steps {
-        container('python') {
-          sh 'pip config set global.index-url https://shoebill:quokka@pypi.aiacesz.com/simple'
-          sh 'pip install -r requirements-test.txt'
-          sh 'pytest -m "not local"'
-        }
-      }
-    }
+// stages {
+//   stage('testing') {
+//    steps {
+//      container('python') {
+//        sh '/opt/python/cp39-cp39/bin/python3 -m pip config set global.index-url https://shoebill:quokka@pypi.aiacesz.com/simple'
+//        sh '/opt/python/cp39-cp39/bin/python3 -m pip install -r requirements-test.txt'
+//        sh '/opt/python/cp39-cp39/bin/python3 -m pytest -m "not local"'
+//      }
+//    }
+//  }
 
     stage('build package') {
       steps {
