@@ -1,7 +1,7 @@
 import pytest
-from shapely.extension.util.func_util import lfilter
 
 from shapely.extension.model.stretch.stretch_v3 import Edge
+from shapely.extension.util.func_util import lfilter
 from shapely.geometry import LinearRing, Point, LineString
 
 
@@ -212,10 +212,10 @@ class TestSimplify:
 
         closure0 = stretch.closures[0]
         deleted_edge_ids = ['(1,2)', '(2,1)', '(2,3)', '(3,2)']
-        assert not any(edge in deleted_edge_ids for edge in closure0.edges)
+        assert not any(edge.id in deleted_edge_ids for edge in closure0.edges)
 
         closure1 = stretch.closures[1]
-        assert not any(edge in deleted_edge_ids for edge in closure1.edges)
+        assert not any(edge.id in deleted_edge_ids for edge in closure1.edges)
 
     def test_simplify_closure_resembling_line(self, stretch_closure_resembling_line):
         stretch = stretch_closure_resembling_line
