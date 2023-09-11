@@ -175,7 +175,7 @@ setup_args = dict(
                            'descartes == 1.1.0',
                            'matplotlib == 3.7.1',
                            'opencv_python == 4.7.0.72',
-                           'cgal >= 1.9.dev0, <2',
+                           'cgal == 1.9.0',
                            'pydantic >= 2.0'
                            ],
     name                = 'Shapely',
