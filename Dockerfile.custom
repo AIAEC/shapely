@@ -12,6 +12,6 @@ RUN mkdir -p /code/geos && cd /code/geos && \
     cmake --install .
 
 ADD requirements-dev.txt /tmp/requirements-dev.txt
-RUN for PYBIN in /opt/python/*/bin; do \
-        $PYBIN/pip install -r /tmp/requirements-dev.txt ; \
+RUN for PY_VERSION in cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311 ; do \
+    /opt/python/${PY_VERSION}/bin/pip install -r /tmp/requirements-dev.txt ; \
     done
