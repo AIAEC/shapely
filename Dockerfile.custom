@@ -1,20 +1,17 @@
-FROM quay.io/pypa/manylinux2010_x86_64:latest
+FROM quay.io/pypa/manylinux_2_28_x86_64:latest
 
-ENV GEOS_VERSION 3.11.2
+ENV GEOS_VERSION 3.12.0
 
-# Install geos
-RUN mkdir -p /src \
-    && cd /src \
-    && curl -f -L -O http://download.osgeo.org/geos/geos-$GEOS_VERSION.tar.bz2 \
-    && tar jxf geos-$GEOS_VERSION.tar.bz2 \
-    && cd /src/geos-$GEOS_VERSION \
-    && ./configure \
-    && make \
-    && make install \
-    && rm -rf /src
+# Build GEOS
+RUN mkdir -p /code/geos && cd /code/geos && \
+    curl -OL http://download.osgeo.org/geos/geos-$GEOS_VERSION.tar.bz2 && \
+    tar xfj geos-$GEOS_VERSION.tar.bz2 && \
+    cd geos-$GEOS_VERSION && mkdir build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib .. && \
+    cmake --build . -j 4 && \
+    cmake --install .
 
-# Bake dev requirements into the Docker image for faster builds
 ADD requirements-dev.txt /tmp/requirements-dev.txt
-RUN for PYBIN in /opt/python/cp3*/bin; do \
-        $PYBIN/pip install --prefer-binary -r /tmp/requirements-dev.txt ; \
+RUN for PYBIN in /opt/python/*/bin; do \
+        $PYBIN/pip install -r /tmp/requirements-dev.txt ; \
     done

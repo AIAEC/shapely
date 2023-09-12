@@ -17,7 +17,7 @@ spec:
 
     - name: builder
       imagePullPolicy: IfNotPresent
-      image: harbor.aiacesz.com/debian/builder:shapely
+      image: harbor.aiacesz.com/debian/builder:shapely2
       command:
         - /bin/cat
       tty: true
