@@ -8,8 +8,8 @@ UNREPAIRED_WHEELS=/tmp/wheels
 SUPPORT_PY_VERSIONS=(cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311)
 for PY_VERSION in ${SUPPORT_PY_VERSIONS[@]}; do
     echo "working on ${PY_VERSION}"
-    PYBIN=/opt/python/${PY_VERSION}/bin/python
-    PATH=${PYBIN}:$PATH
+    PYBIN=/opt/python/${PY_VERSION}/bin
+    PATH=${PYBIN}:$PATH  # merge current PYBIN into PATH, in order to let setup.py find where cython was.
     ${PYBIN} setup.py bdist_wheel -d ${UNREPAIRED_WHEELS}
 done
 
