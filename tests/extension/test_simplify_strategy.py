@@ -44,7 +44,7 @@ def test_simplify_linear_ring():
     assert len(start_in_middle_ring.coords) == 6
     assert 6 == len(start_in_middle_ring.ext.decompose(Point).to_list())
 
-    native_simplified = start_in_middle_ring.simplify(1)  # geos has fixed the ring simplify issue since 3.12
+    native_simplified = start_in_middle_ring.simplify(1)
     assert 6 == len(native_simplified.ext.decompose(Point).to_list())
 
     ring_simplified = start_in_middle_ring.ext.simplify(strategy=RingSimplifyStrategy(simplify_dist=1))[0]
@@ -113,7 +113,7 @@ def test_simplify_invalid_ring_no_raise():
 
     ring = self_intersection_ring.ext.simplify(strategy=NativeSimplifyStrategy(simplify_dist=0.1))[0]
     assert isinstance(ring, LinearRing)
-    assert len(ring.coords) == 11  # geos has fix the ring simplification issue since 3.12
+    assert len(ring.coords) == 11
 
     ring = self_intersection_ring.ext.simplify(strategy=BufferSimplifyStrategy().round(buffer_dist=0.1))[0]
     assert isinstance(ring, LinearRing)
