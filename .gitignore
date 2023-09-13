@@ -24,3 +24,5 @@ ignore/
 venv/
 .ipynb_checkpoints
 .DS_Store
+
+.profiles

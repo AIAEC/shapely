@@ -3,6 +3,7 @@ from itertools import combinations
 from operator import attrgetter
 from typing import Union, List, Optional
 
+from shapely.affinity import rotate
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS, MATH_MIDDLE_EPS
 from shapely.extension.geometry.straight_segment import StraightSegment
 from shapely.extension.model.interval import Interval
@@ -92,6 +93,32 @@ class ProjectionOnLine:
     direction: Vector = field()
     is_out_of_target: bool = field(default=False)
 
+    def special(self, straight_line: LineString, geom: BaseGeometry) -> List[LineString]:
+        if self.is_out_of_target:
+            straight_line = straight_line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE / 2)
+
+        origin = straight_line.centroid
+        origin_x_min, origin_x_max = min_max([coord[0] for coord in straight_line.coords])
+        origin_y = origin.y
+        degree = straight_line.ext.angle().degree
+        rotated_geom = rotate(geom, angle=-degree, origin=origin)
+
+        intervals: List[Interval] = []
+        for single_geom in rotated_geom.ext.flatten():
+            if isinstance(single_geom, Polygon):
+                single_geom = single_geom.exterior
+
+            x_min, x_max = min_max([coord[0] for coord in single_geom.coords])
+            x_min = max(x_min, origin_x_min)
+            x_max = min(x_max, origin_x_max)
+            intervals.append(Interval(x_min, x_max))
+
+        union_intervals = Interval.union_of(intervals)
+        rotated_segment_union = MultiLineString([LineString([(intv.left, origin_y), (intv.right, origin_y)])
+                                            for intv in union_intervals])
+        segment_union = rotate(rotated_segment_union, angle=degree, origin=origin)
+        return segment_union.geoms
+
     @property
     def segments(self) -> List[LineString]:
         """
@@ -102,6 +129,11 @@ class ProjectionOnLine:
 
         if self.projector.is_empty:
             return []
+
+        direction = Vector.from_endpoints_of(self.target_line).ccw_perpendicular.unit()
+        if self.target_line.ext.is_straight() and direction == self.direction:
+            # special case which can be speed up
+            return self.special(straight_line=self.target_line, geom=self.projector)
 
         if isinstance(self.projector, BaseMultipartGeometry):
             return lconcat(
@@ -116,11 +148,12 @@ class ProjectionOnLine:
         target_pro_line = self.target_line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE)
 
         # cal rays which cross coords of projector in direct
-        cross_lines = [self.direction.ray(origin=coord) for coord in self.projector.coords]
-
-        # TODO: maybe add a selection which is unidirectional or bidirectional extension
-        cross_lines = [end_vertical.ext.prolong().from_head(LARGE_ENOUGH_DISTANCE)
-                       for end_vertical in cross_lines]
+        direction = self.direction.unit(LARGE_ENOUGH_DISTANCE / 2)
+        reverse_direction = direction.invert()
+        cross_lines = [LineString([
+            reverse_direction.apply_coord(coord),
+            direction.apply_coord(coord),
+        ]) for coord in self.projector.coords]
 
         # 投影方向与目标直线平行时:
         # 1. 若cross_lines的凸包与target_line不相交, 则返回空list
