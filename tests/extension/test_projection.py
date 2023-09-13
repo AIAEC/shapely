@@ -34,7 +34,6 @@ def test_shadow():
 
 def test_projection_onto_line_in_target():
     target_line = LineString([(0, 0), (100, 0)])
-
     projector_1 = LineString([(-10, 10), (40, 60)])
     result_1 = Projection(projector_1).onto(target_line)
     segments = result_1.segments
@@ -122,10 +121,10 @@ def test_polygon_projection_onto_line():
     projector = box(-10, 10, 30, 30)
 
     segments_1 = Projection(projector).onto(target_line, is_out_of_target=False).segments
-    assert (LineString([(0, 0), (30, 0)]) == segments_1[0])
+    assert LineString([(0, 0), (30, 0)]).equals_exact(segments_1[0], tolerance=1e-6)
 
     segments_2 = Projection(projector).onto(target_line, is_out_of_target=True).segments
-    assert (LineString([(30, 0), (-10, 0)]) == segments_2[0])
+    assert LineString([(-10, 0), (30, 0)]).equals_exact(segments_2[0], tolerance=1e-6)
 
 
 def test_cross_geom_projection_onto_line():

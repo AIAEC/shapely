@@ -4,6 +4,10 @@ from shapely.extension.model.interval import Interval
 
 
 class IntervalTest(TestCase):
+    def test_union_empty_list(self):
+        result = Interval.union_of([])
+        self.assertListEqual([], result)
+
     def test_union_intervals(self):
         result = Interval.union_of([Interval(0, 1), Interval(2, 3), Interval(4, 5)])
         self.assertListEqual([Interval(0, 1), Interval(2, 3), Interval(4, 5)], result)

@@ -93,15 +93,16 @@ class ProjectionOnLine:
     direction: Vector = field()
     is_out_of_target: bool = field(default=False)
 
-    def special(self, straight_line: LineString, geom: BaseGeometry) -> List[LineString]:
+    def normal_projection_on_straight_line(self, straight_line: LineString, geom: BaseGeometry) -> List[LineString]:
         if self.is_out_of_target:
             straight_line = straight_line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE / 2)
 
         origin = straight_line.centroid
-        origin_x_min, origin_x_max = min_max([coord[0] for coord in straight_line.coords])
         origin_y = origin.y
         degree = straight_line.ext.angle().degree
         rotated_geom = rotate(geom, angle=-degree, origin=origin)
+        rotated_straight_line = rotate(straight_line, angle=-degree, origin=origin)
+        x_min_limit, x_max_limit = min_max([coord[0] for coord in rotated_straight_line.coords])
 
         intervals: List[Interval] = []
         for single_geom in rotated_geom.ext.flatten():
@@ -109,15 +110,22 @@ class ProjectionOnLine:
                 single_geom = single_geom.exterior
 
             x_min, x_max = min_max([coord[0] for coord in single_geom.coords])
-            x_min = max(x_min, origin_x_min)
-            x_max = min(x_max, origin_x_max)
-            intervals.append(Interval(x_min, x_max))
+            x_min = max(x_min, x_min_limit)
+            x_max = min(x_max, x_max_limit)
+            if x_min <= x_max:
+                intervals.append(Interval(x_min, x_max))
 
         union_intervals = Interval.union_of(intervals)
-        rotated_segment_union = MultiLineString([LineString([(intv.left, origin_y), (intv.right, origin_y)])
-                                            for intv in union_intervals])
+
+        if rotated_straight_line.coords[0][0] < list(rotated_straight_line.coords)[-1][0]:
+            rotated_segment_union = MultiLineString([LineString([(intv.left, origin_y), (intv.right, origin_y)])
+                                                for intv in union_intervals])
+        else:
+            rotated_segment_union = MultiLineString([LineString([(intv.right, origin_y), (intv.left, origin_y)])
+                                                     for intv in union_intervals])
+
         segment_union = rotate(rotated_segment_union, angle=degree, origin=origin)
-        return segment_union.geoms
+        return list(segment_union.geoms)
 
     @property
     def segments(self) -> List[LineString]:
@@ -133,7 +141,7 @@ class ProjectionOnLine:
         direction = Vector.from_endpoints_of(self.target_line).ccw_perpendicular.unit()
         if self.target_line.ext.is_straight() and direction == self.direction:
             # special case which can be speed up
-            return self.special(straight_line=self.target_line, geom=self.projector)
+            return self.normal_projection_on_straight_line(straight_line=self.target_line, geom=self.projector)
 
         if isinstance(self.projector, BaseMultipartGeometry):
             return lconcat(
@@ -177,7 +185,7 @@ class ProjectionOnLine:
         if projected_seg.length == 0:
             projected_seg = Point(projected_seg.coords[0]).buffer(MATH_MIDDLE_EPS).intersection(self.target_line).centroid
         else:
-            projected_seg = projected_seg.ext.buffer().rect(MATH_MIDDLE_EPS).intersection(self.target_line)
+            projected_seg = projected_seg.ext.rbuf(MATH_MIDDLE_EPS).intersection(self.target_line)
 
         def seg_to_line(projected_seg_):
             if isinstance(projected_seg_, Point) and not projected_seg_.is_empty:

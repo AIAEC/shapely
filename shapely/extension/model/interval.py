@@ -198,6 +198,9 @@ class Interval:
         if not isinstance(intervals, Sequence):
             raise TypeError(f'expect list or tuple of interval, given {intervals}')
 
+        if len(intervals) == 1:
+            return intervals
+
         sorted_intervals: List['Interval'] = sorted(intervals)
         prev_interval_idx: int = 0
 
