@@ -54,8 +54,8 @@ class LineStringExtension(BaseGeomExtension):
         calculate the substring of current linestring
         Parameters
         ----------
-        interval
-        absolute
+        interval: if absolute, it will be clamped into [0, line.length], if not absolute, into [0, 1]
+        absolute: boolean, if not absolute, treat the num in interval as length ratio
         allow_circle: allow to cross the starting point if true
 
         Returns
@@ -92,9 +92,14 @@ class LineStringExtension(BaseGeomExtension):
             else:
                 interval.right = 1 - interval.left + interval.right
             interval.left = 0
+
+        # since substring can handle negative dist, which is not expected
+        # we clamp the interval into non-negative range
+        left = max(0, float(interval.left))
+        right = min(float(interval.right), self._geom.length if absolute else 1)
         return substring(origin_line,
-                         start_dist=float(interval.left),
-                         end_dist=float(interval.right),
+                         start_dist=left,
+                         end_dist=right,
                          normalized=not absolute)
 
     def segments(self) -> List[StraightSegment]:

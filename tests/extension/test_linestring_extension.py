@@ -102,6 +102,10 @@ class LineStringExtensionTest(TestCase):
         result = line.ext.substring((0, 10))
         self.assertEqual(result, LineString([(0, 0), (10, 0)]))
 
+        result = line.ext.substring((-50, 50))
+        self.assertTrue(isinstance(result, LineString), f'expect LineString, returned {type(result).__name__}')
+        self.assertTrue(result.equals(LineString([(0, 0), (50, 0)])))
+
     def test_substring_wont_change_interval(self):
         interval = Interval(100, 20)
         old_interval = deepcopy(interval)
