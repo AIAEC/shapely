@@ -19,7 +19,7 @@ from shapely.extension.strategy.offset_strategy import BaseOffsetStrategy, Offse
 from shapely.extension.strategy.polygonize_strategy import (
     ShapelyPolygonizeStrategy, ConvexHullStrategy, MouldStrategy, ClosingEndPointsStrategy)
 from shapely.extension.typing import CoordType, Num
-from shapely.extension.util.func_util import min_max
+from shapely.extension.util.func_util import min_max, sign
 from shapely.extension.util.iter_util import win_slice
 from shapely.extension.util.line_extent import LineExtent
 from shapely.extension.util.polygonize import Polygonize
@@ -30,6 +30,21 @@ from shapely.ops import substring, unary_union, nearest_points
 
 
 class LineStringExtension(BaseGeomExtension):
+    def is_straight(self, angle_tol: float = MATH_EPS) -> bool:
+        """
+        whether the linestring is a straight line
+        Parameters
+        ----------
+        angle_tol
+
+        Returns
+        -------
+        bool
+        """
+        min_angle, max_angle = min_max(
+            [Coord.angle(*coord_tuple) for coord_tuple in win_slice(self._geom.coords, win_size=2)])
+        return min_angle.including_angle(max_angle) <= angle_tol
+
     def __getitem__(self, item):
         """
         quick way to get substring or point or coordinate
@@ -183,6 +198,13 @@ class LineStringExtension(BaseGeomExtension):
         -------
         linestring
         """
+        if self._geom.ext.is_straight():
+            # straight line won't change its shape while offset, thus we can do simple shifting to accelerate
+            shifted_geom = self._geom.ext.shift(sign(towards == 'left') * dist)
+            if invert_coords and towards == 'right':
+                shifted_geom = shifted_geom.ext.reverse()
+            return shifted_geom
+
         strategy = strategy or OffsetStrategy()
 
         if isinstance(towards, BaseGeometry):
@@ -195,6 +217,22 @@ class LineStringExtension(BaseGeomExtension):
                                dist=float(dist),
                                side=towards,
                                invert_coords=invert_coords)
+
+    def shift(self, dist: float):
+        """
+        simply pan the linestring by its left or right perpendicular direction, without changing the shape(unlike offset)
+        Parameters
+        ----------
+        dist: positive for shifting left, negative for shifting right
+
+        Returns
+        -------
+        linestring
+        """
+        if dist == 0:
+            return self._geom
+
+        return Vector.from_endpoints_of(self._geom).ccw_perpendicular.unit(dist).apply(self._geom)
 
     def is_parallel_to(self, other: LineString,
                        angle_tol: float = MATH_EPS,
@@ -254,21 +292,6 @@ class LineStringExtension(BaseGeomExtension):
         return all(
             line0.ext.is_parallel_to(other=line1, angle_tol=angle_tol, angle_strategy=angle_strategy)
             for line0, line1 in combinations(lines, 2))
-
-    def is_straight(self, angle_tol: float = MATH_EPS) -> bool:
-        """
-        whether the linestring is a straight line
-        Parameters
-        ----------
-        angle_tol
-
-        Returns
-        -------
-        bool
-        """
-        min_angle, max_angle = min_max(
-            [Coord.angle(*coord_tuple) for coord_tuple in win_slice(self._geom.coords, win_size=2)])
-        return min_angle.including_angle(max_angle) <= angle_tol
 
     def extend_to_merge(self, line: LineString, extent_dist: float = LARGE_ENOUGH_DISTANCE) -> Optional[LineString]:
         """

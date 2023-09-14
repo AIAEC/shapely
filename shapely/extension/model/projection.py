@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
+from functools import cached_property
 from itertools import combinations
 from operator import attrgetter
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 
 from shapely.affinity import rotate
 from shapely.extension.constant import MATH_EPS, LARGE_ENOUGH_DISTANCE, ANGLE_AROUND_EPS, MATH_MIDDLE_EPS
@@ -47,11 +48,12 @@ def shadow(geom: BaseGeometry,
     return unary_union([shadow_of_single_geom(single_geom) for single_geom in geom.ext.flatten().to_list()])
 
 
-@dataclass
+@dataclass(frozen=True)
 class ProjectionOnRingLine:
     projector: BaseGeometry = field()
     target_line: LineString = field()
 
+    @cached_property
     def segments(self) -> List[LineString]:
         return [substring(self.target_line, float(interval.left), float(interval.right))
                 for interval in self.positive_intervals()]
@@ -86,7 +88,7 @@ class ProjectionOnRingLine:
         return lfilter(lambda interval: interval.length > eps, overall_interval - self.positive_intervals(normalized))
 
 
-@dataclass
+@dataclass(frozen=True)
 class ProjectionOnLine:
     projector: BaseGeometry = field()
     target_line: LineString = field()
@@ -119,7 +121,7 @@ class ProjectionOnLine:
 
         if rotated_straight_line.coords[0][0] < list(rotated_straight_line.coords)[-1][0]:
             rotated_segment_union = MultiLineString([LineString([(intv.left, origin_y), (intv.right, origin_y)])
-                                                for intv in union_intervals])
+                                                     for intv in union_intervals])
         else:
             rotated_segment_union = MultiLineString([LineString([(intv.right, origin_y), (intv.left, origin_y)])
                                                      for intv in union_intervals])
@@ -127,7 +129,7 @@ class ProjectionOnLine:
         segment_union = rotate(rotated_segment_union, angle=degree, origin=origin)
         return list(segment_union.geoms)
 
-    @property
+    @cached_property
     def segments(self) -> List[LineString]:
         """
         目标直线段上的投影线段. 若is_out_of_target=True, 则投影线段可以落在目标直线段之外.
@@ -150,8 +152,9 @@ class ProjectionOnLine:
                                            is_out_of_target=self.is_out_of_target).segments
                  for sub_geom in self.projector.geoms])
 
+        projector = self.projector
         if isinstance(self.projector, Polygon):
-            self.projector = self.projector.exterior
+            projector = self.projector.exterior
 
         target_pro_line = self.target_line.ext.prolong().from_ends(LARGE_ENOUGH_DISTANCE)
 
@@ -161,7 +164,7 @@ class ProjectionOnLine:
         cross_lines = [LineString([
             reverse_direction.apply_coord(coord),
             direction.apply_coord(coord),
-        ]) for coord in self.projector.coords]
+        ]) for coord in projector.coords]
 
         # 投影方向与目标直线平行时:
         # 1. 若cross_lines的凸包与target_line不相交, 则返回空list
@@ -183,7 +186,8 @@ class ProjectionOnLine:
             return [projected_seg]
 
         if projected_seg.length == 0:
-            projected_seg = Point(projected_seg.coords[0]).buffer(MATH_MIDDLE_EPS).intersection(self.target_line).centroid
+            projected_seg = Point(projected_seg.coords[0]).buffer(MATH_MIDDLE_EPS).intersection(
+                self.target_line).centroid
         else:
             projected_seg = projected_seg.ext.rbuf(MATH_MIDDLE_EPS).intersection(self.target_line)
 
@@ -235,6 +239,24 @@ class ProjectionOnLine:
         """
         negative_intervals = self.negative_intervals(normalized=normalized)
         return sum(lmap(attrgetter('length'), negative_intervals))
+
+    def positive_and_negative_intervals(self, normalized=False,
+                                        eps: float = MATH_EPS) -> Tuple[List[Interval], List[Interval]]:
+        """
+        calculate the positive and negative intervals at the same time, usually used as speeding up shortcut
+        :param normalized: 是否按目标线的长度归一化
+        :param eps: 最小误差, 生成的interval如果长度小于该误差则我们认为该interval是因为误差而生成, 故去除
+        :return:
+        """
+        positive_intervals = [Interval(*min_max([self._location(Point(coord), normalized=normalized)
+                                                 for coord in projected_segment.coords]))
+                              for projected_segment in self.segments] or [Interval.empty()]
+
+        overall_interval = Interval(0, 1 if normalized else self.target_line.length)
+        negative_intervals = lfilter(lambda interval: interval.length >= eps,
+                                     overall_interval.minus(self.positive_intervals(normalized)))
+
+        return positive_intervals, negative_intervals
 
     def _location(self, point: Point, normalized: bool = False) -> float:
         """

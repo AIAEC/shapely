@@ -399,3 +399,11 @@ class LineStringExtensionTest(TestCase):
 
         result = line.ext.substring([a, 0], allow_circle=True)
         self.assertTrue(LineString([(5, 0), (10, 0)]).equals(result))
+
+    def test_shift(self):
+        line = LineString([(0, 0), (10, 0)])
+        res = line.ext.shift(1)
+        self.assertTrue(LineString([(0, 1), (10, 1)]).equals(res))
+
+        res = line.ext.shift(-1)
+        self.assertTrue(LineString([(0, -1), (10, -1)]).equals(res))
