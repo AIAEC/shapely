@@ -203,7 +203,7 @@ class LineStringExtension(BaseGeomExtension):
             shifted_geom = self._geom.ext.shift(sign(towards == 'left') * dist)
             if invert_coords and towards == 'right':
                 shifted_geom = shifted_geom.ext.reverse()
-            return shifted_geom
+            return shifted_geom.simplify(0)  # align with the lower logic, which embed a simplify(0) after offset
 
         strategy = strategy or OffsetStrategy()
 
