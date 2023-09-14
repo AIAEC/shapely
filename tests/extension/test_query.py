@@ -187,3 +187,11 @@ def test_query_from_obj():
     assert len(result) == 1
     assert isinstance(result[0], Test)
     assert box(0, 0, 1, 1).equals(result[0].a)
+
+
+def test_intersection():
+    query = Query([box(0, 0, 1, 1),
+                   box(1, 1, 2, 2),
+                   box(-1, -1, -0.5, -0.5)])
+    res = query.intersection(box(0.5, 0.5, 1.5, 1.5))
+    assert res.area == 0.5

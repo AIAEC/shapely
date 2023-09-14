@@ -7,6 +7,7 @@ from toolz import identity
 from shapely.extension.util.flatten import flatten
 from shapely.extension.util.func_util import lfilter, lmap
 from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
 
@@ -149,6 +150,10 @@ class Query:
 
     def intersects(self, geom: BaseGeometry) -> List[BaseGeometry]:
         return self.unpack(lfilter(lambda candidate: candidate.intersects(geom), self._db.query(geom)))
+
+    def intersection(self, geom: BaseGeometry) -> BaseGeometry:
+        return unary_union(
+            lfilter(lambda candidate: candidate.intersects(geom), self._db.query(geom))).intersection(geom)
 
     def contains(self, geom: BaseGeometry) -> List[BaseGeometry]:
         return self.unpack(lfilter(lambda candidate: candidate.contains(geom), self._db.query(geom)))
