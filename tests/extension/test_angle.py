@@ -277,3 +277,11 @@ class AngleTest(TestCase):
         case = loads('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))')
         angle = case.ext.angle().degree
         self.assertTrue(angle == 0)
+
+    def test_angle_range(self):
+        angle1 = Angle(1, range_=(0, 90))
+        angle2 = Angle(89, range_=(0, 90))
+        assert angle1.including_angle(angle2) == 2
+        assert angle2.including_angle(angle1) == 2
+        assert angle1.rotating_angle(angle2, direct='ccw') == 88
+        assert angle1.rotating_angle(angle2, direct='cw') == 2
