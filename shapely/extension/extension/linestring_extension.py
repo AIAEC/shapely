@@ -201,7 +201,7 @@ class LineStringExtension(BaseGeomExtension):
         if self._geom.ext.is_straight():
             # straight line won't change its shape while offset, thus we can do simple shifting to accelerate
             shifted_geom = self._geom.ext.shift(sign(towards == 'left') * dist)
-            if invert_coords and towards == 'right':
+            if invert_coords:
                 shifted_geom = shifted_geom.ext.reverse()
             return shifted_geom.simplify(0)  # align with the lower logic, which embed a simplify(0) after offset
 

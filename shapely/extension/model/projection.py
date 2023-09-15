@@ -254,7 +254,7 @@ class ProjectionOnLine:
 
         overall_interval = Interval(0, 1 if normalized else self.target_line.length)
         negative_intervals = lfilter(lambda interval: interval.length >= eps,
-                                     overall_interval.minus(self.positive_intervals(normalized)))
+                                     overall_interval.minus(positive_intervals))
 
         return positive_intervals, negative_intervals
 
