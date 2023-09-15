@@ -407,3 +407,18 @@ class LineStringExtensionTest(TestCase):
 
         res = line.ext.shift(-1)
         self.assertTrue(LineString([(0, -1), (10, -1)]).equals(res))
+
+    def test_offset_straight_line(self):
+        line = LineString([(0, 0), (1, 0)])
+        result = line.ext.offset(0.5, towards='left', invert_coords=False)
+        self.assertEqual(LineString([(0, 0.5), (1, 0.5)]), result)
+
+        result1 = line.ext.offset(0.5, towards='left', invert_coords=True)
+        self.assertEqual(LineString([(1, 0.5), (0, 0.5)]), result1)
+
+        result2 = line.ext.offset(0.5, towards='right', invert_coords=False)
+        self.assertEqual(LineString([(0, -0.5), (1, -0.5)]), result2)
+
+        result3 = line.ext.offset(0.5, towards='right', invert_coords=True)
+        self.assertEqual(LineString([(1, -0.5), (0, -0.5)]), result3)
+
