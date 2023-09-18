@@ -1,11 +1,10 @@
 from decimal import Decimal
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
 from operator import attrgetter
-from typing import Union, Sequence, Tuple, Literal, List
+from typing import Union, Sequence, Tuple, Literal
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.typing import Num
-from shapely.extension.util.func_util import sign
 
 
 class Angle:
@@ -14,7 +13,7 @@ class Angle:
     rotating_angle calculation and including_angle calculation
     """
 
-    def __init__(self, angle_degree: Union[float, 'Angle'], range_: Tuple[float, float] = (0, 360)):
+    def __init__(self, angle_degree: Union[float, 'Angle'], range_: Tuple[float, float] = None):
         """
         init angle instance
 
@@ -30,15 +29,14 @@ class Angle:
         for calculation conveniency, otherwise we return value that mod into space [lower, upper]
 
         """
-        self._assert_valid_angle(angle_degree)
-        self._assert_valid_range(range_)
 
-        if isinstance(angle_degree, Angle):
-            self._angle_degree = angle_degree.degree
-            self._range = angle_degree.mod
-        else:
-            self._angle_degree = angle_degree
-            self._range = range_
+        if range_ is None:
+            range_ = angle_degree._range if isinstance(angle_degree, Angle) else (0, 360)
+        self._assert_valid_range(range_)
+        self._range = range_
+
+        self._assert_valid_angle(angle_degree)
+        self._angle_degree = angle_degree.degree if isinstance(angle_degree, Angle) else angle_degree
 
     def __repr__(self):
         return f'{self.degree}%{self._range}'
@@ -417,18 +415,3 @@ class Angle:
 
     def __abs__(self):
         return abs(self.degree)
-
-    @classmethod
-    def average(cls, angles: List[Union['Angle', float]], range_: Tuple[float, float]) -> 'Angle':
-        angles = [Angle(angle, range_=range_) for angle in angles]
-        if not angles:
-            return cls(angle_degree=0, range_=range_)
-
-        benchmark_angle = angles[0]
-        ccw_angle_diff = sum([benchmark_angle.rotating_angle(angle, direct='ccw').degree for angle in angles])
-        cw_angle_diff = sum([benchmark_angle.rotating_angle(angle, direct='cw').degree for angle in angles])
-        smallest_angle_diff = min(ccw_angle_diff, cw_angle_diff)
-        rotate_ccw = (smallest_angle_diff == ccw_angle_diff)
-
-        average_angle = benchmark_angle + sign(rotate_ccw) * Angle(smallest_angle_diff / len(angles), range_=range_)
-        return average_angle
