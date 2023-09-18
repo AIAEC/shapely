@@ -198,7 +198,13 @@ class LineStringExtension(BaseGeomExtension):
         -------
         linestring
         """
-        if self._geom.ext.is_straight() and isinstance(towards, str):
+        if isinstance(towards, BaseGeometry):
+            angle_from_start_to_move_target_centroid = Vector.from_origin_to_target(self.start(),
+                                                                                    towards.centroid).angle
+            at_left = self.angle().rotating_angle(angle_from_start_to_move_target_centroid, 'ccw') < 180
+            towards = 'left' if at_left else 'right'
+
+        if self._geom.ext.is_straight():
             # straight line won't change its shape while offset, thus we can do simple shifting to accelerate
             shifted_geom = self._geom.ext.shift(sign(towards == 'left') * dist)
             if invert_coords:
@@ -206,12 +212,6 @@ class LineStringExtension(BaseGeomExtension):
             return shifted_geom.simplify(0)  # align with the lower logic, which embed a simplify(0) after offset
 
         strategy = strategy or OffsetStrategy()
-
-        if isinstance(towards, BaseGeometry):
-            angle_from_start_to_move_target_centroid = Vector.from_origin_to_target(self.start(),
-                                                                                    towards.centroid).angle
-            at_left = self.angle().rotating_angle(angle_from_start_to_move_target_centroid, 'ccw') < 180
-            towards = 'left' if at_left else 'right'
 
         return strategy.offset(line=self._geom,
                                dist=float(dist),
