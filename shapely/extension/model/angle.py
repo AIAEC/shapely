@@ -1,10 +1,11 @@
 from decimal import Decimal
 from math import radians, sin, cos, tan, floor, ceil, isclose, asin, degrees, acos, atan, atan2, isnan
 from operator import attrgetter
-from typing import Union, Sequence, Tuple, Literal
+from typing import Union, Sequence, Tuple, Literal, List
 
 from shapely.extension.constant import MATH_EPS
 from shapely.extension.typing import Num
+from shapely.extension.util.func_util import sign
 
 
 class Angle:
@@ -46,11 +47,13 @@ class Angle:
     def from_radian(cls, radian: float, range_: Tuple[float, float] = (0, 360)):
         return cls(angle_degree=degrees(radian), range_=range_)
 
-    def _assert_valid_angle(self, angle_degree) -> None:
+    @staticmethod
+    def _assert_valid_angle(angle_degree) -> None:
         if not isinstance(angle_degree, (Num, Angle)):
             raise TypeError(f'angle_degree should be a number or angle, given {angle_degree}')
 
-    def _assert_valid_range(self, range_) -> None:
+    @staticmethod
+    def _assert_valid_range(range_) -> None:
         if not (isinstance(range_, Sequence)
                 and len(range_) == 2
                 and all(isinstance(num, Num) for num in range_)
@@ -414,3 +417,18 @@ class Angle:
 
     def __abs__(self):
         return abs(self.degree)
+
+    @classmethod
+    def average(cls, angles: List[Union['Angle', float]], range_: Tuple[float, float]) -> 'Angle':
+        angles = [Angle(angle, range_=range_) for angle in angles]
+        if not angles:
+            return cls(angle_degree=0, range_=range_)
+
+        benchmark_angle = angles[0]
+        ccw_angle_diff = sum([benchmark_angle.rotating_angle(angle, direct='ccw').degree for angle in angles])
+        cw_angle_diff = sum([benchmark_angle.rotating_angle(angle, direct='cw').degree for angle in angles])
+        smallest_angle_diff = min(ccw_angle_diff, cw_angle_diff)
+        rotate_ccw = (smallest_angle_diff == ccw_angle_diff)
+
+        average_angle = benchmark_angle + sign(rotate_ccw) * Angle(smallest_angle_diff / len(angles), range_=range_)
+        return average_angle

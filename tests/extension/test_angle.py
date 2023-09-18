@@ -285,3 +285,59 @@ class AngleTest(TestCase):
         assert angle2.including_angle(angle1) == 2
         assert angle1.rotating_angle(angle2, direct='ccw') == 88
         assert angle1.rotating_angle(angle2, direct='cw') == 2
+
+    def test_average(self):
+        mod = (0, 90)
+        assert Angle.average([], range_=mod) == Angle(0, range_=mod)
+
+        angle1 = Angle(1, range_=mod)
+
+        assert Angle.average([angle1], range_=mod) == Angle(1, range_=mod)
+
+        angle1 = Angle(1, range_=mod)
+        angle2 = Angle(89, range_=mod)
+        assert Angle.average([angle1, angle2], range_=mod).including_angle(Angle(0, range_=mod)).degree == 0
+
+        angle1 = Angle(0, range_=mod)
+        angle2 = Angle(45, range_=mod)
+        assert Angle.average([angle1, angle2], range_=mod).including_angle(Angle(0, range_=mod)).degree == 22.5
+
+        angle1 = Angle(2, range_=mod)
+        angle2 = Angle(47, range_=mod)
+        assert Angle.average([angle1, angle2], range_=mod).including_angle(Angle(24.5, range_=mod)).degree == 0
+
+        angle1 = Angle(91, range_=mod)
+        angle2 = Angle(89, range_=mod)
+        assert Angle.average([angle1, angle2], range_=mod).including_angle(Angle(0, range_=mod)) == 0
+
+        mod = (0, 180)
+        angle1 = Angle(1, range_=mod)
+        angle2 = Angle(89, range_=mod)
+        assert Angle.average([angle1, angle2], range_=mod).including_angle(Angle(45, range_=mod)) == 0
+
+        angle1 = Angle(91, range_=mod)
+        angle2 = Angle(89, range_=mod)
+        assert Angle.average([angle1, angle2], range_=mod).including_angle(Angle(90, range_=mod)) == 0
+
+        mod = (0, 360)
+        # angle in 355,0,5,10
+        angle1 = Angle(355, range_=mod)
+        angle2 = Angle(5, range_=mod)
+        angle3 = Angle(10, range_=mod)
+        angle4 = Angle(0, range_=mod)
+        assert Angle.average([angle1, angle2, angle3, angle4], range_=mod).including_angle(Angle(2.5, range_=mod)) == 0
+
+        # angle in 5,0,355,350
+        angle1 = Angle(5, range_=mod)
+        angle2 = Angle(0, range_=mod)
+        angle3 = Angle(355, range_=mod)
+        angle4 = Angle(350, range_=mod)
+        assert Angle.average([angle1, angle2, angle3, angle4], range_=mod).including_angle(Angle(-2.5, range_=mod)) == 0
+        assert Angle.average([5, 0, 355, 350], range_=mod).including_angle(Angle(-2.5, range_=mod)) == 0
+
+        mod = (-180, 180)
+        # angle in 355,0,5,10
+        angle1 = Angle(90, range_=mod)
+        angle2 = Angle(0, range_=mod)
+        angle3 = Angle(-30, range_=mod)
+        assert Angle.average([angle1, angle2, angle3], range_=mod).including_angle(Angle(20, range_=mod)) == 0
